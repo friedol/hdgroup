@@ -35,6 +35,7 @@ import {
 import { Textarea } from "@/components/ui/textarea";
 import AppLayout from '@/layouts/app-layout';
 import { toast } from 'sonner';
+import { KpiCard } from "@/components/dashboard/KpiCard";
 
 interface Loan {
   id: number;
@@ -46,6 +47,7 @@ interface Loan {
   payment_date: string;
   created_at: string;
   status?: string;
+  notes?: string;
 }
 
 interface PaginatedResponse<T> {
@@ -137,6 +139,13 @@ export default function LoansIndex({ loans, summary, filters }: LoansIndexProps)
     });
   };
 
+  const kpis = [
+    { title: "Total Outstanding", value: `TZS ${summary.total_debt.toLocaleString()}`, change: 0, icon: Wallet, href: "#", bgClass: "bg-emerald-50/50", iconBgClass: "bg-emerald-100 text-emerald-600" },
+    { title: "Overdue Amount", value: `TZS ${summary.overdue_debt.toLocaleString()}`, change: 0, icon: Clock, href: "#", bgClass: "bg-rose-50/50", iconBgClass: "bg-rose-100 text-rose-600" },
+    { title: "Active Accounts", value: summary.active_loans.toString(), change: 0, icon: CreditCard, href: "#", bgClass: "bg-blue-50/50", iconBgClass: "bg-blue-100 text-blue-600" },
+    { title: "Payment Efficiency", value: "84%", change: 0, icon: Check, href: "#", bgClass: "bg-purple-50/50", iconBgClass: "bg-purple-100 text-purple-600" },
+  ];
+
   return (
     <>
       <Head title="Pending Payments" />
@@ -164,57 +173,11 @@ export default function LoansIndex({ loans, summary, filters }: LoansIndexProps)
           </div>
 
           <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-4 gap-3 md:gap-4">
-            <Card className="border-l-4 border-l-emerald-500">
-              <CardHeader className="pb-1">
-                <CardTitle className="text-xs font-medium flex items-center gap-1">
-                  <Wallet className="w-3 h-3 text-emerald-500" />
-                  TOTAL OUTSTANDING
-                </CardTitle>
-              </CardHeader>
-              <CardContent className="pb-3">
-                <div className="text-lg font-bold text-foreground">TZS {summary.total_debt.toLocaleString()}</div>
-                <p className="text-xs text-muted-foreground mt-0.5">{summary.active_loans} Active orders</p>
-              </CardContent>
-            </Card>
-
-            <Card className="border-l-4 border-l-rose-500">
-              <CardHeader className="pb-1">
-                <CardTitle className="text-xs font-medium flex items-center gap-1">
-                  <Clock className="w-3 h-3 text-rose-500" />
-                  OVERDUE AMOUNT
-                </CardTitle>
-              </CardHeader>
-              <CardContent className="pb-3">
-                <div className="text-lg font-bold text-rose-600">TZS {summary.overdue_debt.toLocaleString()}</div>
-                <p className="text-xs text-muted-foreground mt-0.5">{summary.overdue_count} Overdue accounts</p>
-              </CardContent>
-            </Card>
-
-            <Card className="border-l-4 border-l-blue-500">
-              <CardHeader className="pb-1">
-                <CardTitle className="text-xs font-medium flex items-center gap-1">
-                  <CreditCard className="w-3 h-3 text-blue-500" />
-                  ACTIVE ACCOUNTS
-                </CardTitle>
-              </CardHeader>
-              <CardContent className="pb-3">
-                <div className="text-lg font-bold text-foreground">{summary.active_loans}</div>
-                <p className="text-xs text-muted-foreground mt-0.5">Orders in progress</p>
-              </CardContent>
-            </Card>
-
-            <Card className="border-l-4 border-l-purple-500">
-              <CardHeader className="pb-1">
-                <CardTitle className="text-xs font-medium flex items-center gap-1">
-                  <Check className="w-3 h-3 text-purple-500" />
-                  PAYMENT EFFICIENCY
-                </CardTitle>
-              </CardHeader>
-              <CardContent className="pb-3">
-                <div className="text-lg font-bold text-foreground">84%</div>
-                <p className="text-xs text-muted-foreground mt-0.5">Collection rate</p>
-              </CardContent>
-            </Card>
+            {kpis.map((kpi, i) => (
+              <div key={kpi.title} className={`animate-fade-up stagger-${i + 1}`}>
+                <KpiCard {...kpi} className="shadow-sm hover:shadow-md transition-shadow" />
+              </div>
+            ))}
           </div>
 
           <Card className="shadow-none border-slate-200 overflow-hidden">
@@ -252,7 +215,14 @@ export default function LoansIndex({ loans, summary, filters }: LoansIndexProps)
                                 <span className="font-bold text-slate-900">#{loan.unique_id}</span>
                                 <p className="text-[10px] text-slate-400 font-medium">Recorded {new Date(loan.created_at).toLocaleDateString()}</p>
                             </TableCell>
-                            <TableCell className="px-6 py-4 font-bold text-slate-700 uppercase">{loan.customer_name}</TableCell>
+                            <TableCell className="px-6 py-4">
+                                <span className="font-bold text-slate-700 uppercase">{loan.customer_name}</span>
+                                {loan.notes && (
+                                    <p className="text-xs bg-slate-100/80 text-slate-600 p-1.5 rounded border border-slate-200 mt-1 italic font-normal">
+                                        Note: "{loan.notes}"
+                                    </p>
+                                )}
+                            </TableCell>
                             <TableCell className="px-6 py-4 text-slate-600 font-medium tabular-nums">TZS {loan.total_amount.toLocaleString()}</TableCell>
                             <TableCell className="px-6 py-4 text-emerald-600 font-bold tabular-nums">TZS {loan.total_paid.toLocaleString()}</TableCell>
                             <TableCell className="px-6 py-4">

@@ -83,12 +83,12 @@ export default function OrderTracking({ order, isGuestTracking = false }: Props)
                     {/* Timeline */}
                     <div className="bg-white rounded-xl p-5 md:p-6 border border-slate-200 shadow-sm mb-6">
                         <h3 className="text-[18px] font-bold text-slate-900 mb-6 flex items-center gap-2">
-                            <Truck className="w-5 h-5 text-amber-500" />
+                            <Truck className="w-5 h-5 text-blue-600" />
                             Expedition Roadmap
                         </h3>
                         <div className="relative flex justify-between items-start">
                             <div className="absolute top-5 left-0 right-0 h-0.5 bg-slate-100 -z-0">
-                                <div className="h-full bg-amber-400" style={{ width: `${(currentStep / (steps.length - 1)) * 100}%` }}></div>
+                                <div className="h-full bg-blue-600" style={{ width: `${(currentStep / (steps.length - 1)) * 100}%` }}></div>
                             </div>
                             {steps.map((step, idx) => {
                                 const Icon = step.icon;
@@ -97,7 +97,7 @@ export default function OrderTracking({ order, isGuestTracking = false }: Props)
                                 return (
                                     <div key={step.key} className="relative z-10 flex flex-col items-center gap-3 text-center group w-1/4">
                                         <div className={`w-10 h-10 rounded-full flex items-center justify-center shadow-sm transition-all
-                                            ${isCompleted ? 'bg-emerald-400 text-white' : isCurrent ? 'bg-amber-400 text-slate-900' : 'bg-white border-2 border-slate-200 text-slate-300'}`}
+                                            ${isCompleted ? 'bg-emerald-400 text-white' : isCurrent ? 'bg-blue-600 text-white' : 'bg-white border-2 border-slate-200 text-slate-300'}`}
                                         >
                                             {isCompleted ? <CheckCircle className="w-5 h-5" /> : <Icon className="w-5 h-5" />}
                                         </div>
@@ -122,7 +122,7 @@ export default function OrderTracking({ order, isGuestTracking = false }: Props)
                                     <div className="flex items-center gap-4">
                                         <div className="w-10 h-10 bg-slate-100 rounded-lg flex items-center justify-center text-base">📦</div>
                                         <div>
-                                            <p className="text-sm font-bold text-slate-900 group-hover:text-amber-600 transition-colors">{item.product_name}</p>
+                                            <p className="text-sm font-bold text-slate-900 group-hover:text-blue-600 transition-colors">{item.product_name}</p>
                                             <p className="text-[10px] font-bold text-slate-400 tracking-wide">Qty: {item.quantity} {item.unit}</p>
                                         </div>
                                     </div>

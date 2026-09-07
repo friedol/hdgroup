@@ -108,7 +108,7 @@ export default function UsersIndex({ users, metrics }: UsersIndexProps) {
   return (
     <AppLayout breadcrumbs={breadcrumbs}>
       <Head title="Enterprise Staff Management" />
-      <div className="max-w-[1600px] mx-auto space-y-8 pb-10">
+      <div className="w-full space-y-8 pb-10">
         
         {/* Header Section */}
         <div className="flex flex-col md:flex-row md:items-center justify-between gap-6">

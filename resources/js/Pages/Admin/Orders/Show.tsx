@@ -11,6 +11,7 @@ import {
   History,
   Package,
   Printer,
+  Send,
   ShoppingCart,
   Truck,
   Trash2,
@@ -21,12 +22,14 @@ import React, { useState } from 'react';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import AppLayout from '@/layouts/app-layout';
+import { KpiCard } from "@/components/dashboard/KpiCard";
 
 interface SaleItem {
   id: number;
   product_name: string;
   display_name?: string;
   product_sku: string;
+  image?: string | null;
   unit_price: number;
   quantity: number;
   discount: number;
@@ -185,7 +188,7 @@ function PosSaleOrderView({
     <>
       <Head title={`Sale ${sale.invoice_number}`} />
       <AppLayout breadcrumbs={breadcrumbs}>
-        <div className="max-w-[1700px] mx-auto space-y-8 pb-20">
+        <div className="w-full space-y-8 pb-20">
           <div className="flex flex-col md:flex-row md:items-center justify-between gap-6">
             <div className="flex items-center gap-4">
               <Button
@@ -218,7 +221,17 @@ function PosSaleOrderView({
                 </Button>
               </Link>
               <Button
-                onClick={() => window.open(`/finance/invoices/${encodeURIComponent(sale.invoice_number)}/receipt`, '_blank', 'width=450,height=700')}
+                onClick={() => {
+                  const url = `${window.location.origin}/invoice/receipt/${encodeURIComponent(sale.invoice_number)}`;
+                  const text = `Habari ${sale.customer_name}, hapa kuna Invoice / Risiti yako ya TZS ${sale.payable_amount.toLocaleString()} kutoka Jopo Juniours Co. Ltd. Unaweza kuipata hapa: ${url}`;
+                  window.open(`https://api.whatsapp.com/send?phone=${sale.customer_phone || ''}&text=${encodeURIComponent(text)}`, '_blank');
+                }}
+                className="h-10 px-5 bg-emerald-600 hover:bg-emerald-700 text-white rounded-lg font-bold text-xs flex items-center gap-2"
+              >
+                <Send className="h-4 w-4" /> Tuma Invoice
+              </Button>
+              <Button
+                onClick={() => window.open(`/invoice/receipt/${encodeURIComponent(sale.invoice_number)}`, '_blank', 'width=450,height=700')}
                 variant="outline"
                 className="h-10 px-5 border-slate-200 rounded-lg font-bold text-xs flex items-center gap-2 bg-white text-slate-700 hover:bg-slate-50"
               >
@@ -240,14 +253,13 @@ function PosSaleOrderView({
 
           <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 md:gap-4">
             {[
-              { label: 'PAYABLE', value: fmt(sale.payable_amount), color: 'text-slate-900', border: 'border-l-blue-500' },
-              { label: 'COLLECTED', value: fmt(sale.amount_paid), color: 'text-emerald-600', border: 'border-l-emerald-500' },
-              { label: 'BALANCE', value: fmt(sale.balance), color: sale.balance > 0 ? 'text-rose-600' : 'text-slate-400', border: 'border-l-rose-500' },
-              { label: 'PROFIT', value: fmt(total_profit), color: 'text-indigo-600', border: 'border-l-indigo-500' },
-            ].map((k) => (
-              <div key={k.label} className={`border border-slate-200 border-l-4 ${k.border} rounded-lg p-4 shadow-sm bg-white`}>
-                <p className="text-[10px] font-medium uppercase tracking-tight text-slate-500 mb-2">{k.label}</p>
-                <p className={`text-lg font-bold ${k.color}`}>{k.value}</p>
+              { title: 'Payable', value: fmt(sale.payable_amount), change: 0, icon: ShoppingCart, bgClass: 'bg-blue-50/50', iconBgClass: 'bg-blue-100 text-blue-600' },
+              { title: 'Collected', value: fmt(sale.amount_paid), change: 0, icon: TrendingUp, bgClass: 'bg-emerald-50/50', iconBgClass: 'bg-emerald-100 text-emerald-600' },
+              { title: 'Balance', value: fmt(sale.balance), change: 0, icon: Clock, bgClass: 'bg-rose-50/50', iconBgClass: 'bg-rose-100 text-rose-600' },
+              { title: 'Profit', value: fmt(total_profit), change: 0, icon: TrendingUp, bgClass: 'bg-indigo-50/50', iconBgClass: 'bg-indigo-100 text-indigo-600' },
+            ].map((k, i) => (
+              <div key={k.title} className={`animate-fade-up stagger-${i + 1}`}>
+                <KpiCard {...k} className="shadow-sm hover:shadow-md transition-shadow" />
               </div>
             ))}
           </div>
@@ -333,7 +345,7 @@ function PosSaleOrderView({
                     <thead>
                       <tr className="border-b border-slate-50 bg-slate-50/20">
                         <th className="text-left px-6 py-3 text-[10px] font-bold text-slate-400 uppercase">Product</th>
-                        <th className="text-right px-6 py-3 text-[10px] font-bold text-slate-400 uppercase">Unit</th>
+                        <th className="text-right px-6 py-3 text-[10px] font-bold text-slate-400 uppercase">Selling Price</th>
                         <th className="text-center px-6 py-3 text-[10px] font-bold text-slate-400 uppercase">Qty</th>
                         <th className="text-right px-6 py-3 text-[10px] font-bold text-slate-400 uppercase">Discount</th>
                         <th className="text-right px-6 py-3 text-[10px] font-bold text-slate-400 uppercase">Subtotal</th>
@@ -344,8 +356,19 @@ function PosSaleOrderView({
                       {items.map((item) => (
                         <tr key={item.id} className="hover:bg-slate-50/50">
                           <td className="px-6 py-4">
-                            <p className="text-xs font-bold text-slate-800 uppercase tracking-tight">{item.display_name || item.product_name}</p>
-                            <p className="text-[10px] text-slate-400 font-mono mt-0.5">{item.product_sku || 'N/A'}</p>
+                            <div className="flex items-center gap-3">
+                              {item.image ? (
+                                <img src={item.image} alt={item.product_name} className="h-10 w-10 rounded-lg object-cover border border-slate-100 flex-shrink-0" />
+                              ) : (
+                                <div className="h-10 w-10 rounded-lg bg-slate-100 flex items-center justify-center flex-shrink-0">
+                                  <Package className="h-4 w-4 text-slate-400" />
+                                </div>
+                              )}
+                              <div>
+                                <p className="text-xs font-bold text-slate-800 uppercase tracking-tight">{item.display_name || item.product_name}</p>
+                                <p className="text-[10px] text-slate-400 font-mono mt-0.5">{item.product_sku || 'N/A'}</p>
+                              </div>
+                            </div>
                           </td>
                           <td className="px-6 py-4 text-right text-xs font-bold text-slate-700">{fmt(item.unit_price)}</td>
                           <td className="px-6 py-4 text-center"><span className="px-2.5 py-1 bg-slate-100 rounded-full text-xs font-bold text-slate-700">{item.quantity}</span></td>
@@ -483,7 +506,7 @@ function LegacyOrderView({ orders, ordersDetail, orderId, totalProfit }: {
     <>
       <Head title={`Order ${orderId}`} />
       <AppLayout breadcrumbs={breadcrumbs}>
-        <div className="max-w-[1700px] mx-auto space-y-8 pb-20">
+        <div className="w-full space-y-8 pb-20">
           <div className="flex items-center justify-between gap-6">
             <div className="flex items-center gap-4">
               <Button onClick={() => window.history.back()} variant="ghost" size="icon" className="h-10 w-10 border border-slate-200 rounded-lg bg-white shadow-sm hover:bg-slate-50">
@@ -495,8 +518,20 @@ function LegacyOrderView({ orders, ordersDetail, orderId, totalProfit }: {
               </div>
             </div>
             <div className="flex items-center gap-3">
+              <Button
+                onClick={() => {
+                  const url = `${window.location.origin}/invoice/receipt/${encodeURIComponent(orderId)}`;
+                  const text = `Habari ${ordersDetail.name}, hapa kuna Invoice / Risiti yako kutoka Jopo Juniours Co. Ltd. Unaweza kuipata hapa: ${url}`;
+                  window.open(`https://api.whatsapp.com/send?phone=${ordersDetail.phone_number || ''}&text=${encodeURIComponent(text)}`, '_blank');
+                }}
+                className="h-10 px-5 bg-emerald-600 hover:bg-emerald-700 text-white rounded-lg font-bold text-xs flex items-center gap-2"
+              >
+                <Send className="h-4 w-4" /> Tuma Invoice
+              </Button>
               <Button onClick={() => router.visit(`/orders-crud/${orderId}/edit`)} className="h-10 px-5 bg-blue-600 hover:bg-blue-700 text-white rounded-lg text-xs font-bold">Process fulfillment</Button>
-              <Button onClick={() => { window.location.href = `/orders/print/${orderId}`; }} variant="outline" className="h-10 px-5 border-slate-200 rounded-lg text-xs font-bold">Print order</Button>
+              <Button onClick={() => { window.open(`/invoice/receipt/${encodeURIComponent(orderId)}`, '_blank', 'width=450,height=700'); }} variant="outline" className="h-10 px-5 border-slate-200 rounded-lg text-xs font-bold flex items-center gap-2">
+                <Printer className="h-4 w-4" /> Print order
+              </Button>
             </div>
           </div>
 

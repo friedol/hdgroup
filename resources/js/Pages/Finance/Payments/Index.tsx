@@ -1,10 +1,11 @@
 import { Head, Link, router } from '@inertiajs/react';
-import { Plus, Search, Filter, MoreVertical, Printer, Edit2, Trash2 } from 'lucide-react';
+import { Plus, Search, Filter, MoreVertical, Printer, Edit2, Trash2, CreditCard, TrendingUp, CheckCircle2 } from 'lucide-react';
 import React, { useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Card, CardContent } from '@/components/ui/card';
 import AppLayout from '@/layouts/app-layout';
+import { KpiCard } from "@/components/dashboard/KpiCard";
 
 interface Payment {
   id: number;
@@ -94,6 +95,12 @@ export default function PaymentsIndex({ payments, metrics, filters }: PaymentsIn
     }).format(val || 0);
   };
 
+  const kpis = [
+    { title: "Total Payments", value: (metrics?.totalPayments || 0).toString(), change: 0, icon: CreditCard, href: "#", bgClass: "bg-blue-50/50", iconBgClass: "bg-blue-100 text-blue-600" },
+    { title: "Total Collected", value: `TZS ${formatCurrency(metrics?.totalCollected)}`, change: 0, icon: TrendingUp, href: "#", bgClass: "bg-emerald-50/50", iconBgClass: "bg-emerald-100 text-emerald-600" },
+    { title: "Completed", value: (metrics?.completed || 0).toString(), change: 0, icon: CheckCircle2, href: "#", bgClass: "bg-indigo-50/50", iconBgClass: "bg-indigo-100 text-indigo-600" },
+  ];
+
   return (
     <>
       <Head title="Payments Management" />
@@ -109,31 +116,12 @@ export default function PaymentsIndex({ payments, metrics, filters }: PaymentsIn
             </Link>
           </div>
 
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-            <Card className="bg-white border shadow-sm">
-              <CardContent className="pt-6">
-                <p className="text-sm font-medium text-slate-500">Total Payments</p>
-                <div className="flex items-baseline gap-2 mt-1">
-                  <p className="text-3xl font-bold">{metrics?.totalPayments || 0}</p>
-                </div>
-              </CardContent>
-            </Card>
-            <Card className="bg-white border shadow-sm">
-              <CardContent className="pt-6">
-                <p className="text-sm font-medium text-slate-500">Total Collected</p>
-                <div className="flex items-baseline gap-2 mt-1">
-                  <p className="text-3xl font-bold text-emerald-600">TZS {formatCurrency(metrics?.totalCollected)}</p>
-                </div>
-              </CardContent>
-            </Card>
-            <Card className="bg-white border shadow-sm">
-              <CardContent className="pt-6">
-                <p className="text-sm font-medium text-slate-500">Completed</p>
-                <div className="flex items-baseline gap-2 mt-1">
-                  <p className="text-3xl font-bold text-blue-600">{metrics?.completed || 0}</p>
-                </div>
-              </CardContent>
-            </Card>
+          <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
+            {kpis.map((kpi, i) => (
+              <div key={kpi.title} className={`animate-fade-up stagger-${i + 1}`}>
+                <KpiCard {...kpi} className="shadow-sm hover:shadow-md transition-shadow" />
+              </div>
+            ))}
           </div>
 
           <Card className="border shadow-sm overflow-hidden">

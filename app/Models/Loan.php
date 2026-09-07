@@ -7,7 +7,7 @@ use Illuminate\Database\Eloquent\Model;
 
 class Loan extends Model
 {
-    use HasFactory, \App\Traits\HasBranch;
+    use \App\Traits\HasBranch, HasFactory;
 
     protected $casts = [
         'is_checked' => 'boolean',
@@ -16,7 +16,7 @@ class Loan extends Model
     public function scopeFilter($query, array $filters)
     {
         if ($filters['search'] ?? false) {
-            $query->where('customer_name', 'like', '%' . request('search') . '%');
+            $query->where('customer_name', 'like', '%'.request('search').'%');
         }
     }
 
@@ -41,12 +41,12 @@ class Loan extends Model
         'staff_recommeded',
         'discount',
         'branch_id',
+        'notes',
     ];
-
 
     public function payments()
     {
-        return $this->hasMany(Payment::class,'unique_id','unique_id');
+        return $this->hasMany(Payment::class, 'unique_id', 'unique_id');
     }
 
     public function delivery()
@@ -58,5 +58,10 @@ class Loan extends Model
     {
         return $this->hasMany(Delivery::class, 'item_id')
             ->where('item_type', 'loan');
+    }
+
+    public function branch()
+    {
+        return $this->belongsTo(Branch::class);
     }
 }

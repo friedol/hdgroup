@@ -1,6 +1,7 @@
 import { Head, router } from '@inertiajs/react';
-import { AlertCircle, Plus, Trash2, Camera, RefreshCw, Barcode, Lock, ShieldCheck, ArrowLeft } from 'lucide-react';
-import React, { useState, useRef, useEffect } from 'react';
+import { AlertCircle, Plus, Trash2, Camera, RefreshCw, Barcode, Lock, ShieldCheck, ArrowLeft, Scan } from 'lucide-react';
+import React, { useState, useRef, useEffect, useCallback } from 'react';
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { toast } from 'sonner';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
@@ -14,7 +15,7 @@ interface EditProductProps {
   product: any;
   categories: Array<{ id: number; name: string }>;
   units: Array<{ id: number; name: string }>;
-  stores: Array<{ id: number; name: string; branch_id: number | null }>;
+  stores: Array<{ id: number; name: string; branch_id?: number | null }>;
   raw_materials: Array<{ id: number; name: string }>;
   branches?: Array<{ id: number; name: string }>;
   activeBranchId?: number | null;
@@ -24,7 +25,7 @@ interface EditProductProps {
 interface PricingNode {
   unit_name: string;
   factor: number;
-  market_price: number;
+  market_price: number | string;
 }
 
 interface TechSpec {
@@ -43,32 +44,30 @@ export default function EditProduct({
   errors = {},
 }: EditProductProps) {
   const [loading, setLoading] = useState(false);
-  const isGlobalAdmin = !activeBranchId;
-  const [selectedBranchId, setSelectedBranchId] = useState<number | string>(
-    activeBranchId ?? product.branch_id ?? ''
-  );
-  const filteredStores = selectedBranchId
-    ? stores.filter(s => s.branch_id === Number(selectedBranchId))
-    : stores;
   const [images, setImages] = useState<(File | null)[]>([null, null, null, null, null]);
   const [existingImages, setExistingImages] = useState<string[]>(product.images || []);
   const [pricingNodes, setPricingNodes] = useState<PricingNode[]>(product.pricing_nodes?.length ? product.pricing_nodes : [{ unit_name: '', factor: 1, market_price: 0 }]);
-  const [techSpecs, setTechSpecs] = useState<TechSpec[]>(product.tech_specs || []);
+  const [techSpecs, setTechSpecs] = useState<TechSpec[]>(() => {
+    const raw = product.tech_specs;
+    if (!raw) return [];
+    if (Array.isArray(raw)) return raw;
+    if (typeof raw === 'string') { try { return JSON.parse(raw); } catch { return []; } }
+    return [];
+  });
   const [convRatio, setConvRatio] = useState(product.conv_ratio || 1);
-  const [totalBuyingCost, setTotalBuyingCost] = useState(product.total_buying_cost || 0);
-  const [bomItems, setBomItems] = useState<any[]>(product.bom_items || []);
+  const [totalBuyingCost, setTotalBuyingCost] = useState<number | string>(product.total_buying_cost || 0);
 
   const [form, setForm] = useState({
     product_name: product.product_name || '',
     sku: product.sku || '',
     barcode: product.barcode || '',
     category_id: product.category_id?.toString() || '',
+    branch_id: product.branch_id?.toString() || activeBranchId?.toString() || '',
+    store_id: product.store_id?.toString() || '',
     brand: product.brand || '',
     material_type: product.material_type || '',
     base_unit: product.base_unit?.toString() || '',
     description: product.description || '',
-    plain_selling_price: product.plain_selling_price?.toString() || '',
-    printed_selling_price: product.printed_selling_price?.toString() || '',
     reorder_level: product.reorder_level?.toString() || '',
     low_alert: product.low_alert?.toString() || '',
     weight: product.weight || '',
@@ -86,6 +85,66 @@ export default function EditProduct({
 
   const fileRefs = useRef<(HTMLInputElement | null)[]>([null, null, null, null, null]);
 
+  /* Barcode scanner modal */
+  const [barcodeModalOpen, setBarcodeModalOpen] = useState(false);
+  const [barcodeScanTab, setBarcodeScanTab] = useState<'usb' | 'camera'>('usb');
+  const [barcodeManualInput, setBarcodeManualInput] = useState('');
+  const [cameraError, setCameraError] = useState('');
+  const barcodeModalInputRef = useRef<HTMLInputElement>(null);
+  const videoRef = useRef<HTMLVideoElement>(null);
+  const streamRef = useRef<MediaStream | null>(null);
+  const detectorRef = useRef<any>(null);
+  const scanIntervalRef = useRef<ReturnType<typeof setInterval> | undefined>(undefined);
+
+  const stopCamera = useCallback(() => {
+    if (scanIntervalRef.current) clearInterval(scanIntervalRef.current);
+    if (streamRef.current) { streamRef.current.getTracks().forEach(t => t.stop()); streamRef.current = null; }
+  }, []);
+
+  const captureBarcode = useCallback((code: string) => {
+    stopCamera();
+    set('barcode', code);
+    setBarcodeModalOpen(false);
+    setBarcodeManualInput('');
+    setCameraError('');
+  }, [stopCamera]);
+
+  const startCamera = useCallback(async () => {
+    setCameraError('');
+    try {
+      const stream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: 'environment' } });
+      streamRef.current = stream;
+      if (videoRef.current) { videoRef.current.srcObject = stream; videoRef.current.play(); }
+      if (!('BarcodeDetector' in window)) {
+        setCameraError('Camera barcode detection is not supported in this browser. Use Chrome or Edge, or use USB scanner mode.');
+        return;
+      }
+      const detector = new (window as any).BarcodeDetector({
+        formats: ['ean_13', 'ean_8', 'upc_a', 'upc_e', 'code_128', 'code_39', 'code_93', 'qr_code', 'data_matrix'],
+      });
+      detectorRef.current = detector;
+      scanIntervalRef.current = setInterval(async () => {
+        if (!videoRef.current || !detectorRef.current) return;
+        try {
+          const barcodes = await detectorRef.current.detect(videoRef.current);
+          if (barcodes.length > 0) captureBarcode(barcodes[0].rawValue);
+        } catch { /* ignore */ }
+      }, 300);
+    } catch {
+      setCameraError('Camera access denied. Please allow camera permission and try again.');
+    }
+  }, [captureBarcode]);
+
+  useEffect(() => {
+    if (barcodeModalOpen && barcodeScanTab === 'usb') {
+      setTimeout(() => barcodeModalInputRef.current?.focus(), 100);
+    }
+    if (barcodeModalOpen && barcodeScanTab === 'camera') startCamera();
+    if (!barcodeModalOpen) stopCamera();
+  }, [barcodeModalOpen, barcodeScanTab, startCamera, stopCamera]);
+
+  useEffect(() => () => stopCamera(), [stopCamera]);
+
   const breadcrumbs = [
     { title: 'Dashboard', href: '/dashboard' },
     { title: 'Products', href: '/products-new' },
@@ -95,7 +154,7 @@ export default function EditProduct({
 
   const set = (field: string, value: any) => setForm(prev => ({ ...prev, [field]: value }));
 
-  const costPerBase = convRatio > 0 ? (totalBuyingCost / convRatio).toFixed(2) : '0.00';
+  const costPerBase = convRatio > 0 ? ((Number(totalBuyingCost) || 0) / convRatio).toFixed(2) : '0.00';
 
   const handleImagePick = (index: number) => fileRefs.current[index]?.click();
   const handleImageChange = (index: number, e: React.ChangeEvent<HTMLInputElement>) => {
@@ -119,12 +178,6 @@ export default function EditProduct({
   };
   const removeTechSpec = (i: number) => setTechSpecs(prev => prev.filter((_, idx) => idx !== i));
 
-  const addBomItem = () => setBomItems(prev => [...prev, { raw_material_id: '', quantity: 1 }]);
-  const updateBomItem = (i: number, field: string, value: any) => {
-    setBomItems(prev => prev.map((item, idx) => idx === i ? { ...item, [field]: value } : item));
-  };
-  const removeBomItem = (i: number) => setBomItems(prev => prev.filter((_, idx) => idx !== i));
-
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     setLoading(true);
@@ -140,11 +193,10 @@ data.append(`images[${i}]`, img);
 });
     data.append('pricing_nodes', JSON.stringify(pricingNodes));
     data.append('tech_specs', JSON.stringify(techSpecs));
-    data.append('bom_items', JSON.stringify(bomItems));
 
     router.post(`/products-new/${product.id}`, data as any, {
-      onSuccess: () => toast.success('Product updated successfully'),
-      onError: () => toast.error('Please fix the errors and try again'),
+      onSuccess: () => { toast.success('Product updated successfully'); router.visit('/products-new'); },
+      onError: () => toast.error('Please fill in all required fields before saving'),
       onFinish: () => setLoading(false),
     });
   };
@@ -168,9 +220,82 @@ data.append(`images[${i}]`, img);
   return (
     <>
       <Head title={`Edit ${product.product_name}`} />
+
+      {/* Barcode Scanner Modal */}
+      <Dialog open={barcodeModalOpen} onOpenChange={(open) => { if (!open) { stopCamera(); setCameraError(''); } setBarcodeModalOpen(open); }}>
+        <DialogContent className="sm:max-w-md bg-white" onOpenAutoFocus={e => e.preventDefault()}>
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2 text-base font-bold">
+              <Barcode className="h-4 w-4 text-emerald-600" />
+              Scan Barcode
+            </DialogTitle>
+          </DialogHeader>
+          <div className="flex gap-1 p-1 bg-slate-100 rounded-xl mb-4">
+            {(['usb', 'camera'] as const).map(tab => (
+              <button key={tab} type="button"
+                onClick={() => { stopCamera(); setCameraError(''); setBarcodeScanTab(tab); }}
+                className={`flex-1 py-1.5 rounded-lg text-xs font-bold transition-all ${barcodeScanTab === tab ? 'bg-white text-slate-800 shadow-sm' : 'text-slate-500 hover:text-slate-700'}`}>
+                {tab === 'usb' ? '⌨ USB / Bluetooth Scanner' : '📷 Camera'}
+              </button>
+            ))}
+          </div>
+
+          {barcodeScanTab === 'usb' && (
+            <div className="space-y-4">
+              <div className="relative">
+                <Scan className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-emerald-500" />
+                <input
+                  ref={barcodeModalInputRef}
+                  value={barcodeManualInput}
+                  onChange={e => setBarcodeManualInput(e.target.value)}
+                  onKeyDown={e => { if (e.key === 'Enter') { e.preventDefault(); if (barcodeManualInput.trim()) captureBarcode(barcodeManualInput.trim()); } }}
+                  placeholder="Scan barcode here or type and press Enter..."
+                  autoComplete="off"
+                  className="w-full pl-9 pr-4 py-3 text-sm border-2 border-emerald-200 rounded-xl bg-emerald-50/30 outline-none focus:border-emerald-400 focus:ring-2 focus:ring-emerald-100 transition-all"
+                />
+              </div>
+              <p className="text-xs text-slate-500 text-center">Point your USB or Bluetooth scanner at the barcode.<br/>It will auto-fill the field. Press <kbd className="px-1.5 py-0.5 bg-slate-100 border border-slate-200 rounded text-[10px] font-mono">Enter</kbd> to confirm.</p>
+              {barcodeManualInput.trim() && (
+                <button type="button" onClick={() => captureBarcode(barcodeManualInput.trim())}
+                  className="w-full h-10 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white text-sm font-black transition-colors">
+                  Use "{barcodeManualInput.trim()}"
+                </button>
+              )}
+            </div>
+          )}
+
+          {barcodeScanTab === 'camera' && (
+            <div className="space-y-3">
+              {cameraError ? (
+                <div className="bg-amber-50 border border-amber-200 rounded-xl p-4 text-sm text-amber-700">{cameraError}</div>
+              ) : (
+                <div className="relative rounded-xl overflow-hidden bg-black aspect-video">
+                  <video ref={videoRef} className="w-full h-full object-cover" muted playsInline />
+                  <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
+                    <div className="w-48 h-28 border-2 border-emerald-400 rounded-lg opacity-70" />
+                  </div>
+                </div>
+              )}
+              <p className="text-xs text-slate-500 text-center">Align the barcode within the green frame. It will be captured automatically.</p>
+              {cameraError && (
+                <button type="button" onClick={startCamera}
+                  className="w-full h-10 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white text-sm font-black transition-colors">
+                  Retry Camera
+                </button>
+              )}
+            </div>
+          )}
+
+          <button type="button" onClick={() => { stopCamera(); setBarcodeModalOpen(false); setCameraError(''); }}
+            className="mt-2 w-full h-9 rounded-xl border border-slate-200 text-slate-600 text-sm font-bold hover:bg-slate-50 transition-colors">
+            Cancel
+          </button>
+        </DialogContent>
+      </Dialog>
+
       <AppLayout breadcrumbs={breadcrumbs}>
         <form onSubmit={handleSubmit}>
-          <div className="max-w-[1400px] mx-auto space-y-8">
+          <div className="max-w-[1400px] mx-auto space-y-6">
             <div className="flex items-start justify-between gap-3 sm:gap-4">
               <div className="flex items-center gap-3 sm:gap-4 min-w-0">
                  <Button variant="ghost" size="icon" onClick={() => router.visit(`/products-new/${product.id}`)} type="button" className="rounded-xl border border-slate-200 h-11 w-11 shadow-sm hover:bg-slate-50 transition-all">
@@ -216,8 +341,9 @@ data.append(`images[${i}]`, img);
                       {fieldLabel('Barcode')}
                       <div className="flex gap-2">
                         <Input className={inputCls + ' flex-1'} placeholder="UPC/EAN" value={form.barcode} onChange={e => set('barcode', e.target.value)} />
-                        <button type="button" className="h-9 w-9 border border-slate-200 rounded-lg flex items-center justify-center text-slate-500 hover:bg-slate-50 transition-colors">
-                          <Barcode className="h-3.5 w-3.5" />
+                        <button type="button" onClick={() => { setBarcodeModalOpen(true); setBarcodeScanTab('usb'); setBarcodeManualInput(''); }} className="h-9 px-2.5 border border-emerald-200 bg-emerald-50 rounded-lg flex items-center gap-1.5 text-emerald-700 hover:bg-emerald-100 transition-colors text-xs font-bold">
+                          <Scan className="h-3.5 w-3.5" />
+                          Scan
                         </button>
                       </div>
                     </div>
@@ -227,6 +353,20 @@ data.append(`images[${i}]`, img);
                       <select className={selectCls} value={form.category_id} onChange={e => set('category_id', e.target.value)}>
                         <option value="">-- Select --</option>
                         {categories.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}
+                      </select>
+                    </div>
+                    <div>
+                      {fieldLabel('Branch', true)}
+                      <select className={selectCls} value={form.branch_id} onChange={e => { set('branch_id', e.target.value); set('store_id', ''); }}>
+                        <option value="">-- Select branch --</option>
+                        {branches.map(b => <option key={b.id} value={b.id}>{b.name}</option>)}
+                      </select>
+                    </div>
+                    <div>
+                      {fieldLabel('Store')}
+                      <select className={selectCls} value={form.store_id} onChange={e => set('store_id', e.target.value)} disabled={!form.branch_id}>
+                        <option value="">{form.branch_id ? '-- Select store --' : '-- Select branch first --'}</option>
+                        {stores.filter(s => !form.branch_id || String(s.branch_id ?? '') === String(form.branch_id)).map(s => <option key={s.id} value={s.id}>{s.name}</option>)}
                       </select>
                     </div>
                     <div>
@@ -264,7 +404,7 @@ data.append(`images[${i}]`, img);
                         {fieldLabel('Total buying cost', true)}
                         <div className="flex">
                           <span className="h-9 inline-flex items-center px-4 bg-slate-50 border border-r-0 border-slate-200 rounded-l-lg text-xs font-bold text-slate-500">TZS</span>
-                          <Input type="number" className={inputCls + ' rounded-l-none flex-1'} value={totalBuyingCost} onChange={e => setTotalBuyingCost(parseFloat(e.target.value) || 0)} />
+                          <Input type="number" className={inputCls + ' rounded-l-none flex-1'} value={totalBuyingCost} onChange={e => { const v = e.target.value; setTotalBuyingCost(v === '' ? '' : parseFloat(v)); }} />
                         </div>
                       </div>
                       <div>
@@ -344,42 +484,13 @@ data.append(`images[${i}]`, img);
                     </Button>
                   </div>
 
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6 p-4 rounded-xl border border-blue-100 bg-blue-50/60">
-                    <div>
-                      {fieldLabel('Plain bag price (default)')}
-                      <div className="relative">
-                        <Input
-                          type="number"
-                          className="h-9 border-slate-200 rounded-lg pl-8 text-sm font-bold"
-                          value={(form as any).plain_selling_price}
-                          onChange={e => set('plain_selling_price', e.target.value)}
-                          placeholder="Fallback: first pricing node"
-                        />
-                        <span className="absolute left-2.5 top-1/2 -translate-y-1/2 text-[10px] text-slate-400 font-bold">TZS</span>
-                      </div>
-                    </div>
-                    <div>
-                      {fieldLabel('Printed bag price')}
-                      <div className="relative">
-                        <Input
-                          type="number"
-                          className="h-9 border-slate-200 rounded-lg pl-8 text-sm font-bold"
-                          value={(form as any).printed_selling_price}
-                          onChange={e => set('printed_selling_price', e.target.value)}
-                          placeholder="Fallback: plain bag price"
-                        />
-                        <span className="absolute left-2.5 top-1/2 -translate-y-1/2 text-[10px] text-slate-400 font-bold">TZS</span>
-                      </div>
-                    </div>
-                  </div>
-                  
                   <div className="overflow-x-auto">
                     <table className="w-full text-sm border-collapse">
                       <thead>
                         <tr className="border-b border-slate-100">
-                          <th className="text-left text-[11px] font-bold text-slate-400 tracking-tight py-3 px-2">Unit</th>
-                          <th className="text-left text-[11px] font-bold text-slate-400 tracking-tight py-3 px-2">Factor</th>
-                          <th className="text-left text-[11px] font-bold text-slate-400 tracking-tight py-3 px-2">Price</th>
+                          <th className="text-left text-[11px] font-bold text-slate-400 tracking-tight py-3 px-2">Unit name</th>
+                          <th className="text-left text-[11px] font-bold text-slate-400 tracking-tight py-3 px-2">Pieces inside</th>
+                          <th className="text-left text-[11px] font-bold text-slate-400 tracking-tight py-3 px-2">{form.product_type === 'trading' ? 'Selling price' : 'Price'}</th>
                           <th className="py-3 px-2 text-right">Actions</th>
                         </tr>
                       </thead>
@@ -393,11 +504,14 @@ data.append(`images[${i}]`, img);
                               </select>
                             </td>
                             <td className="py-3 px-2">
-                               <Input type="number" className="h-9 w-24 border-slate-200 rounded-lg text-sm" value={node.factor} onChange={e => updatePricingNode(i, 'factor', parseFloat(e.target.value) || 1)} />
+                               <div className="flex flex-col gap-0.5">
+                                 <Input type="number" className="h-9 w-24 border-slate-200 rounded-lg text-sm" value={node.factor} onChange={e => updatePricingNode(i, 'factor', parseFloat(e.target.value) || 1)} />
+                                 {node.unit_name && <span className="text-[10px] text-slate-400 font-medium px-1">inside {node.unit_name}</span>}
+                               </div>
                             </td>
                             <td className="py-3 px-2">
                                <div className="relative">
-                                  <Input type="number" className="h-9 w-32 border-slate-200 rounded-lg pl-8 text-sm font-bold" value={node.market_price} onChange={e => updatePricingNode(i, 'market_price', parseFloat(e.target.value) || 0)} />
+                                  <Input type="number" className="h-9 w-32 border-slate-200 rounded-lg pl-8 text-sm font-bold" value={node.market_price} onChange={e => { const v = e.target.value; updatePricingNode(i, 'market_price', v === '' ? '' : parseFloat(v)); }} />
                                   <span className="absolute left-2.5 top-1/2 -translate-y-1/2 text-[10px] text-slate-400 font-bold">TZS</span>
                                </div>
                             </td>
@@ -412,75 +526,6 @@ data.append(`images[${i}]`, img);
                     </table>
                   </div>
                 </div>
-
-                {/* Bill of Materials (Manufactured Only) */}
-                {form.product_type === 'manufactured' && (
-                  <div className="bg-white rounded-xl border border-slate-200 p-8 shadow-sm">
-                    <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-6">
-                      <div className="flex items-center gap-2">
-                        <span className="text-xl">🏗️</span>
-                        <div>
-                          <h2 className="font-bold text-sm text-slate-800 tracking-tight">Bill of materials (BOM)</h2>
-                          <p className="text-[11px] text-slate-400 font-medium">Define raw material components for production</p>
-                        </div>
-                      </div>
-                      <Button type="button" variant="outline" size="sm" onClick={addBomItem} className="h-9 px-4 bg-blue-50 border border-blue-100 rounded-lg text-xs font-bold text-blue-600 flex items-center gap-2 hover:bg-blue-100 transition-all">
-                        <Plus className="h-3.5 w-3.5" /> Add component
-                      </Button>
-                    </div>
-
-                    <div className="border border-slate-100 rounded-xl overflow-hidden">
-                      <table className="w-full text-sm border-collapse">
-                        <thead>
-                          <tr className="bg-slate-50 border-b border-slate-100">
-                            <th className="text-left py-3 px-4 font-bold text-slate-400 text-[11px] tracking-tight">Raw material component</th>
-                            <th className="text-left py-3 px-4 font-bold text-slate-400 text-[11px] tracking-tight w-40">Qty needed</th>
-                            <th className="py-3 px-4 w-12 text-right"></th>
-                          </tr>
-                        </thead>
-                        <tbody className="divide-y divide-slate-50">
-                          {bomItems.map((item, i) => (
-                            <tr key={i} className="hover:bg-slate-50/50 transition-colors group">
-                              <td className="py-3 px-4">
-                                <select 
-                                  className="h-9 border border-slate-200 rounded-lg text-sm px-2 bg-white w-full focus:ring-1 focus:ring-slate-400 outline-none" 
-                                  value={item.raw_material_id} 
-                                  onChange={e => updateBomItem(i, 'raw_material_id', e.target.value)}
-                                >
-                                  <option value="">-- select material --</option>
-                                  {raw_materials.map(rm => (
-                                    <option key={rm.id} value={rm.id}>{rm.name}</option>
-                                  ))}
-                                </select>
-                              </td>
-                              <td className="py-3 px-4">
-                                <Input 
-                                  type="number" 
-                                  step="0.0001"
-                                  className="h-9 border-slate-200 rounded-lg focus:ring-blue-500 text-sm" 
-                                  value={item.quantity} 
-                                  onChange={e => updateBomItem(i, 'quantity', parseFloat(e.target.value) || 0)} 
-                                />
-                              </td>
-                              <td className="py-3 px-4 text-right">
-                                <Button type="button" variant="ghost" size="icon" onClick={() => removeBomItem(i)} className="h-8 w-8 text-slate-400 hover:text-rose-600 hover:bg-rose-50 rounded-full transition-all">
-                                  <Trash2 className="h-4 w-4" />
-                                </Button>
-                              </td>
-                            </tr>
-                          ))}
-                          {bomItems.length === 0 && (
-                            <tr>
-                              <td colSpan={3} className="py-12 text-center text-slate-400 bg-slate-50/20 italic text-xs font-medium">
-                                No BOM items added. Click "Add component" to build your formula.
-                              </td>
-                            </tr>
-                          )}
-                        </tbody>
-                      </table>
-                    </div>
-                  </div>
-                )}
 
                 {/* Technical Specifications */}
                 <div className="bg-white rounded-xl border border-slate-200 p-8 shadow-sm">

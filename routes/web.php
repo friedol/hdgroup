@@ -1,71 +1,74 @@
 <?php
 
-use Illuminate\Support\Facades\Route;
-use App\Http\Controllers\LoanController;
-use App\Http\Controllers\PageController;
-use App\Http\Controllers\management\UnitController;
-use App\Http\Controllers\UserController;
-use App\Http\Controllers\OrderController;
-use App\Http\Controllers\StaffController;
-use App\Http\Controllers\management\StoreController;
-use App\Http\Controllers\ExportController;
-use App\Http\Controllers\PaymentController;
-use App\Http\Controllers\ProductController;
-use App\Http\Controllers\ProfileController;
-use App\Http\Controllers\management\CategoryController;
-use App\Http\Controllers\CustomerController;
-use App\Http\Controllers\ExpensesController;
-use App\Http\Controllers\FeedbackController;
-use App\Http\Controllers\SecurityController;
-use App\Http\Controllers\TransferController;
-use App\Http\Controllers\ContainerController;
-use App\Http\Controllers\DashboardController;
-use App\Http\Controllers\InventoryController;
-use App\Http\Controllers\ParkingOrderController;
-use App\Http\Controllers\CustomerOrderController;
-use App\Http\Controllers\UpcomingOrderController;
-use App\Http\Controllers\RegisterProductController;
-use App\Http\Controllers\UpcomingProductController;
-use App\Http\Controllers\management\MProductController;
-use App\Http\Controllers\PosController;
-use App\Http\Controllers\HomeController;
-
-use App\Http\Controllers\ReportController;
-use App\Http\Controllers\SystemSettingController;
-use App\Http\Controllers\BranchController;
-use App\Http\Controllers\BusinessIntelligenceController;
-use App\Http\Controllers\SmartReorderController;
-use App\Http\Controllers\FinancialAnalyticsController;
-use App\Http\Controllers\ProductionEfficiencyController;
-use App\Http\Controllers\StaffPerformanceController;
-use App\Http\Controllers\CustomerIntelligenceController;
 use App\Http\Controllers\Admin\CustomerDataCenterController;
-use App\Http\Controllers\ProductionController;
-use App\Http\Controllers\ProductionOrderController;
-use App\Http\Controllers\BomController;
-use App\Http\Controllers\HumanResourceController;
-use App\Http\Controllers\RequisitionController;
-use App\Http\Controllers\HeroSlideController;
-use App\Http\Controllers\PopupAdController;
-use App\Http\Controllers\SupplierController;
+use App\Http\Controllers\BranchController;
+use App\Http\Controllers\BranchSmsConfigController;
+use App\Http\Controllers\BusinessIntelligenceController;
+use App\Http\Controllers\ContainerController;
+use App\Http\Controllers\CustomerController;
+use App\Http\Controllers\CustomerIntelligenceController;
+use App\Http\Controllers\CustomerOrderController;
+use App\Http\Controllers\DamagedProductController;
+use App\Http\Controllers\DashboardController;
 use App\Http\Controllers\DeliveryController;
 use App\Http\Controllers\DeliveryPersonController;
 use App\Http\Controllers\DeliveryTrackingController;
+use App\Http\Controllers\ExpensesController;
+use App\Http\Controllers\ExportController;
+use App\Http\Controllers\FeedbackController;
+use App\Http\Controllers\FinancialAnalyticsController;
+use App\Http\Controllers\FulfillmentController;
 use App\Http\Controllers\GatekeeperController;
-use App\Http\Controllers\BranchSmsConfigController;
-use App\Http\Controllers\PromoCodeController;
-use App\Http\Controllers\SalesTargetController;
+use App\Http\Controllers\HeroSlideController;
+use App\Http\Controllers\HomeController;
+use App\Http\Controllers\HR\DepartmentController;
+use App\Http\Controllers\HumanResourceController;
+use App\Http\Controllers\InventoryController;
+use App\Http\Controllers\LoanController;
+use App\Http\Controllers\management\CategoryController;
+use App\Http\Controllers\management\MProductController;
+use App\Http\Controllers\management\StoreController;
+use App\Http\Controllers\management\UnitController;
+use App\Http\Controllers\PageController;
+use App\Http\Controllers\ParkingOrderController;
+use App\Http\Controllers\PaymentController;
 use App\Http\Controllers\PaymentRequestController;
+use App\Http\Controllers\PopupAdController;
+use App\Http\Controllers\PosController;
+use App\Http\Controllers\ProductController;
+use App\Http\Controllers\ProfileController;
+use App\Http\Controllers\PromoCodeController;
+use App\Http\Controllers\PurchaseController;
+use App\Http\Controllers\RegisterProductController;
+use App\Http\Controllers\ReportController;
+use App\Http\Controllers\RequisitionController;
+use App\Http\Controllers\RolePermissionController;
+use App\Http\Controllers\SalesTargetController;
+use App\Http\Controllers\SecurityController;
+use App\Http\Controllers\SmartReorderController;
+use App\Http\Controllers\StaffPerformanceController;
+use App\Http\Controllers\StockAdjustmentController;
+use App\Http\Controllers\SupplierController;
+use App\Http\Controllers\SystemSettingController;
+use App\Http\Controllers\TransferController;
+use App\Http\Controllers\UpcomingOrderController;
+use App\Http\Controllers\UpcomingProductController;
+use App\Http\Controllers\UserController;
+use App\Http\Middleware\RedirectCustomersFromAdmin;
+use App\Models\Branch;
+use App\Models\User;
+use Illuminate\Support\Facades\Route;
 
+require __DIR__.'/other.php';
 
-
-require __DIR__ . '/other.php';
-
-Route::get('/index', [PageController::class, 'index'])->name('page.index');
-Route::get('/contact', [HomeController::class, 'contact'])->name('contact');
-Route::get('/about', [HomeController::class, 'about'])->name('about');
-Route::get('/shop/products', [HomeController::class, 'all_products'])->name('shop.products');
-Route::get('/shop/categories', [HomeController::class, 'categories_page'])->name('shop.categories');
+Route::middleware('online-shop')->group(function () {
+    Route::get('/index', [PageController::class, 'index'])->name('page.index');
+    Route::get('/contact', [HomeController::class, 'contact'])->name('contact');
+    Route::get('/about', [HomeController::class, 'about'])->name('about');
+    Route::get('/shop/products', [HomeController::class, 'all_products'])->name('shop.products');
+    Route::get('/shop/categories', [HomeController::class, 'categories_page'])->name('shop.categories');
+});
+Route::get('/invoice/receipt/{invoice}', [PosController::class, 'printReceipt'])->name('invoice.share');
 Route::redirect('/admin/dashboard', '/dashboard');
 Route::redirect('/admin', '/dashboard');
 Route::redirect('/my-orders', '/order/history');
@@ -79,7 +82,7 @@ Route::get('/reset-password', [PageController::class, 'reset_password']);
 
 Route::post('/logout', [PageController::class, 'invalidate_users'])->name('logout');
 
-Route::group(['middleware' => ['auth', \App\Http\Middleware\RedirectCustomersFromAdmin::class]], function () {
+Route::group(['middleware' => ['auth', RedirectCustomersFromAdmin::class]], function () {
     // Route::get('/admin-dashboard', [DashboardController::class, 'admin_dashboard'])->name('dashboard');
     Route::get('/dashboard', [DashboardController::class, 'dashboard'])->name('dashboard');
 
@@ -99,30 +102,22 @@ Route::group(['middleware' => ['auth', \App\Http\Middleware\RedirectCustomersFro
 
     Route::get('/switch-branch/{id}', function ($id) {
         $user = auth()->user();
-        if (!$user->isGlobal()) {
+        if (! $user->isGlobal()) {
             abort(403);
         }
 
         $id = (int) $id;
-        if ($id > 0) {
-            $branch = \App\Models\Branch::where('id', $id)->where('is_active', true)->first();
-            if (!$branch) {
-                return redirect()->route('dashboard')->with('error', 'Invalid or inactive branch.');
-            }
-            session(['active_branch_id' => $branch->id]);
-        } else {
-            session()->forget('active_branch_id');
+        $branch = Branch::where('id', $id)->where('is_active', true)->first();
+        if (! $branch) {
+            return redirect()->route('dashboard')->with('error', 'Invalid or inactive branch.');
         }
+        session(['active_branch_id' => $branch->id]);
 
-        // Redirect to dashboard without any stale ?branch= query string
-        // so MultiTenantMiddleware respects the session-based active branch.
         return redirect()->route('dashboard');
     })->name('branch.switch');
 
-
     Route::get('/feedback', [FeedbackController::class, 'index'])->middleware(['auth', 'permission:dashboard.global']); // Feedback as report/admin
     Route::delete('/feedback/{id}', [FeedbackController::class, 'destroy'])->name('feedback.delete')->middleware('permission:dashboard.global');
-
 
     Route::get('/instock-products', [ProductController::class, 'instock_product'])->middleware('permission:inventory.view');
     Route::get('/outstock-product', [ProductController::class, 'outstock_product'])->middleware('permission:inventory.view');
@@ -159,6 +154,25 @@ Route::group(['middleware' => ['auth', \App\Http\Middleware\RedirectCustomersFro
     Route::delete('/suppliers/{supplier}', [SupplierController::class, 'destroy'])->name('suppliers.destroy')->middleware('permission:inventory.manage');
     Route::get('/suppliers/json', [SupplierController::class, 'json'])->name('suppliers.json')->middleware('permission:inventory.view');
 
+    // ===== PURCHASES MODULE =====
+    Route::get('/purchases', [PurchaseController::class, 'index'])->name('purchases.index')->middleware('permission:purchases.view');
+    Route::get('/purchases/create', [PurchaseController::class, 'create'])->name('purchases.create')->middleware('permission:purchases.create');
+    Route::post('/purchases', [PurchaseController::class, 'store'])->name('purchases.store')->middleware('permission:purchases.create');
+    Route::get('/purchases/{purchase}/edit', [PurchaseController::class, 'edit'])->name('purchases.edit')->middleware('permission:purchases.edit');
+    Route::put('/purchases/{purchase}', [PurchaseController::class, 'update'])->name('purchases.update')->middleware('permission:purchases.edit');
+    Route::delete('/purchases/{purchase}', [PurchaseController::class, 'destroy'])->name('purchases.destroy')->middleware('permission:purchases.delete');
+    Route::get('/purchases/print', [PurchaseController::class, 'printIndex'])->name('purchases.print')->middleware('permission:purchases.view');
+    Route::get('/purchases/returns', [PurchaseController::class, 'returns'])->name('purchases.returns')->middleware('permission:purchases.return');
+    Route::get('/purchases/returns/print', [PurchaseController::class, 'printReturns'])->name('purchases.returns.print')->middleware('permission:purchases.return');
+    Route::get('/purchases/returns/create', [PurchaseController::class, 'createReturn'])->name('purchases.returns.create')->middleware('permission:purchases.return');
+    Route::post('/purchases/returns', [PurchaseController::class, 'storeReturn'])->name('purchases.returns.store')->middleware('permission:purchases.return');
+    Route::get('/purchases/price-history', [PurchaseController::class, 'priceHistory'])->name('purchases.price-history')->middleware('permission:purchases.view');
+    Route::get('/purchases/price-history/print', [PurchaseController::class, 'printPriceHistory'])->name('purchases.price-history.print')->middleware('permission:purchases.view');
+    Route::post('/purchases/{purchase}/receive', [PurchaseController::class, 'markAsReceived'])->name('purchases.receive')->middleware('permission:purchases.edit');
+    Route::get('/purchases/{purchase}/pdf', [PurchaseController::class, 'downloadPDF'])->name('purchases.show.pdf')->middleware('permission:purchases.view');
+    Route::get('/purchases/{purchase}/print', [PurchaseController::class, 'printShow'])->name('purchases.show.print')->middleware('permission:purchases.view');
+    Route::get('/purchases/{purchase}', [PurchaseController::class, 'show'])->name('purchases.show')->middleware('permission:purchases.view');
+
     // ===== FINANCE MODULE - CRUD ROUTES =====
     // Loans CRUD (new Inertia interface)
     Route::get('/loans', [LoanController::class, 'indexCrud'])->name('loans.index.crud')->middleware('permission:finance.loans');
@@ -187,26 +201,6 @@ Route::group(['middleware' => ['auth', \App\Http\Middleware\RedirectCustomersFro
     Route::put('/expenses-crud/{id}', [ExpensesController::class, 'updateCrud'])->name('expenses.update.crud')->middleware('permission:finance.expenses');
     Route::delete('/expenses-crud/{id}', [ExpensesController::class, 'destroyCrud'])->name('expenses.destroy.crud')->middleware('permission:finance.expenses');
 
-    // ===== OPERATIONS MODULE - CRUD ROUTES =====
-    // Production Orders CRUD
-    Route::get('/production-orders-new', [ProductionOrderController::class, 'indexCrud'])->name('production-orders.index')->middleware('permission:production.view');
-    Route::get('/production-orders-new/create', [ProductionOrderController::class, 'createCrud'])->name('production-orders.create')->middleware('permission:production.manage_bom');
-    Route::post('/production-orders-new', [ProductionOrderController::class, 'storeCrud'])->name('production-orders.store')->middleware('permission:production.manage_bom');
-    Route::get('/production-orders-new/{id}', [ProductionOrderController::class, 'showCrud'])->name('production-orders.show')->middleware('permission:production.view');
-    Route::get('/production-orders-new/{id}/edit', [ProductionOrderController::class, 'editCrud'])->name('production-orders.edit')->middleware('permission:production.manage_bom');
-    Route::put('/production-orders-new/{id}', [ProductionOrderController::class, 'updateCrud'])->name('production-orders.update')->middleware('permission:production.manage_bom');
-    Route::delete('/production-orders-new/{id}', [ProductionOrderController::class, 'destroyCrud'])->name('production-orders.destroy')->middleware('permission:production.manage_bom');
-    Route::get('/raw-material-history', [ProductionOrderController::class, 'rawMaterialHistory'])->name('raw-material-history.index')->middleware('permission:production.view');
-
-    // BOMs CRUD
-    Route::get('/boms-crud', [BomController::class, 'indexCrud'])->name('boms.index.crud')->middleware('permission:production.manage_bom');
-    Route::get('/boms-crud/create', [BomController::class, 'createCrud'])->name('boms.create.crud')->middleware('permission:production.manage_bom');
-    Route::post('/boms-crud', [BomController::class, 'storeCrud'])->name('boms.store.crud')->middleware('permission:production.manage_bom');
-    Route::get('/boms-crud/{id}', [BomController::class, 'showCrud'])->name('boms.show.crud')->middleware('permission:production.manage_bom');
-    Route::get('/boms-crud/{id}/edit', [BomController::class, 'editCrud'])->name('boms.edit.crud')->middleware('permission:production.manage_bom');
-    Route::put('/boms-crud/{id}', [BomController::class, 'updateCrud'])->name('boms.update.crud')->middleware('permission:production.manage_bom');
-    Route::delete('/boms-crud/{id}', [BomController::class, 'destroyCrud'])->name('boms.destroy.crud')->middleware('permission:production.manage_bom');
-
     // Orders CRUD (Customer Orders)
     Route::get('/orders-crud', [CustomerOrderController::class, 'indexCrud'])->name('orders.index.crud')->middleware('permission:finance.loans');
     Route::get('/orders-crud/create', [CustomerOrderController::class, 'createCrud'])->name('orders.create.crud')->middleware('permission:finance.loans');
@@ -215,6 +209,8 @@ Route::group(['middleware' => ['auth', \App\Http\Middleware\RedirectCustomersFro
     Route::get('/orders-crud/{id}/edit', [CustomerOrderController::class, 'editCrud'])->name('orders.edit.crud')->middleware('permission:finance.loans');
     Route::put('/orders-crud/{id}', [CustomerOrderController::class, 'updateCrud'])->name('orders.update.crud')->middleware('permission:finance.loans');
     Route::delete('/orders-crud/{id}', [CustomerOrderController::class, 'destroyCrud'])->name('orders.destroy.crud')->middleware('permission:finance.loans');
+    Route::get('/orders-crud/{id}/invoice', [CustomerOrderController::class, 'printInvoice'])->name('orders.invoice')->middleware('permission:finance.loans');
+    Route::get('/orders-crud/{id}/proforma', [CustomerOrderController::class, 'printProforma'])->name('orders.proforma')->middleware('permission:finance.loans');
 
     // ===== INVENTORY MODULE - CRUD ROUTES =====
     // Categories CRUD
@@ -246,50 +242,6 @@ Route::group(['middleware' => ['auth', \App\Http\Middleware\RedirectCustomersFro
     Route::put('/users-crud/{id}', [UserController::class, 'updateCrud'])->name('users.update.crud')->middleware('permission:users.manage');
     Route::delete('/users-crud/{id}', [UserController::class, 'destroyCrud'])->name('users.destroy.crud')->middleware('permission:users.manage');
 
-    Route::resource('/productions', ProductionController::class)->middleware('permission:production.view');
-    Route::resource('/boms', BomController::class)->middleware('permission:production.manage_bom');
-
-    // Raw Materials - Temporary Workaround Routes
-    Route::get('/raw-materials', [BomController::class, 'rawMaterialsIndex'])->name('raw-materials.index')->middleware('permission:production.manage_bom');
-    Route::get('/raw-materials/create', [BomController::class, 'rawMaterialsCreate'])->name('raw-materials.create')->middleware('permission:production.manage_bom');
-    Route::post('/raw-materials', [BomController::class, 'rawMaterialsStore'])->name('raw-materials.store')->middleware('permission:production.manage_bom');
-    Route::get('/raw-materials/{id}', [BomController::class, 'rawMaterialsShow'])->name('raw-materials.show')->middleware('permission:production.manage_bom');
-    Route::get('/raw-materials/{id}/edit', [BomController::class, 'rawMaterialsEdit'])->name('raw-materials.edit')->middleware('permission:production.manage_bom');
-    Route::put('/raw-materials/{id}', [BomController::class, 'rawMaterialsUpdate'])->name('raw-materials.update')->middleware('permission:production.manage_bom');
-    Route::delete('/raw-materials/{id}', [BomController::class, 'rawMaterialsDestroy'])->name('raw-materials.destroy')->middleware('permission:production.manage_bom');
-    Route::post('/raw-materials/{id}/adjust', [BomController::class, 'rawMaterialsAdjustStock'])->name('raw-materials.adjust-stock')->middleware('permission:production.manage_bom');
-    Route::get('/raw-materials/{id}/json', [BomController::class, 'rawMaterialsJson'])->name('raw-materials.json')->middleware('permission:production.manage_bom');
-    Route::post('/boms/calculate-cost', [BomController::class, 'calculateCost'])->name('boms.calculate-cost');
-    Route::put('/boms/{id}/activate', [BomController::class, 'activate'])->name('boms.activate');
-    Route::put('/boms/{id}/deactivate', [BomController::class, 'deactivate'])->name('boms.deactivate');
-
-    // Roll-Based Production Engine
-    Route::get('/production/roll-based', [\App\Http\Controllers\RollProductionController::class, 'index'])->name('production.roll-based')->middleware('permission:production.view');
-    Route::post('/production/roll-based/simulate', [\App\Http\Controllers\RollProductionController::class, 'simulate'])->name('production.roll-based.simulate')->middleware('permission:production.view');
-    Route::post('/production/roll-based/split', [\App\Http\Controllers\RollProductionController::class, 'split'])->name('production.roll-based.split')->middleware('permission:production.manage_bom');
-    Route::post('/production/roll-based/produce', [\App\Http\Controllers\RollProductionController::class, 'produce'])->name('production.roll-based.produce')->middleware('permission:production.view');
-
-    // Production Benchmarks
-    Route::get('/production/benchmarks', [\App\Http\Controllers\ProductionBenchmarkController::class, 'index'])->name('production.benchmarks.index')->middleware('permission:production.manage_bom');
-    Route::post('/production/benchmarks', [\App\Http\Controllers\ProductionBenchmarkController::class, 'store'])->name('production.benchmarks.store')->middleware('permission:production.manage_bom');
-    Route::put('/production/benchmarks/{id}', [\App\Http\Controllers\ProductionBenchmarkController::class, 'update'])->name('production.benchmarks.update')->middleware('permission:production.manage_bom');
-    Route::delete('/production/benchmarks/{id}', [\App\Http\Controllers\ProductionBenchmarkController::class, 'destroy'])->name('production.benchmarks.destroy')->middleware('permission:production.manage_bom');
-    Route::post('/production/benchmarks/{id}/toggle', [\App\Http\Controllers\ProductionBenchmarkController::class, 'toggle'])->name('production.benchmarks.toggle')->middleware('permission:production.manage_bom');
-
-    // Production Orders (Consolidated to Records)
-    Route::get('/production-orders', function () {
-        return redirect()->route('productions.index');
-    })->name('production.orders');
-    Route::get('/production-orders/{id}', [ProductionOrderController::class, 'show'])->name('production-orders.details.view')->middleware('permission:production.view');
-    Route::get('/production-orders/{id}/edit', [ProductionOrderController::class, 'edit'])->name('production-orders.edit.view')->middleware('permission:production.manage_bom');
-    Route::put('/production-orders/{id}', [ProductionOrderController::class, 'update'])->name('production-orders.update.view')->middleware('permission:production.manage_bom');
-    Route::delete('/production-orders/{id}', [ProductionOrderController::class, 'destroy'])->name('production-orders.destroy.view')->middleware('permission:production.manage_bom');
-    Route::get('/production-orders/{id}/details', function ($id) {
-        return redirect()->route('productions.index');
-    })->name('production.orders.details');
-    Route::post('/production-orders/{id}/status', [ProductionOrderController::class, 'updateStatus'])->name('production-orders.update-status')->middleware('permission:production.manage_bom');
-    Route::get('/manufacturing/dashboard', [DashboardController::class, 'manufacturingDashboard'])->name('manufacturing.dashboard')->middleware('permission:production.view');
-
     Route::resource('/upcoming-orders', UpcomingOrderController::class)->middleware('permission:inventory.manage');
     Route::put('upcoming-orders/publish/{product_id}', [UpcomingOrderController::class, 'publish'])->name('publish.upcoming-orders')->middleware('permission:inventory.manage');
 
@@ -297,7 +249,7 @@ Route::group(['middleware' => ['auth', \App\Http\Middleware\RedirectCustomersFro
     Route::post('upcoming-products', [UpcomingProductController::class, 'store'])->name('upcoming-products.store')->middleware('permission:inventory.manage');
     Route::put('upcoming-products/publish/{product_id}', [UpcomingProductController::class, 'publish'])->name('publish.upcoming-products')->middleware('permission:inventory.manage');
 
-    Route::resource('/users', Usercontroller::class)->middleware('permission:users.view');
+    Route::resource('/users', UserController::class)->middleware('permission:users.view');
     Route::post('/users/{id}/pay', [UserController::class, 'storePayment'])->name('users.pay')->middleware('permission:users.view');
     Route::resource('/customers', CustomerController::class)->except(['show'])->middleware('permission:customers.view');
     Route::get('/customers/{phone}', [CustomerController::class, 'show'])->name('customers.show')->middleware('permission:customers.view');
@@ -307,9 +259,9 @@ Route::group(['middleware' => ['auth', \App\Http\Middleware\RedirectCustomersFro
     Route::resource('/units', UnitController::class)->except(['create'])->middleware('permission:inventory.manage');
     // Debug route to check permissions
     Route::get('/debug-permissions/{userId}', function ($userId) {
-        $user = \App\Models\User::find($userId);
-        if (!$user) {
-            return "User not found";
+        $user = User::find($userId);
+        if (! $user) {
+            return 'User not found';
         }
 
         $permissions = $user->permissions;
@@ -320,7 +272,7 @@ Route::group(['middleware' => ['auth', \App\Http\Middleware\RedirectCustomersFro
             'user_name' => $user->staff_name,
             'permissions_count' => $permissions->count(),
             'permission_ids' => $permissionIds,
-            'permissions' => $permissions->toArray()
+            'permissions' => $permissions->toArray(),
         ];
     });
 
@@ -340,14 +292,17 @@ Route::group(['middleware' => ['auth', \App\Http\Middleware\RedirectCustomersFro
     Route::put('/exported-products/editstatus/{unique_id}', [ExportController::class, 'edit_exports_status'])->name('exports_edit_exports_status')->middleware('permission:pos.access');
     Route::put('/exported-products/change_to_loan/{unique_id}', [ExportController::class, 'exports_change_to_loan'])->name('exports_change_to_loan')->middleware('permission:finance.loans');
 
-
-
     Route::resource('/loans', LoanController::class)->middleware('permission:finance.loans'); // Loans as orders/sales
     Route::post('/loans_add_more', [LoanController::class, 'loans_add_more'])->name('loans_add_more')->middleware('permission:finance.loans');
     Route::put('/loans/editstatus/{unique_id}', [LoanController::class, 'edit_loans_status'])->name('loans_edit_status')->middleware('permission:finance.loans');
     Route::resource('/loan-payments', PaymentController::class)->except(['create'])->middleware('permission:finance.loans');
 
     Route::get('/transfers/store-products/{id}', [TransferController::class, 'getStoreProducts'])->middleware('permission:inventory.transfer');
+    Route::post('/transfers/{unique_id}/confirm', [TransferController::class, 'confirm'])->middleware('permission:inventory.transfer')->name('transfers.confirm');
+    Route::post('/transfers/{unique_id}/cancel', [TransferController::class, 'cancel'])->middleware('permission:inventory.transfer')->name('transfers.cancel');
+    Route::delete('/transfers/{unique_id}/batch', [TransferController::class, 'destroyBatch'])->middleware('permission:inventory.transfer')->name('transfers.destroy-batch');
+    Route::get('/transfers/create', [TransferController::class, 'create'])->middleware('permission:inventory.transfer')->name('transfers.create');
+    Route::get('/transfers/{unique_id}/print', [TransferController::class, 'printDocument'])->middleware('permission:inventory.transfer')->name('transfers.print');
     Route::resource('/transfers', TransferController::class)->except(['create'])->middleware('permission:inventory.transfer');
     Route::resource('/containers', ContainerController::class)->middleware('permission:logistics.deliveries');
     Route::resource('/register-products', RegisterProductController::class)->middleware('permission:logistics.deliveries');
@@ -366,7 +321,6 @@ Route::group(['middleware' => ['auth', \App\Http\Middleware\RedirectCustomersFro
     Route::post('/online-orders/{unique_id}/delivery-status', [CustomerOrderController::class, 'updateDeliveryStatus'])->name('orders.online.delivery-status')->middleware('permission:finance.loans');
     Route::post('/orders_add_more', [CustomerOrderController::class, 'orders_add_more'])->name('orders_add_more')->middleware('permission:finance.loans');
     Route::put('/orders/editstatus/{unique_id}', [CustomerOrderController::class, 'edit_orders_status'])->name('orders_edit_orders_status')->middleware('permission:finance.loans');
-
 
     Route::post('/parking_orders_more', [ParkingOrderController::class, 'addProducts'])->name('parking_orders.products')->middleware('permission:logistics.deliveries');
     Route::get('/parking_orders/item/{id}/edit', [ParkingOrderController::class, 'editItem'])->name('parking_orders.item.edit')->middleware('permission:logistics.deliveries');
@@ -398,13 +352,14 @@ Route::group(['middleware' => ['auth', \App\Http\Middleware\RedirectCustomersFro
     Route::post('/gatekeeper/record-in', [GatekeeperController::class, 'storeRecordIn'])->name('gatekeeper.record-in')->middleware('permission:gatekeeper.record-in');
     Route::get('/gatekeeper/record-out', [GatekeeperController::class, 'recordOutForm'])->name('gatekeeper.record-out-form')->middleware('permission:gatekeeper.record-out');
     Route::post('/gatekeeper/record-out', [GatekeeperController::class, 'storeRecordOut'])->name('gatekeeper.record-out')->middleware('permission:gatekeeper.record-out');
+    // Static routes MUST come before the {gatekeeperLog} wildcard
+    Route::get('/gatekeeper/print', [GatekeeperController::class, 'printLogs'])->name('gatekeeper.print')->middleware('permission:gatekeeper.access');
+    Route::get('/gatekeeper/export/pdf', [GatekeeperController::class, 'exportPDF'])->name('gatekeeper.export-pdf')->middleware('permission:gatekeeper.access');
+    Route::get('/gatekeeper/stats', [GatekeeperController::class, 'getStats'])->name('gatekeeper.stats')->middleware('permission:gatekeeper.access');
     Route::get('/gatekeeper/{gatekeeperLog}', [GatekeeperController::class, 'show'])->name('gatekeeper.show')->middleware('permission:gatekeeper.access');
     Route::get('/gatekeeper/{gatekeeperLog}/edit', [GatekeeperController::class, 'edit'])->name('gatekeeper.edit')->middleware('permission:gatekeeper.edit');
     Route::put('/gatekeeper/{gatekeeperLog}', [GatekeeperController::class, 'update'])->name('gatekeeper.update')->middleware('permission:gatekeeper.edit');
     Route::delete('/gatekeeper/{gatekeeperLog}', [GatekeeperController::class, 'destroy'])->name('gatekeeper.destroy')->middleware('permission:gatekeeper.delete');
-    Route::get('/gatekeeper/print', [GatekeeperController::class, 'printLogs'])->name('gatekeeper.print')->middleware('permission:gatekeeper.access');
-    Route::get('/gatekeeper/export/pdf', [GatekeeperController::class, 'exportPDF'])->name('gatekeeper.export-pdf')->middleware('permission:gatekeeper.access');
-    Route::get('/gatekeeper/stats', [GatekeeperController::class, 'getStats'])->name('gatekeeper.stats')->middleware('permission:gatekeeper.access');
     Route::put('/deliveries/{delivery}/complete', [DeliveryTrackingController::class, 'completeDelivery'])->name('delivery.complete')->middleware('auth');
     Route::put('/deliveries/{delivery}/fail', [DeliveryTrackingController::class, 'failDelivery'])->name('delivery.fail')->middleware('auth');
 
@@ -413,7 +368,6 @@ Route::group(['middleware' => ['auth', \App\Http\Middleware\RedirectCustomersFro
 
     // API Endpoint for real-time tracking
     Route::get('/api/delivery/{deliveryNumber}', [DeliveryTrackingController::class, 'getDeliveryData'])->name('api.delivery.data');
-
 
     Route::get('/exports_reports', [ExportController::class, 'reports'])->name('exports.reports')->middleware('permission:finance.reports');
     // Route::get('/transfers_reports', [TransferController::class, 'reports'])->name('transfers.reports');
@@ -429,9 +383,9 @@ Route::group(['middleware' => ['auth', \App\Http\Middleware\RedirectCustomersFro
     // ajax
     Route::get('get-products-store/{storeName}', [StoreController::class, 'getProductList']);
 
-
-    //System Report Routes
+    // System Report Routes
     Route::get('/report_inventory', [ReportController::class, 'inventory_index'])->name('report.inventory')->middleware('permission:inventory.view');
+    Route::get('/report_inventory/print', [ReportController::class, 'print_inventory'])->name('report.inventory.print')->middleware('permission:inventory.view');
     Route::get('/report_inventory/Filter', [ReportController::class, 'Filter_inventory_by_Date'])->name('report.inventory.filter')->middleware('permission:inventory.view');
     Route::get('/report_profit', [ReportController::class, 'profit_index'])->name('report.profit')->middleware('permission:finance.reports');
     Route::get('/report_profit/print', [ReportController::class, 'profit_print'])->name('report.profit.print')->middleware('permission:finance.reports');
@@ -441,11 +395,15 @@ Route::group(['middleware' => ['auth', \App\Http\Middleware\RedirectCustomersFro
     Route::get('/report_expenses', [ReportController::class, 'expenses_index'])->name('report.expenses')->middleware('permission:finance.expenses');
     Route::get('/report_general', [ReportController::class, 'general_index'])->name('report.general')->middleware('permission:finance.reports');
     Route::get('/balance_sheet', [ReportController::class, 'balance_sheet'])->name('report.balance_sheet')->middleware('permission:finance.reports');
+    Route::get('/report_product_movement', [ReportController::class, 'product_movement'])->name('report.product_movement')->middleware('permission:inventory.view');
+    Route::get('/report_product_movement/print', [ReportController::class, 'product_movement_print'])->name('report.product_movement.print')->middleware('permission:inventory.view');
 
+    // System Settings
     // System Settings
     Route::get('/settings', [SystemSettingController::class, 'index'])->name('settings.index')->middleware('permission:settings.access');
     Route::post('/settings/update', [SystemSettingController::class, 'update'])->name('settings.update')->middleware('permission:settings.access');
     Route::post('/settings/test-email', [SystemSettingController::class, 'testEmail'])->name('settings.test-email')->middleware('permission:settings.access');
+    Route::post('/settings/toggle-online-shop', [SystemSettingController::class, 'toggleOnlineShop'])->name('settings.toggle-online-shop')->middleware('permission:settings.access');
 
     // Sales Targets
     Route::get('/sales-targets', [SalesTargetController::class, 'index'])->name('sales-targets.index')->middleware('permission:finance.reports');
@@ -477,42 +435,56 @@ Route::group(['middleware' => ['auth', \App\Http\Middleware\RedirectCustomersFro
     Route::get('/pos/search-customers', [PosController::class, 'searchCustomers'])->name('pos.search-customers')->middleware('permission:pos.access');
     Route::post('/pos/quick-customer', [PosController::class, 'quickCustomerStore'])->name('pos.quick-customer')->middleware('permission:pos.access');
     Route::get('/pos/find/{identifier}', [PosController::class, 'findProduct'])->name('pos.find')->middleware('permission:pos.access');
+    Route::get('/pos/scan-barcode', [PosController::class, 'scanBarcode'])->name('pos.barcode')->middleware('permission:pos.access');
     Route::get('/pos/print/{invoice}', [PosController::class, 'printReceipt'])->name('pos.print')->middleware('permission:pos.access');
     Route::post('/pos/return', [PosController::class, 'processReturn'])->name('pos.return')->middleware('permission:pos.returns');
+    Route::get('/pos/invoice/{invoice}', [PosController::class, 'getInvoiceDetails'])->name('pos.invoice-details')->middleware('permission:pos.access');
+    Route::post('/pos/return-exchange', [PosController::class, 'processReturnExchange'])->name('pos.return-exchange')->middleware('permission:pos.returns');
     Route::get('/sales-history', [PosController::class, 'history'])->name('pos.history')->middleware('permission:pos.access');
     Route::get('/pos/sale/{invoice}', [PosController::class, 'show'])->name('pos.show')->middleware('permission:pos.access');
     Route::post('/pos/sale/payment', [PosController::class, 'storePayment'])->name('pos.payment.store')->middleware('permission:finance.loans');
     Route::delete('/pos/sale/{id}', [PosController::class, 'destroy'])->name('pos.destroy')->middleware('permission:users.manage');
     Route::get('/returns', [PosController::class, 'returns'])->name('pos.returns')->middleware('permission:pos.returns');
 
-    Route::resource('/stock-adjustments', \App\Http\Controllers\StockAdjustmentController::class)->only(['store', 'index', 'destroy'])->middleware('permission:inventory.adjust');
-    Route::post('/stock-adjustments/{id}/approve', [\App\Http\Controllers\StockAdjustmentController::class, 'approve'])->name('stock-adjustments.approve')->middleware('permission:inventory.adjust');
-    Route::post('/stock-adjustments/{id}/reject', [\App\Http\Controllers\StockAdjustmentController::class, 'reject'])->name('stock-adjustments.reject')->middleware('permission:inventory.adjust');
+    Route::get('/stock-adjustments/create', [StockAdjustmentController::class, 'create'])->name('stock-adjustments.create')->middleware('permission:inventory.adjust');
+    Route::resource('/stock-adjustments', StockAdjustmentController::class)->only(['store', 'index', 'destroy'])->middleware('permission:inventory.adjust');
+    Route::post('/stock-adjustments/{id}/approve', [StockAdjustmentController::class, 'approve'])->name('stock-adjustments.approve')->middleware('permission:inventory.adjust');
+    Route::post('/stock-adjustments/{id}/reject', [StockAdjustmentController::class, 'reject'])->name('stock-adjustments.reject')->middleware('permission:inventory.adjust');
+
+    // Fulfillment
+    Route::get('/fulfillment', [FulfillmentController::class, 'index'])->name('fulfillment.index')->middleware('permission:pos.access');
+    Route::get('/fulfillment/{invoice}', [FulfillmentController::class, 'show'])->name('fulfillment.show')->middleware('permission:pos.access');
+    Route::post('/fulfillment/item/status', [FulfillmentController::class, 'updateItemStatus'])->name('fulfillment.item.status')->middleware('permission:pos.access');
+    Route::post('/fulfillment/bulk-status', [FulfillmentController::class, 'bulkUpdateStatus'])->name('fulfillment.bulk.status')->middleware('permission:pos.access');
+
+    // Damaged Products
+    Route::get('/damaged-products', [DamagedProductController::class, 'index'])->name('damaged-products.index')->middleware('permission:inventory.adjust');
+    Route::post('/damaged-products', [DamagedProductController::class, 'store'])->name('damaged-products.store')->middleware('permission:inventory.adjust');
+    Route::delete('/damaged-products/{id}', [DamagedProductController::class, 'destroy'])->name('damaged-products.destroy')->middleware('permission:inventory.adjust');
 
     Route::resource('/branches', BranchController::class)->except(['show', 'destroy']);
+    Route::post('/branches/{branch}/delete', [BranchController::class, 'destroy'])->name('branches.delete');
 
     // Roles & Permissions (Administration)
-    Route::get('/roles-permissions', [\App\Http\Controllers\RolePermissionController::class, 'index'])->name('roles-permissions.index')->middleware('permission:settings.access');
-    Route::get('/roles-permissions/roles/create', [\App\Http\Controllers\RolePermissionController::class, 'roleCreate'])->name('roles-permissions.role.create')->middleware('permission:settings.access');
-    Route::post('/roles-permissions/roles', [\App\Http\Controllers\RolePermissionController::class, 'roleStore'])->name('roles-permissions.role.store')->middleware('permission:settings.access');
-    Route::get('/roles-permissions/roles/{role}/edit', [\App\Http\Controllers\RolePermissionController::class, 'roleEdit'])->name('roles-permissions.role.edit')->middleware('permission:settings.access');
-    Route::put('/roles-permissions/roles/{role}', [\App\Http\Controllers\RolePermissionController::class, 'roleUpdate'])->name('roles-permissions.role.update')->middleware('permission:settings.access');
-    Route::delete('/roles-permissions/roles/{role}', [\App\Http\Controllers\RolePermissionController::class, 'roleDestroy'])->name('roles-permissions.role.destroy')->middleware('permission:settings.access');
-    Route::get('/roles-permissions/permissions/create', [\App\Http\Controllers\RolePermissionController::class, 'permissionCreate'])->name('roles-permissions.permission.create')->middleware('permission:settings.access');
-    Route::post('/roles-permissions/permissions', [\App\Http\Controllers\RolePermissionController::class, 'permissionStore'])->name('roles-permissions.permission.store')->middleware('permission:settings.access');
-    Route::get('/roles-permissions/permissions/{permission}/edit', [\App\Http\Controllers\RolePermissionController::class, 'permissionEdit'])->name('roles-permissions.permission.edit')->middleware('permission:settings.access');
-    Route::put('/roles-permissions/permissions/{permission}', [\App\Http\Controllers\RolePermissionController::class, 'permissionUpdate'])->name('roles-permissions.permission.update')->middleware('permission:settings.access');
-    Route::delete('/roles-permissions/permissions/{permission}', [\App\Http\Controllers\RolePermissionController::class, 'permissionDestroy'])->name('roles-permissions.permission.destroy')->middleware('permission:settings.access');
+    Route::get('/roles-permissions', [RolePermissionController::class, 'index'])->name('roles-permissions.index')->middleware('permission:settings.access');
+    Route::get('/roles-permissions/roles/create', [RolePermissionController::class, 'roleCreate'])->name('roles-permissions.role.create')->middleware('permission:settings.access');
+    Route::post('/roles-permissions/roles', [RolePermissionController::class, 'roleStore'])->name('roles-permissions.role.store')->middleware('permission:settings.access');
+    Route::get('/roles-permissions/roles/{role}/edit', [RolePermissionController::class, 'roleEdit'])->name('roles-permissions.role.edit')->middleware('permission:settings.access');
+    Route::put('/roles-permissions/roles/{role}', [RolePermissionController::class, 'roleUpdate'])->name('roles-permissions.role.update')->middleware('permission:settings.access');
+    Route::delete('/roles-permissions/roles/{role}', [RolePermissionController::class, 'roleDestroy'])->name('roles-permissions.role.destroy')->middleware('permission:settings.access');
+    Route::get('/roles-permissions/permissions/create', [RolePermissionController::class, 'permissionCreate'])->name('roles-permissions.permission.create')->middleware('permission:settings.access');
+    Route::post('/roles-permissions/permissions', [RolePermissionController::class, 'permissionStore'])->name('roles-permissions.permission.store')->middleware('permission:settings.access');
+    Route::get('/roles-permissions/permissions/{permission}/edit', [RolePermissionController::class, 'permissionEdit'])->name('roles-permissions.permission.edit')->middleware('permission:settings.access');
+    Route::put('/roles-permissions/permissions/{permission}', [RolePermissionController::class, 'permissionUpdate'])->name('roles-permissions.permission.update')->middleware('permission:settings.access');
+    Route::delete('/roles-permissions/permissions/{permission}', [RolePermissionController::class, 'permissionDestroy'])->name('roles-permissions.permission.destroy')->middleware('permission:settings.access');
 
     // Business Intelligence Routes
     Route::get('/analytics', [BusinessIntelligenceController::class, 'dashboard'])->name('analytics.dashboard')->middleware('permission:dashboard.global');
     Route::get('/analytics/sales-forecast', [BusinessIntelligenceController::class, 'getSalesForecast'])->middleware('permission:dashboard.global');
-    Route::get('/analytics/production-costs', [BusinessIntelligenceController::class, 'getProductionCostAnalysis'])->middleware('permission:dashboard.global');
     Route::get('/analytics/branch-ranking', [BusinessIntelligenceController::class, 'getBranchPerformanceRanking'])->middleware('permission:dashboard.global');
     Route::get('/analytics/top-margin-products', [BusinessIntelligenceController::class, 'getTopMarginProducts'])->middleware('permission:dashboard.global');
     Route::get('/analytics/low-margin-products', [BusinessIntelligenceController::class, 'getLowMarginProducts'])->middleware('permission:dashboard.global');
     Route::get('/analytics/dead-stock', [BusinessIntelligenceController::class, 'getDeadStockDetection'])->middleware('permission:dashboard.global');
-    Route::get('/analytics/overproduction', [BusinessIntelligenceController::class, 'getOverproductionDetection'])->middleware('permission:dashboard.global');
     Route::get('/analytics/seasonal-demand', [BusinessIntelligenceController::class, 'getSeasonalDemandPrediction'])->middleware('permission:dashboard.global');
     Route::get('/analytics/ai-summary', [BusinessIntelligenceController::class, 'getAISummary'])->middleware('permission:dashboard.global');
 
@@ -541,18 +513,6 @@ Route::group(['middleware' => ['auth', \App\Http\Middleware\RedirectCustomersFro
         Route::get('/invoices/{invoice}/receipt', [PosController::class, 'printReceipt'])->name('invoices.receipt');
         Route::get('/expenses/{expense}/voucher', [ExpensesController::class, 'voucher'])->name('expenses.voucher');
     });
-
-    // Production Efficiency Routes
-    Route::get('/production-efficiency', [ProductionEfficiencyController::class, 'dashboard'])->name('production-efficiency.dashboard')->middleware('permission:production.view');
-    Route::get('/production-efficiency/metrics', [ProductionEfficiencyController::class, 'getEfficiencyMetrics'])->middleware('permission:production.view');
-    Route::get('/production-efficiency/branch-comparison', [ProductionEfficiencyController::class, 'getBranchEfficiencyComparison'])->middleware('permission:production.view');
-    Route::get('/production-efficiency/trends', [ProductionEfficiencyController::class, 'getEfficiencyTrends'])->middleware('permission:production.view');
-    Route::get('/production-efficiency/waste-analysis', [ProductionEfficiencyController::class, 'getMaterialWasteAnalysis'])->middleware('permission:production.view');
-    Route::get('/production-efficiency/labor-costs', [ProductionEfficiencyController::class, 'getLaborCostAnalysis'])->middleware('permission:production.view');
-    Route::get('/production-efficiency/downtime', [ProductionEfficiencyController::class, 'getDowntimeAnalysis'])->middleware('permission:production.view');
-    Route::get('/production-efficiency/cost-variance', [ProductionEfficiencyController::class, 'getCostVarianceAnalysis'])->middleware('permission:production.view');
-    Route::post('/production-efficiency/metrics', [ProductionEfficiencyController::class, 'storeProductionMetrics'])->middleware('permission:production.manage');
-    Route::get('/production-efficiency/summary', [ProductionEfficiencyController::class, 'getEfficiencySummary'])->middleware('permission:production.view');
 
     // Staff Performance Routes
     // Human Resources & Staff Performance
@@ -614,7 +574,15 @@ Route::group(['middleware' => ['auth', \App\Http\Middleware\RedirectCustomersFro
         Route::put('/{ad}', [PopupAdController::class, 'update'])->name('update');
         Route::delete('/{ad}', [PopupAdController::class, 'destroy'])->name('destroy');
     });
+
+    // Departments Management
+    Route::resource('/hr/departments', DepartmentController::class)->names([
+        'index' => 'hr.departments.index',
+        'store' => 'hr.departments.store',
+        'update' => 'hr.departments.update',
+        'destroy' => 'hr.departments.destroy',
+    ]);
 });
 
-require __DIR__ . '/notification.php';
+require __DIR__.'/notification.php';
 Route::redirect('/account', '/order/history');

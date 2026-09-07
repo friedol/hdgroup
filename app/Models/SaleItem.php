@@ -6,8 +6,6 @@ use Illuminate\Database\Eloquent\Model;
 
 class SaleItem extends Model
 {
-    use \App\Traits\HasBranch;
-
     protected $fillable = [
         'sale_id',
         'product_id',
@@ -19,6 +17,11 @@ class SaleItem extends Model
         'subtotal',
         'discount',
         'branch_id',
+        'fulfillment_status',
+        'fulfilled_by',
+        'fulfilled_at',
+        'source_store_id',
+        'source_store_name',
     ];
 
     public function sale()
@@ -34,5 +37,15 @@ class SaleItem extends Model
     public function variant()
     {
         return $this->belongsTo(ProductVariant::class, 'variant_id');
+    }
+
+    public function sourceStore()
+    {
+        return $this->belongsTo(Store::class, 'source_store_id');
+    }
+
+    public function fulfilledBy()
+    {
+        return $this->belongsTo(User::class, 'fulfilled_by');
     }
 }

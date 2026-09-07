@@ -5,33 +5,42 @@ namespace App\Http\Controllers;
 use App\Models\Container;
 use App\Models\LogisticsManifest;
 use Illuminate\Http\Request;
+use Inertia\Inertia;
 
 class ContainerController extends Controller
 {
     /**
      * Display a listing of the resource.
      */
-    public function index()
+    public function index(Request $request)
     {
-        $containers = Container::paginate(15);
-        
+        $query = Container::query();
+
+        if ($request->filled('search')) {
+            $search = $request->search;
+            $query->where('container_id', 'like', "%{$search}%")
+                ->orWhere('name', 'like', "%{$search}%");
+        }
+
+        $containers = $query->paginate(15);
+
         $metrics = [
             'total_containers' => Container::count(),
             'total_capacity' => Container::sum('capacity'),
             'total_used_capacity' => Container::sum('used_capacity'),
         ];
-        
+
         $metrics['avail_capacity'] = $metrics['total_capacity'] - $metrics['total_used_capacity'];
 
-        return \Inertia\Inertia::render('Logistics/Containers/Index', [
+        return Inertia::render('Logistics/Containers/Index', [
             'containers' => $containers,
-            'metrics' => $metrics
+            'metrics' => $metrics,
         ]);
     }
 
-    public function indexCrud(Request $request) 
+    public function indexCrud(Request $request)
     {
-        return $this->index();
+        return $this->index($request);
     }
 
     /**
@@ -40,9 +49,9 @@ class ContainerController extends Controller
     /**
      * Show the form for creating a new resource.
      */
-    public function create() 
+    public function create()
     {
-        return \Inertia\Inertia::render('Logistics/Containers/Create');
+        return Inertia::render('Logistics/Containers/Create');
     }
 
     /**
@@ -51,24 +60,25 @@ class ContainerController extends Controller
     public function store(Request $request)
     {
         $validatedData = $request->validate([
-            'container_id'   => 'required|string|max:255|unique:containers,container_id',
-            'name'           => 'required|string|max:255',
-            'length'         => 'required|numeric|min:0',
-            'width'          => 'required|numeric|min:0',
-            'height'         => 'required|numeric|min:0',
-            'capacity'       => 'required|numeric|min:0',
-            'tare_weight'    => 'required|numeric|min:0',
-            'gross_weight'   => 'required|numeric|min:0',
-            'max_payload'    => 'required|numeric|min:0',
-            'description'    => 'nullable|string|max:1000',
-            'used_capacity'  => 'required|numeric|min:0', 
+            'container_id' => 'required|string|max:255|unique:containers,container_id',
+            'name' => 'required|string|max:255',
+            'length' => 'required|numeric|min:0',
+            'width' => 'required|numeric|min:0',
+            'height' => 'required|numeric|min:0',
+            'capacity' => 'required|numeric|min:0',
+            'tare_weight' => 'required|numeric|min:0',
+            'gross_weight' => 'required|numeric|min:0',
+            'max_payload' => 'required|numeric|min:0',
+            'description' => 'nullable|string|max:1000',
+            'used_capacity' => 'required|numeric|min:0',
         ]);
 
         try {
             Container::create($validatedData);
+
             return redirect()->route('containers.index')->with('success', 'Container registered successfully.');
         } catch (\Exception $e) {
-            return back()->with('error', 'Error: ' . $e->getMessage())->withInput();
+            return back()->with('error', 'Error: '.$e->getMessage())->withInput();
         }
     }
 
@@ -79,9 +89,10 @@ class ContainerController extends Controller
     {
         $container = Container::findOrFail($id);
         $manifests = LogisticsManifest::where('container_id', $container->id)->get();
-        return \Inertia\Inertia::render('Logistics/Containers/Show', [
+
+        return Inertia::render('Logistics/Containers/Show', [
             'container' => $container,
-            'manifests' => $manifests
+            'manifests' => $manifests,
         ]);
     }
 
@@ -91,8 +102,9 @@ class ContainerController extends Controller
     public function edit(string $id)
     {
         $container = Container::findOrFail($id);
-        return \Inertia\Inertia::render('Logistics/Containers/Edit', [
-            'container' => $container
+
+        return Inertia::render('Logistics/Containers/Edit', [
+            'container' => $container,
         ]);
     }
 
@@ -102,39 +114,55 @@ class ContainerController extends Controller
     public function update(Request $request, string $id)
     {
         $validatedData = $request->validate([
-            'container_id'   => 'required|string|max:255|unique:containers,container_id'. ($id ? ",$id" : ''),
-            'name'           => 'required|string|max:255',
-            'length'         => 'required|numeric|min:0',
-            'width'          => 'required|numeric|min:0',
-            'height'         => 'required|numeric|min:0',
-            'capacity'       => 'required|numeric|min:0',
-            'tare_weight'    => 'required|numeric|min:0',
-            'gross_weight'   => 'required|numeric|min:0',
-            'max_payload'    => 'required|numeric|min:0',
-            'description'    => 'nullable|string|max:1000',
-            'used_capacity'  => 'nullable|numeric|min:0', // used capacity should not exceed capacity
+            'container_id' => 'required|string|max:255|unique:containers,container_id'.($id ? ",$id" : ''),
+            'name' => 'required|string|max:255',
+            'length' => 'required|numeric|min:0',
+            'width' => 'required|numeric|min:0',
+            'height' => 'required|numeric|min:0',
+            'capacity' => 'required|numeric|min:0',
+            'tare_weight' => 'required|numeric|min:0',
+            'gross_weight' => 'required|numeric|min:0',
+            'max_payload' => 'required|numeric|min:0',
+            'description' => 'nullable|string|max:1000',
+            'used_capacity' => 'nullable|numeric|min:0',
         ]);
-        // dd($id);
+
         $Container = Container::findOrFail($id);
         try {
             $Container->update($validatedData);
-            return response()->json(['success' => 'Container Updated  successfully.']);
+            if ($request->wantsJson() || $request->ajax()) {
+                return response()->json(['success' => 'Container Updated successfully.']);
+            }
+
+            return redirect()->route('containers.show', $Container->id)->with('success', 'Container updated successfully.');
         } catch (\Exception $e) {
-            return response()->json(['error' => 'An error occurred. Please try again.'], 500);
+            if ($request->wantsJson() || $request->ajax()) {
+                return response()->json(['error' => 'An error occurred. Please try again.'], 500);
+            }
+
+            return back()->with('error', 'An error occurred. Please try again.');
         }
     }
 
     /**
      * Remove the specified resource from storage.
      */
-    public function destroy(string $id)
+    public function destroy(Request $request, string $id)
     {
         $Container = Container::findOrFail($id);
         try {
             $Container->delete();
-            return response()->json(['success' => 'Container deleted  successfully.']);
+            if ($request->wantsJson() || $request->ajax()) {
+                return response()->json(['success' => 'Container deleted successfully.']);
+            }
+
+            return redirect()->route('containers.index')->with('success', 'Container deleted successfully.');
         } catch (\Exception $e) {
-            return response()->json(['error' => 'An error occurred. Please try again.'], 500);
+            if ($request->wantsJson() || $request->ajax()) {
+                return response()->json(['error' => 'An error occurred. Please try again.'], 500);
+            }
+
+            return back()->with('error', 'An error occurred. Please try again.');
         }
     }
 }

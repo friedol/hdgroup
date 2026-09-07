@@ -1,4 +1,5 @@
 import { Head, router } from "@inertiajs/react";
+import { KpiCard } from "@/components/dashboard/KpiCard";
 import {
   ShoppingCart,
   TrendingUp,
@@ -106,8 +107,8 @@ export default function SalesReport({
 
   const filteredSales = React.useMemo(() => {
     if (!exports) {
-return [];
-}
+      return [];
+    }
 
     return exports.filter(item => 
       item.product_name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
@@ -191,7 +192,7 @@ return [];
   return (
     <AppLayout breadcrumbs={breadcrumbs}>
       <Head title="Sales Analysis" />
-      <div className="max-w-[1600px] mx-auto space-y-8 pb-10">
+      <div className="w-full space-y-8 pb-10">
         
         <div className="flex flex-col md:flex-row md:items-center justify-between gap-6">
           <div className="space-y-1">
@@ -218,100 +219,70 @@ return [];
         </div>
 
         <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-8 gap-3 md:gap-4">
-           <Card className="border-l-4 border-l-blue-500">
-              <CardHeader className="pb-1">
-                <CardTitle className="text-xs font-medium flex items-center gap-1">
-                  <DollarSign className="h-3 w-3 text-blue-500" /> TOTAL REVENUE
-                </CardTitle>
-              </CardHeader>
-              <CardContent className="pb-3">
-                <div className="text-lg font-bold text-foreground">{formatMoney(metrics?.total_revenue || 0)}</div>
-                <p className="text-xs text-muted-foreground mt-0.5">Growth: {(metrics?.growth_revenue || 0).toFixed(1)}%</p>
-              </CardContent>
-           </Card>
-
-           <Card className="border-l-4 border-l-emerald-500">
-              <CardHeader className="pb-1">
-                <CardTitle className="text-xs font-medium flex items-center gap-1">
-                  <TrendingUp className="h-3 w-3 text-emerald-500" /> NET PROFIT
-                </CardTitle>
-              </CardHeader>
-              <CardContent className="pb-3">
-                <div className="text-lg font-bold text-emerald-600">{formatMoney(metrics?.total_profit || 0)}</div>
-                <p className="text-xs text-muted-foreground mt-0.5">Growth: {(metrics?.growth_profit || 0).toFixed(1)}%</p>
-              </CardContent>
-           </Card>
-
-           <Card className="border-l-4 border-l-indigo-500">
-              <CardHeader className="pb-1">
-                <CardTitle className="text-xs font-medium flex items-center gap-1">
-                  <ShoppingCart className="h-3 w-3 text-indigo-500" /> ORDERS
-                </CardTitle>
-              </CardHeader>
-              <CardContent className="pb-3">
-                <div className="text-lg font-bold text-foreground">{Number(metrics?.sales_velocity || 0).toLocaleString()}</div>
-                <p className="text-xs text-muted-foreground mt-0.5">Velocity growth: {(metrics?.growth_velocity || 0).toFixed(1)}%</p>
-              </CardContent>
-           </Card>
-
-           <Card className="border-l-4 border-l-orange-500">
-              <CardHeader className="pb-1">
-                <CardTitle className="text-xs font-medium flex items-center gap-1">
-                  <PieIcon className="h-3 w-3 text-orange-500" /> MARGIN
-                </CardTitle>
-              </CardHeader>
-              <CardContent className="pb-3">
-                <div className="text-lg font-bold text-foreground">{Number(metrics?.unit_margin || 0).toFixed(1)}%</div>
-                <p className="text-xs text-muted-foreground mt-0.5">Delta: {(metrics?.growth_margin || 0).toFixed(1)} pts</p>
-              </CardContent>
-           </Card>
-           <Card className="border-l-4 border-l-violet-500">
-              <CardHeader className="pb-1">
-                <CardTitle className="text-xs font-medium flex items-center gap-1">
-                  <Boxes className="h-3 w-3 text-violet-500" /> TOTAL UNITS
-                </CardTitle>
-              </CardHeader>
-              <CardContent className="pb-3">
-                <div className="text-lg font-bold text-foreground">{Number(metrics?.total_units || 0).toLocaleString()}</div>
-                <p className="text-xs text-muted-foreground mt-0.5">Sold quantity</p>
-              </CardContent>
-           </Card>
-
-           <Card className="border-l-4 border-l-sky-500">
-              <CardHeader className="pb-1">
-                <CardTitle className="text-xs font-medium flex items-center gap-1">
-                  <Wallet className="h-3 w-3 text-sky-500" /> AVG ORDER
-                </CardTitle>
-              </CardHeader>
-              <CardContent className="pb-3">
-                <div className="text-lg font-bold text-foreground">{formatMoney(metrics?.avg_order_value || 0)}</div>
-                <p className="text-xs text-muted-foreground mt-0.5">Average ticket</p>
-              </CardContent>
-           </Card>
-
-           <Card className="border-l-4 border-l-rose-500">
-              <CardHeader className="pb-1">
-                <CardTitle className="text-xs font-medium flex items-center gap-1">
-                  <Target className="h-3 w-3 text-rose-500" /> TARGET ATTAINMENT
-                </CardTitle>
-              </CardHeader>
-              <CardContent className="pb-3">
-                <div className="text-lg font-bold text-foreground">{Number(targetPct).toFixed(1)}%</div>
-                <p className="text-xs text-muted-foreground mt-0.5">Assigned: {formatMoney(targetAssigned)}</p>
-              </CardContent>
-           </Card>
-
-           <Card className="border-l-4 border-l-emerald-600">
-              <CardHeader className="pb-1">
-                <CardTitle className="text-xs font-medium flex items-center gap-1">
-                  <Trophy className="h-3 w-3 text-emerald-600" /> TOP SALER
-                </CardTitle>
-              </CardHeader>
-              <CardContent className="pb-3">
-                <div className="text-sm font-bold text-foreground truncate">{(metrics?.top_seller_name as any) || 'N/A'}</div>
-                <p className="text-xs text-muted-foreground mt-0.5">{formatMoney(metrics?.top_seller_revenue || 0)}</p>
-              </CardContent>
-           </Card>
+          <KpiCard
+            title="TOTAL REVENUE"
+            value={formatMoney(metrics?.total_revenue || 0)}
+            change={Number(metrics?.growth_revenue || 0)}
+            icon={DollarSign}
+            bgClass="bg-blue-50/20"
+            iconBgClass="bg-blue-100 text-blue-600"
+          />
+          <KpiCard
+            title="NET PROFIT"
+            value={formatMoney(metrics?.total_profit || 0)}
+            change={Number(metrics?.growth_profit || 0)}
+            icon={TrendingUp}
+            bgClass="bg-emerald-50/20"
+            iconBgClass="bg-emerald-100 text-emerald-600"
+          />
+          <KpiCard
+            title="ORDERS"
+            value={Number(metrics?.sales_velocity || 0).toLocaleString()}
+            change={Number(metrics?.growth_velocity || 0)}
+            icon={ShoppingCart}
+            bgClass="bg-indigo-50/20"
+            iconBgClass="bg-indigo-100 text-indigo-600"
+          />
+          <KpiCard
+            title="MARGIN"
+            value={`${Number(metrics?.unit_margin || 0).toFixed(1)}%`}
+            change={Number(metrics?.growth_margin || 0)}
+            icon={PieIcon}
+            bgClass="bg-orange-50/20"
+            iconBgClass="bg-orange-100 text-orange-600"
+          />
+          <KpiCard
+            title="TOTAL UNITS"
+            value={Number(metrics?.total_units || 0).toLocaleString()}
+            change={0}
+            icon={Boxes}
+            bgClass="bg-violet-50/20"
+            iconBgClass="bg-violet-100 text-violet-600"
+          />
+          <KpiCard
+            title="AVG ORDER"
+            value={formatMoney(metrics?.avg_order_value || 0)}
+            change={0}
+            icon={Wallet}
+            bgClass="bg-sky-50/20"
+            iconBgClass="bg-sky-100 text-sky-600"
+          />
+          <KpiCard
+            title="TARGET ATTAINMENT"
+            value={`${Number(targetPct).toFixed(1)}%`}
+            change={0}
+            icon={Target}
+            bgClass="bg-rose-50/20"
+            iconBgClass="bg-rose-100 text-rose-600"
+          />
+          <KpiCard
+            title="TOP SALER"
+            value={(metrics?.top_seller_name as any) || 'N/A'}
+            change={0}
+            icon={Trophy}
+            bgClass="bg-emerald-50/20"
+            iconBgClass="bg-emerald-100 text-emerald-600"
+          />
         </div>
 
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">

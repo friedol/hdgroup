@@ -196,7 +196,7 @@ export function ProductCard({ product, view = 'grid' }: Props) {
 
     return (
         <>
-            <div className={`group bg-white rounded-2xl border border-slate-200 hover:border-amber-400/50 transition-all overflow-hidden flex relative shadow-sm hover:shadow-md ${view === 'grid' ? 'flex-col' : 'flex-row items-center p-2 gap-4'}`}>
+            <div className={`group bg-white rounded-2xl border border-slate-200 hover:border-blue-600/50 transition-all overflow-hidden flex relative shadow-sm hover:shadow-md ${view === 'grid' ? 'flex-col' : 'flex-row items-center p-2 gap-4'}`}>
                 {view === 'grid' ? (
                     <Link href={`/order-product/${product.id}`} className="flex flex-col">
                         {/* Visual */}
@@ -206,14 +206,17 @@ export function ProductCard({ product, view = 'grid' }: Props) {
                                     src={imageUrl}
                                     alt={product.product_name}
                                     className="w-full h-full object-cover opacity-100 group-hover:scale-110 transition-all duration-700"
+                                    onError={e => { (e.target as HTMLImageElement).src = '/placeholder.png'; }}
                                 />
                             ) : (
-                                <div className="w-full h-full flex items-center justify-center bg-slate-100">
-                                    <div className="text-slate-400">No image</div>
-                                </div>
+                                <img
+                                    src="/placeholder.png"
+                                    alt="Placeholder"
+                                    className="w-full h-full object-cover opacity-100 group-hover:scale-110 transition-all duration-700"
+                                />
                             )}
 
-                             <div className="absolute top-3 left-3 bg-amber-400 text-slate-900 px-2 py-0.5 rounded text-[10px] font-bold z-10 shadow-sm capitalize">
+                             <div className="absolute top-3 left-3 bg-blue-600 text-white px-2 py-0.5 rounded text-[10px] font-bold z-10 shadow-sm capitalize">
                                 {maxUnit.toLowerCase()}
                             </div>
                         </div>
@@ -221,20 +224,20 @@ export function ProductCard({ product, view = 'grid' }: Props) {
                         {/* Intelligence */}
                         <div className="p-2 md:p-3 flex flex-col">
                             <div className="mb-2 md:mb-3">
-                                 <h3 className="text-[11px] md:text-xs font-bold text-slate-900 mb-1 group-hover:text-amber-600 transition-all tracking-tight leading-tight line-clamp-1 capitalize">
+                                 <h3 className="text-[11px] md:text-xs font-bold text-slate-900 mb-1 group-hover:text-blue-700 transition-all tracking-tight leading-tight line-clamp-1 capitalize">
                                     {product.product_name.toLowerCase()}
                                 </h3>
                                 <div className="flex items-center gap-0.5 mb-2 mt-0.5">
                                     {[...Array(5)].map((_, i) => (
                                         <Star
                                             key={i}
-                                            className={`w-3 h-3 ${i < Math.round(product.average_rating || 5) ? 'fill-yellow-400 text-yellow-400' : 'text-gray-300'}`}
+                                            className={`w-3 h-3 ${i < Math.round(product.average_rating || 5) ? 'fill-blue-400 text-blue-400' : 'text-gray-300'}`}
                                         />
                                     ))}
                                     <span className="text-[10px] text-gray-500 ml-1 font-bold">({product.reviews_count || 0})</span>
                                 </div>
                                 <div className="flex items-center gap-2">
-                                    <span className="w-1.5 h-1.5 rounded-full bg-amber-500"></span>
+                                    <span className="w-1.5 h-1.5 rounded-full bg-blue-700"></span>
                                     <p className="text-[10px] font-bold text-slate-400 tracking-wide">
                                         {maxUnitDesc}
                                     </p>
@@ -261,7 +264,7 @@ export function ProductCard({ product, view = 'grid' }: Props) {
                                         e.preventDefault();
                                         setShowModal(true);
                                     }}
-                                    className="w-8 h-8 md:w-10 md:h-10 rounded-lg md:rounded-xl bg-amber-400 text-slate-900 flex items-center justify-center hover:bg-slate-900 hover:text-white transition-all active:scale-95 shadow-lg shadow-amber-100/50"
+                                    className="w-8 h-8 md:w-10 md:h-10 rounded-lg md:rounded-xl bg-blue-600 text-white flex items-center justify-center hover:bg-slate-900 hover:text-white transition-all active:scale-95 shadow-lg shadow-blue-100/50"
                                     type="button"
                                 >
                                     <ShoppingCart className="w-4 h-4 md:w-5 md:h-5" />
@@ -278,27 +281,30 @@ export function ProductCard({ product, view = 'grid' }: Props) {
                                     src={imageUrl}
                                     alt={product.product_name}
                                     className="w-full h-full object-cover group-hover:scale-110 transition-all duration-700"
+                                    onError={e => { (e.target as HTMLImageElement).src = '/placeholder.png'; }}
                                 />
                             ) : (
-                                <div className="w-full h-full flex items-center justify-center bg-slate-50">
-                                    <div className="text-slate-300">No Image</div>
-                                </div>
+                                <img
+                                    src="/placeholder.png"
+                                    alt="Placeholder"
+                                    className="w-full h-full object-cover group-hover:scale-110 transition-all duration-700"
+                                />
                             )}
-                            <div className="absolute top-2 left-2 bg-amber-400 text-slate-900 px-1.5 py-0.5 rounded text-[10px] font-bold z-10 shadow-sm capitalize">
+                            <div className="absolute top-2 left-2 bg-blue-600 text-white px-1.5 py-0.5 rounded text-[10px] font-bold z-10 shadow-sm capitalize">
                                 {maxUnit.toLowerCase()}
                             </div>
                         </Link>
 
                         <div className="flex-1 min-w-0 pr-4">
                             <Link href={`/order-product/${product.id}`} className="block mb-2">
-                                <h3 className="text-lg md:text-xl font-bold text-slate-900 hover:text-amber-600 transition truncate capitalize">
+                                <h3 className="text-lg md:text-xl font-bold text-slate-900 hover:text-blue-700 transition truncate capitalize">
                                     {product.product_name.toLowerCase()}
                                 </h3>
                                 <div className="flex items-center gap-1 mb-2 mt-1">
                                     {[...Array(5)].map((_, i) => (
                                         <Star
                                             key={i}
-                                            className={`w-4 h-4 ${i < Math.round(product.average_rating || 5) ? 'fill-yellow-400 text-yellow-400' : 'text-gray-300'}`}
+                                            className={`w-4 h-4 ${i < Math.round(product.average_rating || 5) ? 'fill-blue-400 text-blue-400' : 'text-gray-300'}`}
                                         />
                                     ))}
                                     <span className="text-xs text-gray-500 ml-1 font-bold">({product.reviews_count || 0} reviews)</span>
@@ -322,7 +328,7 @@ export function ProductCard({ product, view = 'grid' }: Props) {
                                         e.preventDefault();
                                         setShowModal(true);
                                     }}
-                                    className="bg-amber-400 text-slate-900 px-5 py-2 rounded-md font-bold text-[11px] hover:bg-slate-900 hover:text-white transition-all flex items-center gap-2 shadow-md shadow-amber-200/50"
+                                    className="bg-blue-600 text-white px-5 py-2 rounded-md font-bold text-[11px] hover:bg-slate-900 hover:text-white transition-all flex items-center gap-2 shadow-md shadow-blue-200/50"
                                 >
                                     <ShoppingCart className="w-3.5 h-3.5" />
                                     Place order
@@ -363,13 +369,13 @@ export function ProductCard({ product, view = 'grid' }: Props) {
                                                 <label 
                                                     key={i}
                                                     onClick={() => setSelectedUnit(unitVal)}
-                                                    className={`flex items-center justify-between p-4 rounded-xl border-2 transition-all cursor-pointer ${isSelected ? 'border-amber-400 bg-amber-50/30' : 'border-slate-100 bg-slate-50 hover:border-amber-200'}`}
+                                                    className={`flex items-center justify-between p-4 rounded-xl border-2 transition-all cursor-pointer ${isSelected ? 'border-blue-600 bg-blue-50/30' : 'border-slate-100 bg-slate-50 hover:border-blue-200'}`}
                                                 >
                                                     <div className="flex flex-col text-left">
                                                         <span className="text-sm font-bold text-slate-900 tracking-tight">
                                                             {u.unit_name}
                                                         </span>
-                                                        <span className={`text-[10px] font-bold tracking-wide mt-0.5 ${isSelected ? 'text-amber-600' : 'text-slate-400'}`}>
+                                                        <span className={`text-[10px] font-bold tracking-wide mt-0.5 ${isSelected ? 'text-blue-700' : 'text-slate-400'}`}>
                                                             {u.description || 'Secondary Tier'}
                                                         </span>
                                                     </div>
@@ -379,7 +385,7 @@ export function ProductCard({ product, view = 'grid' }: Props) {
                                                                 maximumFractionDigits: 0,
                                                                     }).format(Number(isManufactured ? resolveManufacturedPrice(u, undefined, selectedPrintType) : unitPriceToUse))} TSH
                                                         </span>
-                                                        <div className={`w-4 h-4 rounded-full border-2 flex items-center justify-center ${isSelected ? 'border-amber-500 bg-amber-500' : 'border-slate-300 bg-white'}`}>
+                                                        <div className={`w-4 h-4 rounded-full border-2 flex items-center justify-center ${isSelected ? 'border-blue-700 bg-blue-700' : 'border-slate-300 bg-white'}`}>
                                                             {isSelected && <div className="w-1.5 h-1.5 rounded-full bg-white" />}
                                                         </div>
                                                     </div>
@@ -387,12 +393,12 @@ export function ProductCard({ product, view = 'grid' }: Props) {
                                             );
                                         })
                                     ) : (
-                                        <label className="flex items-center justify-between p-4 rounded-xl border-2 border-amber-400 bg-amber-50/30 cursor-pointer transition-all">
+                                        <label className="flex items-center justify-between p-4 rounded-xl border-2 border-blue-600 bg-blue-50/30 cursor-pointer transition-all">
                                             <div className="flex flex-col text-left">
                                                  <span className="text-sm font-bold text-slate-900 tracking-tight">
                                                     {maxUnit}
                                                 </span>
-                                                <span className="text-[10px] text-amber-600 font-bold tracking-wide mt-0.5">
+                                                <span className="text-[10px] text-blue-700 font-bold tracking-wide mt-0.5">
                                                     Primary tier
                                                 </span>
                                             </div>
@@ -402,7 +408,7 @@ export function ProductCard({ product, view = 'grid' }: Props) {
                                                         maximumFractionDigits: 0,
                                                     }).format(Number(isManufactured ? resolveManufacturedPrice(undefined, undefined, selectedPrintType) : maxPrice))} TSH
                                                 </span>
-                                                <div className="w-4 h-4 rounded-full border-2 border-amber-500 bg-amber-500 flex items-center justify-center">
+                                                <div className="w-4 h-4 rounded-full border-2 border-blue-700 bg-blue-700 flex items-center justify-center">
                                                     <div className="w-1.5 h-1.5 rounded-full bg-white" />
                                                 </div>
                                             </div>
@@ -421,14 +427,14 @@ export function ProductCard({ product, view = 'grid' }: Props) {
                                         <button
                                             type="button"
                                             onClick={() => setSelectedPrintType('plain')}
-                                            className={`px-3 py-2 rounded-lg border-2 text-xs font-bold transition-all ${selectedPrintType === 'plain' ? 'border-amber-400 bg-amber-50 text-amber-900' : 'border-slate-100 bg-white text-slate-600 hover:border-amber-200 hover:bg-slate-50'}`}
+                                            className={`px-3 py-2 rounded-lg border-2 text-xs font-bold transition-all ${selectedPrintType === 'plain' ? 'border-blue-600 bg-blue-50 text-blue-900' : 'border-slate-100 bg-white text-slate-600 hover:border-blue-200 hover:bg-slate-50'}`}
                                         >
                                             Plain Bag
                                         </button>
                                         <button
                                             type="button"
                                             onClick={() => setSelectedPrintType('printed')}
-                                            className={`px-3 py-2 rounded-lg border-2 text-xs font-bold transition-all ${selectedPrintType === 'printed' ? 'border-amber-400 bg-amber-50 text-amber-900' : 'border-slate-100 bg-white text-slate-600 hover:border-amber-200 hover:bg-slate-50'}`}
+                                            className={`px-3 py-2 rounded-lg border-2 text-xs font-bold transition-all ${selectedPrintType === 'printed' ? 'border-blue-600 bg-blue-50 text-blue-900' : 'border-slate-100 bg-white text-slate-600 hover:border-blue-200 hover:bg-slate-50'}`}
                                         >
                                             Printed Bag
                                         </button>
@@ -449,8 +455,8 @@ export function ProductCard({ product, view = 'grid' }: Props) {
                                                 onClick={() => setSelectedColor(variant.color)}
                                                 className={`px-4 py-2 rounded-lg border-2 text-sm font-bold transition-all shadow-sm ${
                                                     selectedColor === variant.color 
-                                                    ? 'border-amber-400 bg-amber-50 text-amber-900 shadow-amber-100' 
-                                                    : 'border-slate-100 bg-white text-slate-600 hover:border-amber-200 hover:bg-slate-50'
+                                                    ? 'border-blue-600 bg-blue-50 text-blue-900 shadow-blue-100' 
+                                                    : 'border-slate-100 bg-white text-slate-600 hover:border-blue-200 hover:bg-slate-50'
                                                 }`}
                                             >
                                                 <div className="flex items-center gap-2">
@@ -463,7 +469,7 @@ export function ProductCard({ product, view = 'grid' }: Props) {
                                         ))}
                                     </div>
                                     {!selectedColor && (
-                                        <p className="text-[10px] text-amber-600 font-bold mt-1">* Selection required</p>
+                                        <p className="text-[10px] text-blue-700 font-bold mt-1">* Selection required</p>
                                     )}
                                 </div>
                             )}
@@ -487,7 +493,7 @@ export function ProductCard({ product, view = 'grid' }: Props) {
                             <button
                                 onClick={handleAddToCart}
                                 disabled={!canAddToCart}
-                                className="w-full bg-amber-400 text-slate-900 py-4 rounded-xl font-bold text-[14px] transition-all hover:bg-slate-900 hover:text-white shadow-xl shadow-amber-400/20 active:scale-[0.98] disabled:opacity-50 disabled:cursor-not-allowed"
+                                className="w-full bg-blue-600 text-white py-4 rounded-xl font-bold text-[14px] transition-all hover:bg-slate-900 hover:text-white shadow-xl shadow-blue-600/20 active:scale-[0.98] disabled:opacity-50 disabled:cursor-not-allowed"
                             >
                                 {inStock ? 'Place Order' : 'Out of Stock'}
                             </button>

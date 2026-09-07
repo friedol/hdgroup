@@ -41,7 +41,7 @@ export default function PermissionCreate() {
         <AppLayout>
             <Head title="Register Permission" />
             
-            <div className="max-w-[1400px] mx-auto space-y-6">
+            <div className="w-full space-y-6">
                 <div className="flex items-center gap-4">
                     <Link href="/roles-permissions">
                         <Button variant="ghost" size="icon" className="rounded-full">

@@ -116,9 +116,9 @@ export default function Account({ user, tab = 'profile' }: Props) {
 
             <div className="min-h-screen bg-gradient-to-br from-slate-50 to-slate-100">
                 {/* Header Section */}
-                <section className="relative bg-gradient-to-r from-amber-400 to-amber-500 text-slate-900 overflow-hidden pt-8 pb-20">
-                    <div className="absolute top-0 right-0 w-80 h-80 bg-amber-300/30 rounded-full blur-3xl -translate-y-1/2 translate-x-1/2" />
-                    <div className="absolute bottom-0 left-0 w-80 h-80 bg-amber-300/30 rounded-full blur-3xl translate-y-1/2 -translate-x-1/2" />
+                <section className="relative bg-blue-600 text-white overflow-hidden pt-8 pb-20">
+                    <div className="absolute top-0 right-0 w-80 h-80 bg-white/10 rounded-full blur-3xl -translate-y-1/2 translate-x-1/2" />
+                    <div className="absolute bottom-0 left-0 w-80 h-80 bg-white/10 rounded-full blur-3xl translate-y-1/2 -translate-x-1/2" />
                 </section>
 
                 {/* Main Content Wrapper */}
@@ -130,18 +130,18 @@ export default function Account({ user, tab = 'profile' }: Props) {
                         <div className="bg-white rounded-2xl shadow-sm p-6 lg:p-8 sticky lg:top-24">
                             <div className="flex flex-col items-center text-center">
                                 <div className="relative mb-4">
-                                    <div className="w-24 h-24 rounded-full border-4 border-amber-200 bg-gradient-to-br from-amber-50 to-amber-100 overflow-hidden flex items-center justify-center shadow-md">
+                                    <div className="w-24 h-24 rounded-full border-4 border-blue-200 bg-gradient-to-br from-blue-50 to-blue-100 overflow-hidden flex items-center justify-center shadow-md">
                                         {profilePreview ? (
                                             <img src={profilePreview} alt="Profile" className="w-full h-full object-cover" />
                                         ) : (
-                                            <User className="w-10 h-10 text-amber-400" />
+                                            <User className="w-10 h-10 text-blue-400" />
                                         )}
                                     </div>
                                     {isEditing && (
                                         <button
                                             type="button"
                                             onClick={() => fileInputRef.current?.click()}
-                                            className="absolute bottom-0 right-0 bg-amber-400 hover:bg-amber-500 text-white p-2 rounded-full shadow-md transition-colors"
+                                            className="absolute bottom-0 right-0 bg-blue-600 hover:bg-blue-700 text-white p-2 rounded-full shadow-md transition-colors"
                                         >
                                             <Camera className="w-4 h-4" />
                                         </button>
@@ -163,7 +163,7 @@ export default function Account({ user, tab = 'profile' }: Props) {
                                     <Button
                                         type="button"
                                         onClick={() => setIsEditing(true)}
-                                        className="w-full bg-amber-400 hover:bg-amber-500 text-slate-900 font-bold py-2 rounded-lg transition-colors"
+                                        className="w-full bg-blue-600 hover:bg-blue-700 text-white font-bold py-2 rounded-lg transition-colors"
                                     >
                                         <Edit2 className="w-4 h-4 mr-2" />
                                         Edit Profile
@@ -195,7 +195,7 @@ export default function Account({ user, tab = 'profile' }: Props) {
                                 onClick={() => setCurrentTab('profile')}
                                 className={`py-3 px-4 rounded-lg font-bold text-sm transition-all ${
                                     currentTab === 'profile'
-                                        ? 'bg-amber-400 text-slate-900 shadow-md'
+                                        ? 'bg-blue-600 text-white shadow-md'
                                         : 'bg-white text-slate-600 border border-slate-200'
                                 }`}
                             >
@@ -206,7 +206,7 @@ export default function Account({ user, tab = 'profile' }: Props) {
                                 onClick={() => setCurrentTab('password')}
                                 className={`py-3 px-4 rounded-lg font-bold text-sm transition-all ${
                                     currentTab === 'password'
-                                        ? 'bg-amber-400 text-slate-900 shadow-md'
+                                        ? 'bg-blue-600 text-white shadow-md'
                                         : 'bg-white text-slate-600 border border-slate-200'
                                 }`}
                             >
@@ -249,10 +249,10 @@ export default function Account({ user, tab = 'profile' }: Props) {
                                         </div>
 
                                         {/* Photo Upload in Edit Mode */}
-                                        <div className="bg-amber-50 border-2 border-dashed border-amber-300 rounded-lg p-6 text-center cursor-pointer hover:bg-amber-100 transition-colors" onClick={() => fileInputRef.current?.click()}>
-                                            <Camera className="w-8 h-8 mx-auto mb-2 text-amber-600" />
-                                            <p className="text-sm font-bold text-amber-900">Click to change profile photo</p>
-                                            <p className="text-xs text-amber-700 mt-1">or drag and drop</p>
+                                        <div className="bg-blue-50 border-2 border-dashed border-blue-300 rounded-lg p-6 text-center cursor-pointer hover:bg-blue-100 transition-colors" onClick={() => fileInputRef.current?.click()}>
+                                            <Camera className="w-8 h-8 mx-auto mb-2 text-blue-600" />
+                                            <p className="text-sm font-bold text-blue-900">Click to change profile photo</p>
+                                            <p className="text-xs text-blue-700 mt-1">or drag and drop</p>
                                         </div>
 
                                         {/* Action Buttons */}
@@ -388,7 +388,7 @@ function FormField({
                     type={type}
                     value={value}
                     onChange={onChange}
-                    className="h-12 pl-11 border-slate-200 rounded-lg font-medium focus:border-amber-400 focus:ring-amber-200"
+                    className="h-12 pl-11 border-slate-200 rounded-lg font-medium focus:border-blue-500 focus:ring-blue-200"
                     required={required}
                 />
             </div>
@@ -406,8 +406,8 @@ function InfoCard({
     value?: string;
 }) {
     return (
-        <div className="flex items-start gap-3 p-4 bg-gradient-to-r from-slate-50 to-slate-100 rounded-lg border border-slate-200 hover:border-amber-300 hover:bg-amber-50/50 transition-colors">
-            <div className="text-amber-500 pt-1">
+        <div className="flex items-start gap-3 p-4 bg-gradient-to-r from-slate-50 to-slate-100 rounded-lg border border-slate-200 hover:border-blue-300 hover:bg-blue-50/50 transition-colors">
+            <div className="text-blue-500 pt-1">
                 <Icon className="w-5 h-5" />
             </div>
             <div className="flex-1 min-w-0">

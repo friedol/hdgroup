@@ -37,7 +37,7 @@
 <body>
     <div class="header">
         <div class="header-left">
-            <h1>{{ strtoupper($branch->name ?? 'HD Group') }}</h1>
+            <h1>{{ strtoupper($branch->name ?? 'Jopo Juniours Co. Ltd') }}</h1>
             <p style="margin: 3px 0 0 0; font-size: 9px; color: #888; text-transform: uppercase; letter-spacing: 1px;">EXPENSE REPORT</p>
         </div>
         <div class="header-right">

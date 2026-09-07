@@ -1,5 +1,5 @@
 // Components
-import { Form, Head, usePage } from '@inertiajs/react';
+import { Form, Head, Link, usePage } from '@inertiajs/react';
 import TextLink from '@/components/text-link';
 import { Button } from '@/components/ui/button';
 import { Spinner } from '@/components/ui/spinner';
@@ -25,7 +25,7 @@ export default function VerifyEmail({ status }: { status?: string }) {
             {(usePage().props.flash as any)?.message && (
                 <div className={`mb-4 text-center text-sm font-medium p-3 rounded-lg border ${
                     (usePage().props.flash as any).status === 'warning' 
-                        ? 'text-amber-600 bg-amber-50 border-amber-200' 
+                        ? 'text-[#3a9d75] bg-green-50 border-green-200'
                         : 'text-green-600 bg-green-50 border-green-200'
                 }`}>
                     {(usePage().props.flash as any).message}
@@ -35,17 +35,19 @@ export default function VerifyEmail({ status }: { status?: string }) {
             <Form {...verification.send.customer.form()} className="space-y-6 text-center">
                 {({ processing }) => (
                     <>
-                        <Button disabled={processing} variant="secondary">
+                        <Button disabled={processing} className="bg-[#3a9d75] hover:bg-[#2d8a63] text-white border-none">
                             {processing && <Spinner />}
                             Resend verification email
                         </Button>
 
-                        <TextLink
-                            href={logout()}
-                            className="mx-auto block text-sm"
+                        <Link
+                            href={logout().url}
+                            method="post"
+                            as="button"
+                            className="mx-auto block text-sm border-none bg-transparent shadow-none text-muted-foreground underline underline-offset-4 hover:text-foreground transition-colors"
                         >
                             Log out
-                        </TextLink>
+                        </Link>
                     </>
                 )}
             </Form>

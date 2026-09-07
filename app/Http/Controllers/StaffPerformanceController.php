@@ -2,23 +2,23 @@
 
 namespace App\Http\Controllers;
 
-use Illuminate\Http\Request;
-use Illuminate\Support\Facades\DB;
-use Carbon\Carbon;
-use App\Models\User;
-use App\Models\Sale;
-use App\Models\SaleItem;
-use App\Models\Production;
 use App\Models\Branch;
 use App\Models\Inventory;
-use App\Models\StockAdjustment;
+use App\Models\Sale;
+use App\Models\SaleItem;
+use App\Models\User;
+use Carbon\Carbon;
+use Illuminate\Http\Request;
+use Illuminate\Support\Facades\DB;
+use Inertia\Inertia;
 
 class StaffPerformanceController extends Controller
 {
     public function dashboard()
     {
-        $branches = \App\Models\Branch::select('id', 'name')->get();
-        return \Inertia\Inertia::render('Admin/StaffPerformance/Dashboard', [
+        $branches = Branch::select('id', 'name')->get();
+
+        return Inertia::render('Admin/StaffPerformance/Dashboard', [
             'branches' => $branches,
         ]);
     }
@@ -31,14 +31,14 @@ class StaffPerformanceController extends Controller
         $startDate = $this->getStartDate($period);
         $endDate = Carbon::now();
 
-        $sellers = User::whereHas('role', function($q) {
+        $sellers = User::whereHas('role', function ($q) {
             $q->whereNotIn('role_name', ['CEO', 'SuperAdmin', 'Admin']);
-        })->whereHas('staffSales', function($query) use ($startDate, $endDate, $branchId) {
+        })->whereHas('staffSales', function ($query) use ($startDate, $endDate, $branchId) {
             $query->whereBetween('created_at', [$startDate, $endDate]);
             if ($branchId) {
                 $query->where('branch_id', $branchId);
             }
-        })->with(['staffSales' => function($query) use ($startDate, $endDate, $branchId) {
+        })->with(['staffSales' => function ($query) use ($startDate, $endDate, $branchId) {
             $query->whereBetween('created_at', [$startDate, $endDate]);
             if ($branchId) {
                 $query->where('branch_id', $branchId);
@@ -48,18 +48,18 @@ class StaffPerformanceController extends Controller
         $performanceData = $sellers->map(function ($seller) use ($startDate, $endDate, $period) {
             $sales = $seller->staffSales;
             $totalSales = $sales->sum('total_amount');
-            $totalUnitsSold = $sales->sum(function($sale) {
+            $totalUnitsSold = $sales->sum(function ($sale) {
                 return $sale->items->sum('quantity');
             });
             $totalOrders = $sales->count();
-            
+
             // Calculate returns
             $returns = $this->calculateReturns($seller->id, $startDate, $endDate);
             $returnRate = $totalUnitsSold > 0 ? ($returns / $totalUnitsSold) * 100 : 0;
-            
+
             // Calculate conversion rate (assuming leads/opportunities data available)
             $conversionRate = $this->calculateConversionRate($seller->id, $startDate, $endDate);
-            
+
             // Calculate average order value
             $avgOrderValue = $totalOrders > 0 ? $totalSales / $totalOrders : 0;
 
@@ -74,13 +74,14 @@ class StaffPerformanceController extends Controller
                 'return_rate' => $returnRate,
                 'performance_score' => $this->calculateSellerPerformanceScore($totalSales, $conversionRate, $returnRate),
                 'ranking' => 0, // Will be calculated after sorting
-                'period' => $period
+                'period' => $period,
             ];
         })->sortByDesc('total_sales')->values();
 
         // Add rankings
         $performanceData = $performanceData->map(function ($item, $index) {
             $item['ranking'] = $index + 1;
+
             return $item;
         });
 
@@ -95,7 +96,7 @@ class StaffPerformanceController extends Controller
         $startDate = $this->getStartDate($period);
         $endDate = Carbon::now();
 
-        $query = Branch::with(['sales', 'expenses', 'productions', 'manager']);
+        $query = Branch::with(['sales', 'expenses', 'manager']);
 
         if ($branchId) {
             $query->where('id', $branchId);
@@ -112,16 +113,14 @@ class StaffPerformanceController extends Controller
                 ->whereBetween('created_at', [$startDate, $endDate])
                 ->sum('amount');
 
-            $productionCosts = $branch->productions()
-                ->whereBetween('created_at', [$startDate, $endDate])
-                ->sum('material_cost');
+            $productionCosts = 0;
 
             $netProfit = $revenue - $expenses - $productionCosts;
             $expenseRatio = $revenue > 0 ? ($expenses / $revenue) * 100 : 100;
-            
-            // Calculate production efficiency
-            $productionEfficiency = $this->calculateBranchProductionEfficiency($branch->id, $startDate, $endDate);
-            
+
+            // Calculate production efficiency (removed - set to 0)
+            $productionEfficiency = 0;
+
             // Calculate profit growth
             $profitGrowth = $this->calculateProfitGrowth($branch->id, $startDate, $endDate);
 
@@ -136,15 +135,16 @@ class StaffPerformanceController extends Controller
                 'expense_ratio' => $expenseRatio,
                 'production_efficiency' => $productionEfficiency,
                 'profit_growth' => $profitGrowth,
-                'performance_score' => $this->calculateManagerPerformanceScore($netProfit, $expenseRatio, $productionEfficiency, $profitGrowth),
+                'performance_score' => $this->calculateManagerPerformanceScore($netProfit, $expenseRatio, $profitGrowth),
                 'ranking' => 0, // Will be calculated after sorting
-                'period' => $period
+                'period' => $period,
             ];
         })->sortByDesc('net_profit')->values();
 
         // Add rankings
         $performanceData = $performanceData->map(function ($item, $index) {
             $item['ranking'] = $index + 1;
+
             return $item;
         });
 
@@ -172,7 +172,7 @@ class StaffPerformanceController extends Controller
                 AVG(DATEDIFF(o.delivered_at, o.created_at)) as avg_delivery_time
             ')
             ->whereBetween('o.created_at', [$startDate, $endDate])
-            ->when($branchId, function($query, $branchId) {
+            ->when($branchId, function ($query, $branchId) {
                 return $query->where('o.branch_id', $branchId);
             })
             ->groupBy('b.id', 'b.name')
@@ -193,13 +193,14 @@ class StaffPerformanceController extends Controller
                 'avg_delivery_time' => round($data->avg_delivery_time, 1),
                 'performance_score' => $this->calculateDeliveryPerformanceScore($onTimeDeliveryRate, $failedDeliveryRate),
                 'ranking' => 0, // Will be calculated after sorting
-                'period' => $period
+                'period' => $period,
             ];
         })->sortByDesc('on_time_delivery_rate')->values();
 
         // Add rankings
         $performanceData = $performanceData->map(function ($item, $index) {
             $item['ranking'] = $index + 1;
+
             return $item;
         });
 
@@ -214,14 +215,14 @@ class StaffPerformanceController extends Controller
         $startDate = $this->getStartDate($period);
         $endDate = Carbon::now();
 
-        $storekeepers = User::whereHas('role', function($q) {
+        $storekeepers = User::whereHas('role', function ($q) {
             $q->whereNotIn('role_name', ['CEO', 'SuperAdmin', 'Admin']);
-        })->whereHas('stockAdjustments', function($query) use ($startDate, $endDate, $branchId) {
+        })->whereHas('stockAdjustments', function ($query) use ($startDate, $endDate, $branchId) {
             $query->whereBetween('created_at', [$startDate, $endDate]);
             if ($branchId) {
                 $query->where('branch_id', $branchId);
             }
-        })->with(['stockAdjustments' => function($query) use ($startDate, $endDate, $branchId) {
+        })->with(['stockAdjustments' => function ($query) use ($startDate, $endDate, $branchId) {
             $query->whereBetween('created_at', [$startDate, $endDate]);
             if ($branchId) {
                 $query->where('branch_id', $branchId);
@@ -230,17 +231,17 @@ class StaffPerformanceController extends Controller
 
         $performanceData = $storekeepers->map(function ($storekeeper) use ($startDate, $endDate, $period) {
             $adjustments = $storekeeper->stockAdjustments;
-            
+
             // Calculate inventory accuracy
             $inventoryAccuracy = $this->calculateInventoryAccuracy($storekeeper->id, $startDate, $endDate);
-            
+
             // Calculate adjustment frequency
             $adjustmentFrequency = $adjustments->count();
-            
+
             // Calculate adjustment types
             $positiveAdjustments = $adjustments->where('adjustment_type', 'positive')->count();
             $negativeAdjustments = $adjustments->where('adjustment_type', 'negative')->count();
-            
+
             // Calculate stock turnover rate
             $stockTurnover = $this->calculateStockTurnover($storekeeper->id, $startDate, $endDate);
 
@@ -254,13 +255,14 @@ class StaffPerformanceController extends Controller
                 'stock_turnover_rate' => $stockTurnover,
                 'performance_score' => $this->calculateStorekeeperPerformanceScore($inventoryAccuracy, $adjustmentFrequency, $stockTurnover),
                 'ranking' => 0, // Will be calculated after sorting
-                'period' => $period
+                'period' => $period,
             ];
         })->sortByDesc('inventory_accuracy')->values();
 
         // Add rankings
         $performanceData = $performanceData->map(function ($item, $index) {
             $item['ranking'] = $index + 1;
+
             return $item;
         });
 
@@ -299,16 +301,16 @@ class StaffPerformanceController extends Controller
                 'sellers' => $this->getTopSellers(5),
                 'managers' => $this->getTopManagers(3),
                 'delivery_staff' => $this->getTopDeliveryStaff(3),
-                'storekeepers' => $this->getTopStorekeepers(3)
+                'storekeepers' => $this->getTopStorekeepers(3),
             ],
             'performance_averages' => [
                 'avg_seller_score' => $this->getAverageSellerScore(),
                 'avg_manager_score' => $this->getAverageManagerScore(),
                 'avg_delivery_score' => $this->getAverageDeliveryScore(),
-                'avg_storekeeper_score' => $this->getAverageStorekeeperScore()
+                'avg_storekeeper_score' => $this->getAverageStorekeeperScore(),
             ],
             'improvement_areas' => $this->getImprovementAreas(),
-            'recognition_opportunities' => $this->getRecognitionOpportunities()
+            'recognition_opportunities' => $this->getRecognitionOpportunities(),
         ];
 
         return response()->json($summary);
@@ -362,19 +364,13 @@ class StaffPerformanceController extends Controller
         return ($salesScore * 0.5) + ($conversionScore * 0.3) + ($returnScore * 0.2);
     }
 
-    private function calculateBranchProductionEfficiency($branchId, $startDate, $endDate)
-    {
-        // This would integrate with the production efficiency system
-        return 75.0; // Placeholder
-    }
-
     private function calculateProfitGrowth($branchId, $startDate, $endDate)
     {
         $currentPeriodProfit = $this->calculateBranchProfit($branchId, $startDate, $endDate);
-        
+
         $previousStartDate = Carbon::parse($startDate)->subDays(Carbon::parse($startDate)->diffInDays($endDate));
         $previousEndDate = $startDate;
-        
+
         $previousPeriodProfit = $this->calculateBranchProfit($branchId, $previousStartDate, $previousEndDate);
 
         return $previousPeriodProfit > 0 ? (($currentPeriodProfit - $previousPeriodProfit) / $previousPeriodProfit) * 100 : 0;
@@ -394,14 +390,13 @@ class StaffPerformanceController extends Controller
         return $revenue - $expenses;
     }
 
-    private function calculateManagerPerformanceScore($netProfit, $expenseRatio, $productionEfficiency, $profitGrowth)
+    private function calculateManagerPerformanceScore($netProfit, $expenseRatio, $profitGrowth)
     {
         $profitScore = min(100, ($netProfit / 500000) * 100); // Normalize to 500K profit
         $expenseScore = max(0, 100 - $expenseRatio);
-        $efficiencyScore = $productionEfficiency;
         $growthScore = max(0, min(100, $profitGrowth + 50)); // Normalize growth
 
-        return ($profitScore * 0.4) + ($expenseScore * 0.2) + ($efficiencyScore * 0.2) + ($growthScore * 0.2);
+        return ($profitScore * 0.5) + ($expenseScore * 0.3) + ($growthScore * 0.2);
     }
 
     private function calculateDeliveryPerformanceScore($onTimeRate, $failedRate)
@@ -545,7 +540,7 @@ class StaffPerformanceController extends Controller
             'Sales team conversion rates below industry average',
             'Delivery on-time rates need improvement in Branch C',
             'Inventory accuracy issues in Branch B',
-            'High expense ratios in some branches'
+            'High expense ratios in some branches',
         ];
     }
 
@@ -555,7 +550,7 @@ class StaffPerformanceController extends Controller
             'Top performer of the month: John Doe (Sales)',
             'Most improved: Branch A (Management)',
             'Perfect delivery record: Delivery Team B',
-            'Inventory excellence: Storekeeper Jane Smith'
+            'Inventory excellence: Storekeeper Jane Smith',
         ];
     }
 }

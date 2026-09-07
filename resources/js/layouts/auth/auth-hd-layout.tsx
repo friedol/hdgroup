@@ -12,20 +12,16 @@ export default function AuthHdLayout({
 
     return (
         <div className="relative flex min-h-svh items-center justify-center bg-background p-4 dark:bg-zinc-950 overflow-hidden">
-            {/* Background Decorations - Yellow Balloons */}
-            <div className="absolute top-[-10%] left-[-5%] h-64 w-64 rounded-full bg-amber-400/10 blur-[100px]" />
-            <div className="absolute bottom-[10%] right-[-10%] h-96 w-96 rounded-full bg-amber-600/5 blur-[120px]" />
-            <div className="absolute top-[20%] right-[10%] h-32 w-32 rounded-full bg-amber-300/10 blur-[60px]" />
-            
+            {/* Background Decorations */}
+            <div className="absolute top-[-10%] left-[-5%] h-64 w-64 rounded-full blur-[100px]" style={{ backgroundColor: 'rgba(58,157,117,0.12)' }} />
+            <div className="absolute bottom-[10%] right-[-10%] h-96 w-96 rounded-full blur-[120px]" style={{ backgroundColor: 'rgba(58,157,117,0.07)' }} />
+            <div className="absolute top-[20%] right-[10%] h-32 w-32 rounded-full blur-[60px]" style={{ backgroundColor: 'rgba(58,157,117,0.10)' }} />
+
             <div className="relative z-10 flex w-full max-w-[950px] overflow-hidden rounded-xl bg-white shadow-xl dark:bg-zinc-900 border border-zinc-100 dark:border-zinc-800">
                 {/* Left Side - Banner */}
-                <div className="relative hidden w-[42%] lg:block overflow-hidden bg-amber-400">
-                    {/* Vibrant Amber Gradient Background */}
-                    <div className="absolute inset-0 bg-gradient-to-tr from-amber-600 via-amber-400 to-amber-300" />
-                    <div className="absolute inset-0 bg-[radial-gradient(circle_at_top_left,_var(--tw-gradient-stops))] from-white/20 via-transparent to-transparent" />
-                    <div className="absolute inset-0 bg-[radial-gradient(circle_at_bottom_right,_var(--tw-gradient-stops))] from-black/5 via-transparent to-transparent" />
+                <div className="relative hidden w-[42%] lg:block overflow-hidden" style={{ backgroundColor: '#3a9d75' }}>
                     
-                    <div className="relative flex h-full flex-col p-12 text-zinc-900 border-r border-amber-500/20 shadow-2xl">
+                    <div className="relative flex h-full flex-col p-12 text-zinc-900 border-r border-black/10 shadow-2xl">
                         {/* Circle Logo Area */}
                         <div className="flex flex-col items-center justify-center mb-10">
                             <div className="relative flex h-36 w-36 items-center justify-center rounded-full bg-white/40 border border-white/60 backdrop-blur-xl p-6 overflow-hidden transition-all duration-700 hover:scale-105 shadow-xl">
@@ -48,10 +44,10 @@ export default function AuthHdLayout({
                             </div>
                         </div>
 
-                        {/* Feature Cards - High Contrast on Yellow */}
+                        {/* Feature Cards - High Contrast on Blue */}
                         <div className="space-y-3 mt-auto">
                             <div className="flex items-center gap-4 p-4 rounded-lg bg-zinc-900/10 border border-zinc-900/10 backdrop-blur-sm hover:translate-x-2 transition-transform duration-300">
-                                <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-lg bg-zinc-900 text-amber-400">
+                                <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-lg bg-zinc-900 text-white">
                                     <svg className="size-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 17h2a2 2 0 002-2v-4a2 2 0 00-2-2H5a2 2 0 00-2 2v4a2 2 0 002 2h2m2 4h6a2 2 0 002-2v-4a2 2 0 00-2-2H9a2 2 0 00-2 2v4a2 2 0 002 2zm8-12V5a2 2 0 00-2-2H9a2 2 0 00-2 2v4h10z" />
                                     </svg>
@@ -63,7 +59,7 @@ export default function AuthHdLayout({
                             </div>
 
                             <div className="flex items-center gap-4 p-4 rounded-lg bg-zinc-900/10 border border-zinc-900/10 backdrop-blur-sm hover:translate-x-2 transition-transform duration-300">
-                                <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-lg bg-zinc-900 text-amber-400">
+                                <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-lg bg-zinc-900 text-white">
                                     <svg className="size-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
                                     </svg>
@@ -75,7 +71,7 @@ export default function AuthHdLayout({
                             </div>
 
                             <div className="flex items-center gap-4 p-4 rounded-lg bg-zinc-900/10 border border-zinc-900/10 backdrop-blur-sm hover:translate-x-2 transition-transform duration-300">
-                                <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-lg bg-zinc-900 text-amber-400">
+                                <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-lg bg-zinc-900 text-white">
                                     <svg className="size-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 10V3L4 14h7v7l9-11h-7z" />
                                     </svg>
@@ -93,12 +89,12 @@ export default function AuthHdLayout({
                 <div className="flex flex-1 flex-col p-6 md:p-10 lg:p-12">
                     {/* Header with Centered Logo */}
                     <div className="flex flex-col items-center text-center">
-                        <div className="mb-4 flex h-14 w-14 items-center justify-center p-0 overflow-hidden rounded-full shadow-lg shadow-amber-200">
+                        <div className="mb-4 flex h-14 w-14 items-center justify-center p-0 overflow-hidden rounded-full shadow-lg">
                              {systemLogo ? (
                                 <img src={systemLogo} alt={businessName} className="h-full w-full object-cover rounded-full" />
                             ) : (
-                                <div className="flex h-12 w-12 items-center justify-center rounded-full bg-amber-400 p-2.5">
-                                    <AppLogoIcon className="size-full fill-current text-black" />
+                                <div className="flex h-12 w-12 items-center justify-center rounded-full p-2.5" style={{ backgroundColor: '#3a9d75' }}>
+                                    <AppLogoIcon className="size-full fill-current text-white" />
                                 </div>
                             )}
                         </div>
@@ -118,7 +114,7 @@ export default function AuthHdLayout({
                     {(usePage().props.flash as any)?.message && (
                         <div className={`mt-6 p-4 rounded-lg border text-xs font-bold text-center animate-in fade-in slide-in-from-top-2 duration-500 ${
                             (usePage().props.flash as any).status === 'warning' 
-                                ? 'bg-amber-50 border-amber-200 text-amber-700 shadow-sm shadow-amber-100' 
+                                ? 'bg-blue-50 border-blue-200 text-blue-700 shadow-sm shadow-blue-100' 
                                 : 'bg-green-50 border-green-200 text-green-700 shadow-sm shadow-green-100'
                         }`}>
                             <div className="flex items-center justify-center gap-2">
@@ -143,7 +139,7 @@ export default function AuthHdLayout({
                     {/* Footer attribution */}
                     <div className="mt-auto border-t pt-8 dark:border-zinc-800 text-center">
                         <p className="text-[10px] font-medium text-zinc-400 uppercase tracking-[0.3em]">
-                            © {new Date().getFullYear()} {businessName || 'HD Group Co. Ltd'}
+                            © {new Date().getFullYear()} {businessName || 'Jopo Juniours Co. Ltd'}
                         </p>
                     </div>
                 </div>

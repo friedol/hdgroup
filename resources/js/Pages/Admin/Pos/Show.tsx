@@ -2,11 +2,20 @@ import { Head, router } from '@inertiajs/react';
 import {
   ArrowLeft, Receipt, User, Calendar, CreditCard,
   Package, ShoppingCart, DollarSign, Calculator, Printer,
-  FileDown, Trash2, Clock, MapPin, Building2, Briefcase
+  FileDown, Trash2, Clock, MapPin, Building2, Briefcase, Loader2
 } from 'lucide-react';
-import React from 'react';
+import React, { useState } from 'react';
+import axios from 'axios';
+import { toast } from 'sonner';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+} from '@/components/ui/dialog';
 import AppLayout from '@/layouts/app-layout';
 
 /* ─── Types ─────────────────────────────── */
@@ -91,6 +100,14 @@ return 'bg-amber-50 text-amber-700 border-amber-200';
 
 /* ─── Component ──────────────────────────── */
 export default function ShowSale({ sale, customerStats }: Props) {
+  const [paymentModalOpen, setPaymentModalOpen] = useState(false);
+  const [submittingPayment, setSubmittingPayment] = useState(false);
+  const [paymentForm, setPaymentForm] = useState({
+    amount_paid: '',
+    payment_method: 'Cash',
+    payment_date: new Date().toISOString().split('T')[0],
+  });
+
   const breadcrumbs = [
     { title: 'Dashboard', href: '/dashboard' },
     { title: 'Sales history', href: '/sales-history' },
@@ -107,11 +124,42 @@ export default function ShowSale({ sale, customerStats }: Props) {
     }
   };
 
+  const handleRecordPayment = async (e: React.FormEvent) => {
+    e.preventDefault();
+    const amount = parseFloat(paymentForm.amount_paid) || 0;
+    if (amount <= 0 || amount > sale.balance) {
+      toast.error('Enter a valid amount not exceeding the remaining balance.');
+      return;
+    }
+
+    setSubmittingPayment(true);
+    try {
+      const res = await axios.post('/pos/sale/payment', {
+        invoice_number: sale.invoice,
+        amount_paid: amount,
+        payment_method: paymentForm.payment_method,
+        payment_date: paymentForm.payment_date,
+      });
+
+      if (res.data.success) {
+        toast.success(res.data.message ?? 'Payment recorded successfully!');
+        setPaymentModalOpen(false);
+        router.reload();
+      } else {
+        toast.error(res.data.message ?? 'Failed to record payment.');
+      }
+    } catch (err: any) {
+      toast.error(err?.response?.data?.message ?? 'An error occurred.');
+    } finally {
+      setSubmittingPayment(false);
+    }
+  };
+
   return (
     <>
       <Head title={`Sale ${sale.invoice}`} />
       <AppLayout breadcrumbs={breadcrumbs}>
-        <div className="max-w-[1700px] mx-auto space-y-8 pb-20">
+        <div className="w-full space-y-8 pb-20">
 
           {/* Header Action Bar */}
           <div className="flex flex-col md:flex-row md:items-center justify-between gap-6">
@@ -221,9 +269,24 @@ export default function ShowSale({ sale, customerStats }: Props) {
                       <p className="text-base font-semibold text-emerald-600 tracking-tight leading-none">{fmt(sale.paid)}</p>
                     </div>
                     {sale.balance > 0 && (
-                      <div className="flex justify-between items-center p-3 bg-rose-50 rounded-xl border border-rose-100 mt-2">
-                         <p className="text-[11px] font-semibold text-rose-700 tracking-tight">Remaining balance</p>
-                         <p className="text-base font-semibold text-rose-700 tracking-tight">{fmt(sale.balance)}</p>
+                      <div className="space-y-3 mt-4 pt-4 border-t border-slate-200">
+                        <div className="flex justify-between items-center p-3 bg-rose-50 rounded-xl border border-rose-100">
+                           <p className="text-[11px] font-semibold text-rose-700 tracking-tight">Remaining balance</p>
+                           <p className="text-base font-semibold text-rose-700 tracking-tight">{fmt(sale.balance)}</p>
+                        </div>
+                        <Button
+                          onClick={() => {
+                            setPaymentForm({
+                              amount_paid: sale.balance.toString(),
+                              payment_method: 'Cash',
+                              payment_date: new Date().toISOString().split('T')[0],
+                            });
+                            setPaymentModalOpen(true);
+                          }}
+                          className="w-full h-11 bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs rounded-xl shadow-sm flex items-center justify-center gap-2"
+                        >
+                          <CreditCard className="w-4 h-4" /> Record Advance / Settlement Payment
+                        </Button>
                       </div>
                     )}
                   </div>
@@ -357,6 +420,64 @@ export default function ShowSale({ sale, customerStats }: Props) {
 
             </div>
           </div>
+
+          <Dialog open={paymentModalOpen} onOpenChange={setPaymentModalOpen}>
+            <DialogContent className="sm:max-w-md bg-white">
+              <DialogHeader>
+                <DialogTitle className="text-lg font-bold">Record Payment — {sale.invoice}</DialogTitle>
+              </DialogHeader>
+              <form onSubmit={handleRecordPayment} className="space-y-4 py-4">
+                <div className="space-y-2">
+                  <label className="text-xs font-bold text-slate-700">Amount Paid (TZS)</label>
+                  <Input
+                    type="number"
+                    step="0.01"
+                    min="1"
+                    max={sale.balance}
+                    value={paymentForm.amount_paid}
+                    onChange={e => setPaymentForm({ ...paymentForm, amount_paid: e.target.value })}
+                    required
+                    placeholder="Enter amount..."
+                    className="h-11 font-bold text-sm"
+                  />
+                  <p className="text-[11px] text-slate-400 font-medium">Max available balance: {fmt(sale.balance)}</p>
+                </div>
+
+                <div className="space-y-2">
+                  <label className="text-xs font-bold text-slate-700">Payment Method</label>
+                  <select
+                    value={paymentForm.payment_method}
+                    onChange={e => setPaymentForm({ ...paymentForm, payment_method: e.target.value })}
+                    className="w-full h-11 px-3 border border-slate-200 rounded-lg text-sm font-bold bg-white outline-none focus:border-emerald-500"
+                  >
+                    <option value="Cash">Cash</option>
+                    <option value="Bank">Bank</option>
+                    <option value="Mobile">Mobile</option>
+                  </select>
+                </div>
+
+                <div className="space-y-2">
+                  <label className="text-xs font-bold text-slate-700">Payment Date</label>
+                  <Input
+                    type="date"
+                    value={paymentForm.payment_date}
+                    onChange={e => setPaymentForm({ ...paymentForm, payment_date: e.target.value })}
+                    required
+                    className="h-11 font-bold text-sm"
+                  />
+                </div>
+
+                <Button
+                  type="submit"
+                  disabled={submittingPayment}
+                  className="w-full h-11 bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs rounded-xl shadow-sm"
+                >
+                  {submittingPayment ? <><Loader2 className="w-4 h-4 mr-2 animate-spin" /> Recording...</> : 'Confirm Payment'}
+                </Button>
+              </form>
+            </DialogContent>
+          </Dialog>
+
         </div>
       </AppLayout>
     </>

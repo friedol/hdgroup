@@ -2,26 +2,28 @@
 
 namespace App\Http\Controllers;
 
-use App\Models\HeroSlide;
 use App\Models\Branch;
+use App\Models\HeroSlide;
 use Illuminate\Http\Request;
+use Inertia\Inertia;
 
 class PopupAdController extends Controller
 {
     public function index()
     {
-        $ads = HeroSlide::where('is_ad', true)
+        $ads = HeroSlide::withoutGlobalScope('branch')
+            ->where('is_ad', true)
             ->orderBy('sort_order')
             ->get();
 
-        return \Inertia\Inertia::render('Admin/PopupAds/Index', compact('ads'));
+        return Inertia::render('Admin/PopupAds/Index', compact('ads'));
     }
 
     public function create()
     {
         $branches = Branch::where('is_active', true)->orderBy('name')->get();
 
-        return \Inertia\Inertia::render('Admin/PopupAds/Create', compact('branches'));
+        return Inertia::render('Admin/PopupAds/Create', compact('branches'));
     }
 
     public function store(Request $request)
@@ -41,9 +43,10 @@ class PopupAdController extends Controller
 
         $imagePath = $request->file('image')->store('popup-ads', 'public');
 
-        $branchId = $validated['branch_id'] ?? $this->currentBranchId();
+        // null means global (all branches); only fall back to current branch when key was absent
+        $branchId = array_key_exists('branch_id', $validated) ? $validated['branch_id'] : $this->currentBranchId();
 
-        HeroSlide::create([
+        HeroSlide::withoutGlobalScopes()->create([
             'branch_id' => $branchId,
             'title' => $validated['title'],
             'subtitle' => $validated['subtitle'] ?? null,
@@ -65,7 +68,7 @@ class PopupAdController extends Controller
         $this->authorizeBranch($ad);
         $ad->load('branch');
 
-        return \Inertia\Inertia::render('Admin/PopupAds/Show', compact('ad'));
+        return Inertia::render('Admin/PopupAds/Show', compact('ad'));
     }
 
     public function edit(HeroSlide $ad)
@@ -73,7 +76,7 @@ class PopupAdController extends Controller
         $this->authorizeBranch($ad);
         $branches = Branch::where('is_active', true)->orderBy('name')->get();
 
-        return \Inertia\Inertia::render('Admin/PopupAds/Edit', compact('ad', 'branches'));
+        return Inertia::render('Admin/PopupAds/Edit', compact('ad', 'branches'));
     }
 
     public function update(Request $request, HeroSlide $ad)
@@ -99,12 +102,13 @@ class PopupAdController extends Controller
 
         $validated['is_active'] = $request->boolean('is_active', true);
         $validated['is_ad'] = true;
-        if (!isset($validated['page_type'])) {
+        if (! isset($validated['page_type'])) {
             $validated['page_type'] = $ad->page_type ?? 'home';
         }
 
-        if (isset($validated['branch_id'])) {
-            $validated['branch_id'] = $validated['branch_id'] ?: $this->currentBranchId();
+        // Allow explicit null so an ad can be switched to global (all branches)
+        if (array_key_exists('branch_id', $validated)) {
+            $validated['branch_id'] = $validated['branch_id'] ?: null;
         }
 
         $ad->update($validated);
@@ -135,7 +139,7 @@ class PopupAdController extends Controller
         ]);
 
         foreach ($validated['ads'] as $index => $adId) {
-            HeroSlide::find($adId)->update(['sort_order' => $index]);
+            HeroSlide::withoutGlobalScopes()->find($adId)?->update(['sort_order' => $index]);
         }
 
         return response()->json(['success' => true, 'message' => 'Sort order updated']);

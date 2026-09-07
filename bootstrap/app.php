@@ -1,7 +1,10 @@
 <?php
 
+use App\Http\Middleware\CheckOnlineShop;
+use App\Http\Middleware\CheckPermission;
 use App\Http\Middleware\HandleAppearance;
 use App\Http\Middleware\HandleInertiaRequests;
+use App\Http\Middleware\NoCache;
 use Illuminate\Foundation\Application;
 use Illuminate\Foundation\Configuration\Exceptions;
 use Illuminate\Foundation\Configuration\Middleware;
@@ -17,11 +20,12 @@ return Application::configure(basePath: dirname(__DIR__))
         $middleware->encryptCookies(except: ['appearance', 'sidebar:state']);
 
         $middleware->alias([
-            'permission' => \App\Http\Middleware\CheckPermission::class,
+            'permission' => CheckPermission::class,
+            'online-shop' => CheckOnlineShop::class,
         ]);
 
         $middleware->web(append: [
-            \App\Http\Middleware\NoCache::class,
+            NoCache::class,
             HandleAppearance::class,
             HandleInertiaRequests::class,
             AddLinkHeadersForPreloadedAssets::class,

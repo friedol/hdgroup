@@ -2,9 +2,9 @@
 
 namespace App\Http\Controllers;
 
-use Illuminate\Http\Request;
-
 use App\Models\Branch;
+use Illuminate\Http\Request;
+use Inertia\Inertia;
 
 class BranchController extends Controller
 {
@@ -13,13 +13,15 @@ class BranchController extends Controller
         $this->authorizeRole(['CEO', 'SuperAdmin', 'Admin']);
         // Use pagination so Blade can safely call hasPages() and links()
         $branches = Branch::orderBy('name', 'asc')->paginate(15);
-        return \Inertia\Inertia::render('Admin/Branches/Index', compact('branches'));
+
+        return Inertia::render('Admin/Branches/Index', compact('branches'));
     }
 
     public function create()
     {
         $this->authorizeRole(['CEO', 'SuperAdmin', 'Admin']);
-        return \Inertia\Inertia::render('Admin/Branches/Create');
+
+        return Inertia::render('Admin/Branches/Create');
     }
 
     public function store(Request $request)
@@ -33,7 +35,7 @@ class BranchController extends Controller
             'email' => 'nullable|email',
             'logo' => 'nullable|image',
             'favicon' => 'nullable|image|max:1024',
-            'is_manufacturing_enabled' => 'sometimes|boolean'
+            'is_manufacturing_enabled' => 'sometimes|boolean',
         ]);
 
         if ($request->hasFile('logo')) {
@@ -52,7 +54,8 @@ class BranchController extends Controller
     public function edit(Branch $branch)
     {
         $this->authorizeRole(['CEO', 'SuperAdmin', 'Admin']);
-        return \Inertia\Inertia::render('Admin/Branches/Edit', compact('branch'));
+
+        return Inertia::render('Admin/Branches/Edit', compact('branch'));
     }
 
     public function update(Request $request, Branch $branch)
@@ -67,7 +70,7 @@ class BranchController extends Controller
             'logo' => 'nullable|image',
             'favicon' => 'nullable|image|max:1024',
             'is_active' => 'required|boolean',
-            'is_manufacturing_enabled' => 'sometimes|boolean'
+            'is_manufacturing_enabled' => 'sometimes|boolean',
         ]);
 
         if ($request->hasFile('logo')) {
@@ -83,10 +86,23 @@ class BranchController extends Controller
         return redirect()->route('branches.index')->with('success', 'Branch updated successfully.');
     }
 
+    public function destroy(Branch $branch)
+    {
+        $this->authorizeRole(['CEO', 'SuperAdmin', 'Admin']);
+
+        try {
+            $branch->delete();
+
+            return response()->json(['message' => 'Branch deleted successfully.']);
+        } catch (\Exception $e) {
+            return response()->json(['message' => 'Failed to delete branch. It may have associated records.'], 500);
+        }
+    }
+
     private function authorizeRole($roles)
     {
         $user = auth()->user();
-        if (!$user) {
+        if (! $user) {
             abort(403, 'Unauthorized action.');
         }
 
@@ -94,7 +110,7 @@ class BranchController extends Controller
             return;
         }
 
-        if (!in_array($user->role->role_name ?? '', $roles)) {
+        if (! in_array($user->role->role_name ?? '', $roles)) {
             abort(403, 'Unauthorized action.');
         }
     }

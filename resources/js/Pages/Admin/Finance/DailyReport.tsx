@@ -1,10 +1,12 @@
-import { Head, router } from "@inertiajs/react";
+import { KpiCard } from "@/components/dashboard/KpiCard";
+import { Head, router, Link } from "@inertiajs/react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
+import { Badge } from "@/components/ui/badge";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import AppLayout from "@/layouts/app-layout";
-import { Download, Printer, Share2, TrendingUp, DollarSign, CreditCard, Wallet } from "lucide-react";
-import { useState } from "react";
+import { Download, Printer, Share2, TrendingUp, DollarSign, CreditCard, Wallet, ArrowUpRight, ArrowDownLeft, Plus, Filter, AlertTriangle } from "lucide-react";
+import { useState, useMemo } from "react";
 
 interface Branch {
   id: number;
@@ -60,7 +62,7 @@ const formatCurrency = (value: number) => {
 };
 
 const formatCurrencyOrBlank = (value: number) => {
-  if (value === 0) return "";
+  if (!value || value === 0) return "-";
   return formatCurrency(value);
 };
 
@@ -76,6 +78,7 @@ export default function DailyReport({
   isGlobal,
 }: DailyReportProps) {
   const [selectedPeriod, setSelectedPeriod] = useState(period);
+  const [viewMode, setViewMode] = useState<'all' | 'credits' | 'debits' | 'debts'>('all');
 
   const breadcrumbs = [
     { title: "Dashboard", href: "/dashboard" },
@@ -89,17 +92,12 @@ export default function DailyReport({
 
   const handlePrint = () => {
     const printUrl = `/finance/daily-report/pdf?period=${selectedPeriod}&action=print`;
-    
-    // Check if iframe already exists and remove it
     const existingIframe = document.getElementById('print-iframe');
     if (existingIframe) {
       document.body.removeChild(existingIframe);
     }
-
-    // Create a hidden iframe
     const iframe = document.createElement('iframe');
     iframe.id = 'print-iframe';
-    // Use visibility: hidden and position: absolute to ensure it "exists" for the browser
     iframe.style.position = 'fixed';
     iframe.style.right = '0';
     iframe.style.bottom = '0';
@@ -108,15 +106,10 @@ export default function DailyReport({
     iframe.style.border = 'none';
     iframe.style.visibility = 'hidden';
     iframe.src = printUrl;
-    
-    // Append to body
     document.body.appendChild(iframe);
-    
-    // The iframe will handle window.print() itself when it loads action=print
   };
 
   const handleDownloadPDF = () => {
-    // Download PDF file
     const downloadUrl = `/finance/daily-report/download?period=${selectedPeriod}`;
     window.location.href = downloadUrl;
   };
@@ -124,8 +117,6 @@ export default function DailyReport({
   const handleShare = async () => {
     const url = window.location.href;
     const title = `Daily Financial Report - ${dateFrom}`;
-    
-    // Check if Web Share API is available
     if (navigator.share) {
       try {
         await navigator.share({
@@ -139,7 +130,6 @@ export default function DailyReport({
         }
       }
     } else {
-      // Fallback: Copy to clipboard
       navigator.clipboard.writeText(url);
       alert('Report link copied to clipboard!');
     }
@@ -151,27 +141,95 @@ export default function DailyReport({
 
   return (
     <>
-      <Head title="Daily Report" />
+      <Head title="Daily Financial Ledger" />
       <AppLayout breadcrumbs={breadcrumbs}>
-        <div className="max-w-[1600px] mx-auto space-y-6 pb-10">
+        <div className="w-full space-y-8 pb-20 animate-in fade-in duration-500">
+          
           {/* Header */}
-          <div className="space-y-2">
-            <h1 className="text-[18px] font-bold text-foreground">
-              {currentBranch ? currentBranch.name : "Global View"} - Daily Report
-            </h1>
-            <p className="text-[14px] text-muted-foreground">
-              {dateFrom} {dateFrom !== dateTo && `– ${dateTo}`} • {currentBranch ? "Branch" : "Global"} Financial Report
-            </p>
+          <div className="flex items-center justify-between gap-4">
+            <div className="space-y-1">
+              <h1 className="text-xl font-bold tracking-tight text-slate-900 flex items-center gap-2">
+                <Wallet className="h-6 w-6 text-indigo-600" />
+                Daily Financial Ledger
+              </h1>
+              <p className="text-xs text-slate-500">
+                {currentBranch ? currentBranch.name : "Global View"} • {dateFrom} {dateFrom !== dateTo && `– ${dateTo}`}
+              </p>
+            </div>
+            <div className="flex flex-wrap items-center gap-2.5">
+               <Link href="/expenses">
+                 <Button className="bg-rose-600 hover:bg-rose-700 text-white font-bold rounded-lg px-4 h-10 shadow-sm text-xs">
+                   <Plus className="h-4 w-4 mr-1.5" /> Debit Option (Record Cashout)
+                 </Button>
+               </Link>
+               <Button 
+                 variant="outline" 
+                 onClick={handleDownloadPDF} 
+                 className="border-slate-200 text-slate-700 font-bold rounded-lg px-3.5 h-10 text-xs hover:bg-slate-50"
+               >
+                 <Download className="h-4 w-4 mr-1.5 text-slate-400" /> PDF
+               </Button>
+               <Button 
+                 variant="outline" 
+                 onClick={handlePrint} 
+                 className="border-slate-200 text-indigo-600 font-bold rounded-lg px-3.5 h-10 text-xs hover:bg-indigo-50"
+               >
+                 <Printer className="h-4 w-4 mr-1.5" /> Print
+               </Button>
+               <Button 
+                 variant="outline" 
+                 onClick={handleShare} 
+                 className="border-slate-200 text-slate-700 font-bold rounded-lg px-3.5 h-10 text-xs hover:bg-slate-50"
+               >
+                 <Share2 className="h-4 w-4 mr-1.5 text-slate-400" /> Share
+               </Button>
+            </div>
           </div>
 
-          {/* Controls */}
-          <Card>
-            <CardContent className="pt-6">
-              <div className="flex flex-wrap gap-4 items-end">
-                <div className="space-y-2">
-                  <label className="text-[14px] font-medium">Period</label>
+          {/* Metrics Card Grid */}
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+            <KpiCard
+              title="Total Credit Revenue (In)"
+              value={formatCurrency(incomeTotal)}
+              change={0}
+              icon={TrendingUp}
+              bgClass="bg-emerald-50/20"
+              iconBgClass="bg-emerald-100 text-emerald-600"
+            />
+            <KpiCard
+              title="Total Debit (Cashouts)"
+              value={formatCurrency(expenseTotal)}
+              change={0}
+              icon={CreditCard}
+              bgClass="bg-rose-50/20"
+              iconBgClass="bg-rose-100 text-rose-600"
+            />
+            <KpiCard
+              title="Net Cash Balance"
+              value={formatCurrency(netCash)}
+              change={0}
+              icon={DollarSign}
+              bgClass="bg-indigo-50/20"
+              iconBgClass="bg-indigo-100 text-indigo-600"
+            />
+            <KpiCard
+              title="Customer Debt Outstanding"
+              value={formatCurrency(grandTotals.income.remain)}
+              change={0}
+              icon={AlertTriangle}
+              bgClass="bg-amber-50/20"
+              iconBgClass="bg-amber-100 text-amber-600"
+            />
+          </div>
+
+          {/* Controls & Transaction View Filters */}
+          <Card className="border-slate-200 bg-white shadow-sm rounded-xl overflow-hidden">
+            <CardContent className="p-5 bg-slate-50/50 flex flex-col lg:flex-row justify-between items-start lg:items-center gap-4">
+              <div className="flex flex-wrap items-center gap-3">
+                <div className="space-y-1">
+                  <label className="text-[10px] font-black uppercase tracking-wider text-slate-400">Ledger Period</label>
                   <Select value={selectedPeriod} onValueChange={setSelectedPeriod}>
-                    <SelectTrigger className="w-[180px]">
+                    <SelectTrigger className="w-44 h-10 bg-white border-slate-200 rounded-lg text-xs font-bold shadow-sm focus:ring-indigo-500">
                       <SelectValue placeholder="Select period" />
                     </SelectTrigger>
                     <SelectContent>
@@ -184,248 +242,298 @@ export default function DailyReport({
                     </SelectContent>
                   </Select>
                 </div>
+                <div className="space-y-1">
+                  <label className="text-[10px] font-black uppercase tracking-wider text-transparent select-none">Action</label>
+                  <div className="flex gap-2">
+                    <Button onClick={handleFilter} className="bg-slate-900 hover:bg-slate-800 text-white font-bold h-10 rounded-lg text-xs px-5 shadow-sm">
+                      Apply Filter
+                    </Button>
+                    <Button variant="outline" onClick={() => window.location.reload()} className="border-slate-200 text-slate-600 font-bold h-10 rounded-lg text-xs px-4">
+                      Reset
+                    </Button>
+                  </div>
+                </div>
+              </div>
 
-
-
-                <Button onClick={handleFilter} className="bg-blue-600 hover:bg-blue-700">
-                  Update
-                </Button>
-
-                <Button variant="outline" onClick={() => window.location.reload()}>
-                  Reset
-                </Button>
-
-                <div className="ml-auto flex gap-2">
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    className="gap-2"
-                    onClick={handleDownloadPDF}
-                  >
-                    <Download className="w-4 h-4" />
-                    Download PDF
-                  </Button>
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    className="gap-2"
-                    onClick={handlePrint}
-                  >
-                    <Printer className="w-4 h-4" />
-                    Print
-                  </Button>
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    className="gap-2"
-                    onClick={handleShare}
-                  >
-                    <Share2 className="w-4 h-4" />
-                    Share
-                  </Button>
+              {/* Debit vs Credit Option Toggles */}
+              <div className="space-y-1 w-full lg:w-auto">
+                <label className="text-[10px] font-black uppercase tracking-wider text-slate-400">Debit / Credit View Option</label>
+                <div className="flex flex-wrap gap-1.5 p-1 bg-white border border-slate-200 rounded-lg shadow-sm">
+                   <Button 
+                     variant={viewMode === 'all' ? 'default' : 'ghost'} 
+                     onClick={() => setViewMode('all')} 
+                     className={`h-8 px-3 rounded-md text-xs font-bold transition-all ${viewMode === 'all' ? 'bg-slate-900 text-white shadow-sm' : 'text-slate-600 hover:text-slate-900'}`}
+                   >
+                     All Entries
+                   </Button>
+                   <Button 
+                     variant={viewMode === 'credits' ? 'default' : 'ghost'} 
+                     onClick={() => setViewMode('credits')} 
+                     className={`h-8 px-3 rounded-md text-xs font-bold transition-all ${viewMode === 'credits' ? 'bg-emerald-600 text-white shadow-sm' : 'text-slate-600 hover:text-emerald-600'}`}
+                   >
+                     <ArrowDownLeft className="h-3.5 w-3.5 mr-1" /> Receipts (Credit)
+                   </Button>
+                   <Button 
+                     variant={viewMode === 'debits' ? 'default' : 'ghost'} 
+                     onClick={() => setViewMode('debits')} 
+                     className={`h-8 px-3 rounded-md text-xs font-bold transition-all ${viewMode === 'debits' ? 'bg-rose-600 text-white shadow-sm' : 'text-slate-600 hover:text-rose-600'}`}
+                   >
+                     <ArrowUpRight className="h-3.5 w-3.5 mr-1" /> Cashouts (Debit Option)
+                   </Button>
+                   <Button 
+                     variant={viewMode === 'debts' ? 'default' : 'ghost'} 
+                     onClick={() => setViewMode('debts')} 
+                     className={`h-8 px-3 rounded-md text-xs font-bold transition-all ${viewMode === 'debts' ? 'bg-amber-600 text-white shadow-sm' : 'text-slate-600 hover:text-amber-600'}`}
+                   >
+                     <AlertTriangle className="h-3.5 w-3.5 mr-1" /> Customer Debts
+                   </Button>
                 </div>
               </div>
             </CardContent>
           </Card>
 
-
           {/* Branch Reports */}
           {reportData.length === 0 ? (
-            <Card>
-              <CardContent className="pt-6">
-                <p className="text-center text-muted-foreground py-8">No data available for selected period</p>
+            <Card className="border-slate-200 bg-white rounded-xl shadow-sm">
+              <CardContent className="p-16 text-center">
+                <AlertTriangle className="h-10 w-10 text-slate-300 mx-auto mb-3" />
+                <p className="text-sm font-bold text-slate-600">No financial transactions recorded for selected period</p>
               </CardContent>
             </Card>
           ) : (
-            reportData.map((report) => (
-              <div key={report.branch.id} className="space-y-4">
-                {/* Income and Expenses Side-by-Side */}
-                <Card>
-                  <CardContent className="pt-6">
-                    <div className="overflow-x-auto">
-                      <table className="w-full text-[14px]">
-                        <thead className="bg-muted">
-                          <tr>
-                            {/* Income Columns */}
-                            <th className="px-3 py-2 text-left font-semibold text-gray-700">Customer</th>
-                            <th className="px-3 py-2 text-left font-semibold text-gray-700 border-l border-gray-300 whitespace-nowrap">{report.branch.name}</th>
-                            <th className="px-3 py-2 text-right font-semibold text-gray-700 border-l border-gray-300">Mobile</th>
-                            <th className="px-3 py-2 text-right font-semibold text-gray-700 border-l border-gray-300">Cash</th>
-                            <th className="px-3 py-2 text-right font-semibold text-gray-700 border-l border-gray-300">Bank</th>
-                            <th className="px-3 py-2 text-right font-semibold text-gray-700 border-l border-gray-300">Remaining</th>
-                            {/* Expenses Columns */}
-                            <th className="px-3 py-2 text-left font-semibold text-red-700 border-l-2 border-gray-400">Cashout (Expenses)</th>
-                            <th className="px-3 py-2 text-right font-semibold text-red-700 border-l border-gray-300">Mobile</th>
-                            <th className="px-3 py-2 text-right font-semibold text-red-700 border-l border-gray-300">Cash</th>
-                            <th className="px-3 py-2 text-right font-semibold text-red-700 border-l border-gray-300">Bank</th>
-                          </tr>
-                        </thead>
-                        <tbody>
-                          {Math.max(report.incomeItems.length, report.expenseItems.length) === 0 ? (
-                            <tr>
-                              <td colSpan={10} className="px-3 py-4 text-center text-muted-foreground">
-                                No data available
-                              </td>
-                            </tr>
-                          ) : (
-                            Array.from({ length: Math.max(report.incomeItems.length, report.expenseItems.length) }).map((_, idx) => {
-                              const incomeItem = report.incomeItems[idx];
-                              const expenseItem = report.expenseItems[idx];
-                              const isAlternate = idx % 2 === 0;
-                              
-                              return (
-                                <tr key={idx} className={`${isAlternate ? 'bg-white' : 'bg-muted/10'} border-b border-gray-200`}>
-                                  {/* Income Row */}
-                                  {incomeItem ? (
-                                    <>
-                                      <td className="px-3 py-2 text-[14px] font-medium">{incomeItem.customer_name}</td>
-                                      <td className="px-3 py-2 text-[14px] text-foreground font-medium border-l border-gray-300">{incomeItem.description}</td>
-                                      <td className="px-3 py-2 text-right text-[14px] font-medium border-l border-gray-300">{formatCurrencyOrBlank(incomeItem.mobile)}</td>
-                                      <td className="px-3 py-2 text-right text-[14px] font-medium border-l border-gray-300">{formatCurrencyOrBlank(incomeItem.cash)}</td>
-                                      <td className="px-3 py-2 text-right text-[14px] font-medium border-l border-gray-300">{formatCurrencyOrBlank(incomeItem.bank)}</td>
-                                      <td className="px-3 py-2 text-right text-[14px] font-medium border-l border-gray-300">{formatCurrencyOrBlank(incomeItem.remain)}</td>
-                                    </>
-                                  ) : (
-                                    <>
-                                      <td className="px-3 py-2"></td>
-                                      <td className="px-3 py-2 border-l border-gray-300"></td>
-                                      <td className="px-3 py-2 border-l border-gray-300"></td>
-                                      <td className="px-3 py-2 border-l border-gray-300"></td>
-                                      <td className="px-3 py-2 border-l border-gray-300"></td>
-                                      <td className="px-3 py-2 border-l border-gray-300"></td>
-                                    </>
-                                  )}
-                                  
-                                  {/* Expenses Row */}
-                                  {expenseItem ? (
-                                    <>
-                                      <td className="px-3 py-2 text-[14px] font-medium border-l-2 border-gray-400 text-red-700">{expenseItem.description}</td>
-                                      <td className="px-3 py-2 text-right text-[14px] font-medium text-red-700 border-l border-gray-300">{formatCurrencyOrBlank(expenseItem.mobile)}</td>
-                                      <td className="px-3 py-2 text-right text-[14px] font-medium text-red-700 border-l border-gray-300">{formatCurrencyOrBlank(expenseItem.cash)}</td>
-                                      <td className="px-3 py-2 text-right text-[14px] font-medium text-red-700 border-l border-gray-300">{formatCurrencyOrBlank(expenseItem.bank)}</td>
-                                    </>
-                                  ) : (
-                                    <>
-                                      <td className="px-3 py-2 border-l-2 border-gray-400"></td>
-                                      <td className="px-3 py-2 border-l border-gray-300"></td>
-                                      <td className="px-3 py-2 border-l border-gray-300"></td>
-                                      <td className="px-3 py-2 border-l border-gray-300"></td>
-                                    </>
-                                  )}
-                                </tr>
-                              );
-                            })
-                          )}
-                          
-                          {/* Branch Total Row */}
-                          {Math.max(report.incomeItems.length, report.expenseItems.length) > 0 && (
-                            <tr className="bg-gray-100/80 font-bold border-b border-gray-300">
-                              {/* Income Totals */}
-                              <td className="px-3 py-2 text-[14px]" colSpan={2}>Total for {report.branch.name}</td>
-                              <td className="px-3 py-2 text-right border-l border-gray-300">{formatCurrencyOrBlank(report.incomeItems.reduce((acc, item) => acc + item.mobile, 0))}</td>
-                              <td className="px-3 py-2 text-right border-l border-gray-300">{formatCurrencyOrBlank(report.incomeItems.reduce((acc, item) => acc + item.cash, 0))}</td>
-                              <td className="px-3 py-2 text-right border-l border-gray-300">{formatCurrencyOrBlank(report.incomeItems.reduce((acc, item) => acc + item.bank, 0))}</td>
-                              <td className="px-3 py-2 text-right border-l border-gray-300">{formatCurrencyOrBlank(report.incomeItems.reduce((acc, item) => acc + item.remain, 0))}</td>
-                              
-                              {/* Expenses Totals */}
-                              <td className="px-3 py-2 border-l-2 border-gray-400 text-red-700">Exp. Total</td>
-                              <td className="px-3 py-2 text-right text-red-700 border-l border-gray-300">{formatCurrencyOrBlank(report.expenseItems.reduce((acc, item) => acc + item.mobile, 0))}</td>
-                              <td className="px-3 py-2 text-right text-red-700 border-l border-gray-300">{formatCurrencyOrBlank(report.expenseItems.reduce((acc, item) => acc + item.cash, 0))}</td>
-                              <td className="px-3 py-2 text-right text-red-700 border-l border-gray-300">{formatCurrencyOrBlank(report.expenseItems.reduce((acc, item) => acc + item.bank, 0))}</td>
-                            </tr>
-                          )}
-                        </tbody>
-                      </table>
+            reportData.map((report) => {
+              const filteredIncome = report.incomeItems.filter(item => {
+                if (viewMode === 'debits') return false;
+                if (viewMode === 'debts') return item.is_debt || item.remain > 0;
+                return true;
+              });
+
+              const filteredExpenses = report.expenseItems.filter(item => {
+                if (viewMode === 'credits' || viewMode === 'debts') return false;
+                return true;
+              });
+
+              const maxRows = Math.max(filteredIncome.length, filteredExpenses.length);
+
+              return (
+                <div key={report.branch.id} className="space-y-4">
+                  <Card className="border-slate-200 bg-white rounded-xl shadow-sm overflow-hidden">
+                    <div className="px-6 py-4 border-b border-slate-100 bg-slate-50/50 flex items-center justify-between">
+                       <h3 className="font-bold text-slate-900 text-xs uppercase tracking-wider">{report.branch.name} Activity</h3>
+                       <Badge variant="outline" className="bg-white border-slate-200 text-slate-600 font-bold text-[10px] px-2.5 py-0.5">Active Branch</Badge>
                     </div>
-                  </CardContent>
-                </Card>
-              </div>
-            ))
+                    <CardContent className="p-0">
+                      <div className="overflow-x-auto">
+                        <table className="w-full text-sm text-left divide-y divide-slate-100">
+                          <thead className="bg-slate-50/80">
+                            <tr className="border-b border-slate-100 text-[10px] font-bold text-slate-500 uppercase tracking-widest">
+                              {/* Income Columns */}
+                              <th className="px-6 py-3.5 font-bold">Customer</th>
+                              <th className="px-6 py-3.5 font-bold">Description</th>
+                              <th className="px-6 py-3.5 text-right font-bold">Mobile In</th>
+                              <th className="px-6 py-3.5 text-right font-bold">Cash In</th>
+                              <th className="px-6 py-3.5 text-right font-bold">Bank In</th>
+                              <th className="px-6 py-3.5 text-right font-bold">Debt</th>
+                              {/* Expenses Columns */}
+                              <th className="px-6 py-3.5 font-bold text-rose-600 border-l border-slate-200 bg-rose-50/30">Debit Entry</th>
+                              <th className="px-6 py-3.5 text-right font-bold text-rose-600 bg-rose-50/30">Mobile Out</th>
+                              <th className="px-6 py-3.5 text-right font-bold text-rose-600 bg-rose-50/30">Cash Out</th>
+                              <th className="px-6 py-3.5 text-right font-bold text-rose-600 bg-rose-50/30">Bank Out</th>
+                            </tr>
+                          </thead>
+                          <tbody className="divide-y divide-slate-100 text-sm">
+                            {maxRows === 0 ? (
+                              <tr>
+                                <td colSpan={10} className="px-6 py-12 text-center text-slate-400 font-bold italic">
+                                  No records found matching current view option
+                                </td>
+                              </tr>
+                            ) : (
+                              Array.from({ length: maxRows }).map((_, idx) => {
+                                const incomeItem = filteredIncome[idx];
+                                const expenseItem = filteredExpenses[idx];
+                                const isAlternate = idx % 2 === 0;
+                                
+                                return (
+                                  <tr key={idx} className={`${isAlternate ? 'bg-white' : 'bg-slate-50/30'} hover:bg-slate-50/80 transition-colors`}>
+                                    {/* Income Row */}
+                                    {incomeItem ? (
+                                      <>
+                                        <td className="px-6 py-4 font-semibold text-slate-900">
+                                          <div className="flex items-center gap-2">
+                                            <span className="uppercase tracking-wide">{incomeItem.customer_name?.toUpperCase()}</span>
+                                            {incomeItem.is_debt && (
+                                              <Badge className="bg-amber-50 text-amber-700 border-amber-200 text-[9px] px-2 py-0.5 font-bold whitespace-nowrap shadow-sm">
+                                                Customer Debt
+                                              </Badge>
+                                            )}
+                                          </div>
+                                        </td>
+                                        <td className="px-6 py-4 text-slate-600 font-medium max-w-[200px] truncate">{incomeItem.description}</td>
+                                        <td className="px-6 py-4 text-right font-semibold text-slate-800 tabular-nums">{formatCurrencyOrBlank(incomeItem.mobile)}</td>
+                                        <td className="px-6 py-4 text-right font-semibold text-slate-800 tabular-nums">{formatCurrencyOrBlank(incomeItem.cash)}</td>
+                                        <td className="px-6 py-4 text-right font-semibold text-slate-800 tabular-nums">{formatCurrencyOrBlank(incomeItem.bank)}</td>
+                                        <td className="px-6 py-4 text-right font-semibold text-rose-600 tabular-nums">
+                                          {incomeItem.remain > 0 ? (
+                                            <span className="bg-rose-50 text-rose-700 px-2 py-1 rounded font-bold tracking-tight border border-rose-100">
+                                              {formatCurrency(incomeItem.remain)}
+                                            </span>
+                                          ) : "-"}
+                                        </td>
+                                      </>
+                                    ) : (
+                                      <>
+                                        <td className="px-6 py-4 text-slate-300 italic text-xs">No entry</td>
+                                        <td className="px-6 py-4"></td>
+                                        <td className="px-6 py-4"></td>
+                                        <td className="px-6 py-4"></td>
+                                        <td className="px-6 py-4"></td>
+                                        <td className="px-6 py-4"></td>
+                                      </>
+                                    )}
+                                    
+                                    {/* Expenses Row */}
+                                    {expenseItem ? (
+                                      <>
+                                        <td className="px-6 py-4 font-semibold text-rose-700 border-l border-slate-200 bg-rose-50/20 max-w-[200px] truncate">{expenseItem.description}</td>
+                                        <td className="px-6 py-4 text-right font-semibold text-rose-700 bg-rose-50/20 tabular-nums">{formatCurrencyOrBlank(expenseItem.mobile)}</td>
+                                        <td className="px-6 py-4 text-right font-semibold text-rose-700 bg-rose-50/20 tabular-nums">{formatCurrencyOrBlank(expenseItem.cash)}</td>
+                                        <td className="px-6 py-4 text-right font-semibold text-rose-700 bg-rose-50/20 tabular-nums">{formatCurrencyOrBlank(expenseItem.bank)}</td>
+                                      </>
+                                    ) : (
+                                      <>
+                                        <td className="px-6 py-4 border-l border-slate-200 bg-rose-50/10 text-rose-300 italic text-xs">No debit entry</td>
+                                        <td className="px-6 py-4 bg-rose-50/10"></td>
+                                        <td className="px-6 py-4 bg-rose-50/10"></td>
+                                        <td className="px-6 py-4 bg-rose-50/10"></td>
+                                      </>
+                                    )}
+                                  </tr>
+                                );
+                              })
+                            )}
+                            
+                            {/* Branch Total Row */}
+                            {maxRows > 0 && (
+                              <tr className="bg-slate-100/80 font-bold border-t-2 border-slate-200 text-sm">
+                                {/* Income Totals */}
+                                <td className="px-6 py-4 uppercase tracking-wider text-slate-700 text-xs" colSpan={2}>Total Receipts</td>
+                                <td className="px-6 py-4 text-right text-emerald-600 font-bold tabular-nums">{formatCurrencyOrBlank(report.incomeItems.reduce((acc, item) => acc + item.mobile, 0))}</td>
+                                <td className="px-6 py-4 text-right text-emerald-600 font-bold tabular-nums">{formatCurrencyOrBlank(report.incomeItems.reduce((acc, item) => acc + item.cash, 0))}</td>
+                                <td className="px-6 py-4 text-right text-emerald-600 font-bold tabular-nums">{formatCurrencyOrBlank(report.incomeItems.reduce((acc, item) => acc + item.bank, 0))}</td>
+                                <td className="px-6 py-4 text-right text-rose-600 font-bold tabular-nums">{formatCurrencyOrBlank(report.incomeItems.reduce((acc, item) => acc + item.remain, 0))}</td>
+                                
+                                {/* Expenses Totals */}
+                                <td className="px-6 py-4 border-l border-slate-200 bg-rose-100/50 uppercase tracking-wider text-rose-700 text-xs">Total Cashout</td>
+                                <td className="px-6 py-4 text-right text-rose-700 bg-rose-100/50 font-bold tabular-nums">{formatCurrencyOrBlank(report.expenseItems.reduce((acc, item) => acc + item.mobile, 0))}</td>
+                                <td className="px-6 py-4 text-right text-rose-700 bg-rose-100/50 font-bold tabular-nums">{formatCurrencyOrBlank(report.expenseItems.reduce((acc, item) => acc + item.cash, 0))}</td>
+                                <td className="px-6 py-4 text-right text-rose-700 bg-rose-100/50 font-bold tabular-nums">{formatCurrencyOrBlank(report.expenseItems.reduce((acc, item) => acc + item.bank, 0))}</td>
+                              </tr>
+                            )}
+                          </tbody>
+                        </table>
+                      </div>
+                    </CardContent>
+                  </Card>
+                </div>
+              );
+            })
           )}
 
           {/* Detailed Summary Section */}
           {reportData.length > 0 && (
-            <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 pt-10 border-t-2 border-gray-100">
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 pt-6">
               {/* Left Column: Consolidated Summary */}
-              <div className="space-y-6">
-                <div className="flex items-center gap-2">
-                  <div className="w-8 h-8 bg-blue-100 text-blue-600 rounded-lg flex items-center justify-center">
-                    <DollarSign className="w-5 h-5" />
-                  </div>
-                  <h3 className="text-[14px] font-bold text-gray-800 uppercase tracking-wider">Financial Summary</h3>
-                </div>
-                
-                <div className="space-y-4 px-2">
-                  <div className="flex justify-between items-center text-[14px]">
-                    <span className="text-muted-foreground">Total Revenue (In):</span>
-                    <span className="font-bold text-gray-900 border-b-2 border-gray-100 pb-1 w-32 text-right">{formatCurrency(incomeTotal)}</span>
-                  </div>
-                  <div className="flex justify-between items-center text-[14px]">
-                    <span className="text-muted-foreground">Total Expenses (Out):</span>
-                    <span className="font-bold text-orange-500 border-b-2 border-gray-100 pb-1 w-32 text-right">{formatCurrency(expenseTotal)}</span>
-                  </div>
-                  <div className="flex justify-between items-center text-[14px]">
-                    <span className="text-muted-foreground">Total Outstanding (Remain):</span>
-                    <span className="font-bold text-cyan-500 border-b-2 border-gray-100 pb-1 w-32 text-right">{formatCurrency(grandTotals.income.remain)}</span>
-                  </div>
-                  <div className="flex justify-between items-center text-[14px]">
-                    <span className="text-muted-foreground">Total Debt Collected:</span>
-                    <span className="font-bold text-green-600 border-b-2 border-gray-100 pb-1 w-32 text-right">{formatCurrency(grandTotals.income.total_debt)}</span>
+              <Card className="border-slate-200 bg-white rounded-xl shadow-sm p-6 flex flex-col justify-between">
+                <div>
+                  <div className="flex items-center gap-3 mb-6">
+                    <div className="w-10 h-10 bg-indigo-50 text-indigo-600 rounded-xl flex items-center justify-center">
+                      <DollarSign className="w-5 h-5" />
+                    </div>
+                    <div>
+                      <h3 className="text-sm font-bold text-slate-900 tracking-tight">Consolidated Financial Summary</h3>
+                      <p className="text-xs text-slate-500">Overall cash receipts, debit cashouts, and debt balances</p>
+                    </div>
                   </div>
                   
-                  <div className="pt-8 flex justify-between items-end">
-                    <span className="text-[15px] font-black text-gray-900 uppercase">Net Position:</span>
-                    <span className="text-3xl font-black text-blue-600 tracking-tighter">{formatCurrency(incomeTotal - expenseTotal)}</span>
+                  <div className="space-y-3">
+                    <div className="flex justify-between items-center text-xs py-2 border-b border-slate-100">
+                      <span className="text-slate-600 font-medium">Total Credit Revenue (In):</span>
+                      <span className="font-bold text-slate-900 text-sm tabular-nums">{formatCurrency(incomeTotal)}</span>
+                    </div>
+                    <div className="flex justify-between items-center text-xs py-2 border-b border-slate-100">
+                      <span className="text-slate-600 font-medium">Total Debit Option (Cashouts):</span>
+                      <span className="font-bold text-rose-600 text-sm tabular-nums">{formatCurrency(expenseTotal)}</span>
+                    </div>
+                    <div className="flex justify-between items-center text-xs py-2 border-b border-slate-100">
+                      <span className="text-slate-600 font-medium">Customer Debt Outstanding:</span>
+                      <span className="font-bold text-amber-600 text-sm tabular-nums">{formatCurrency(grandTotals.income.remain)}</span>
+                    </div>
+                    <div className="flex justify-between items-center text-xs py-2 border-b border-slate-100">
+                      <span className="text-slate-600 font-medium">Customer Debt Collected:</span>
+                      <span className="font-bold text-emerald-600 text-sm tabular-nums">{formatCurrency(grandTotals.income.total_debt)}</span>
+                    </div>
                   </div>
                 </div>
-              </div>
+
+                <div className="pt-6 mt-6 border-t border-slate-200 flex justify-between items-center">
+                  <div>
+                    <span className="text-xs font-bold text-slate-400 uppercase tracking-wider">Net Cash Balance</span>
+                    <p className="text-2xl font-black text-indigo-600 tracking-tight mt-0.5">{formatCurrency(netCash)}</p>
+                  </div>
+                  <Badge className="bg-indigo-50 text-indigo-700 border-indigo-100 px-3 py-1 text-xs font-bold rounded-lg shadow-sm">
+                    Reconciled
+                  </Badge>
+                </div>
+              </Card>
 
               {/* Right Column: Payment Breakdown */}
-              <div className="space-y-6 lg:border-l lg:pl-12 border-gray-200">
-                <div className="flex items-center gap-2">
-                  <div className="w-8 h-8 bg-blue-600 text-white rounded-lg flex items-center justify-center">
-                    <CreditCard className="w-5 h-5" />
+              <Card className="border-slate-200 bg-white rounded-xl shadow-sm p-6 flex flex-col justify-between">
+                <div>
+                  <div className="flex items-center gap-3 mb-6">
+                    <div className="w-10 h-10 bg-slate-900 text-white rounded-xl flex items-center justify-center">
+                      <CreditCard className="w-5 h-5" />
+                    </div>
+                    <div>
+                      <h3 className="text-sm font-bold text-slate-900 tracking-tight">Channel Payment Breakdown</h3>
+                      <p className="text-xs text-slate-500">Distribution of receipts and expenses by method</p>
+                    </div>
                   </div>
-                  <h3 className="text-[14px] font-bold text-gray-800 uppercase tracking-wider">Payment Breakdown</h3>
+
+                  <div className="grid grid-cols-3 gap-4 mb-6">
+                    <div className="bg-slate-50 p-4 rounded-xl border border-slate-100">
+                      <span className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Cash Receipt</span>
+                      <p className="text-base font-black text-emerald-600 mt-1 tabular-nums">{formatCurrency(grandTotals.income.cash)}</p>
+                    </div>
+                    <div className="bg-slate-50 p-4 rounded-xl border border-slate-100">
+                      <span className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Mobile Receipt</span>
+                      <p className="text-base font-black text-blue-600 mt-1 tabular-nums">{formatCurrency(grandTotals.income.mobile)}</p>
+                    </div>
+                    <div className="bg-slate-50 p-4 rounded-xl border border-slate-100">
+                      <span className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Bank Receipt</span>
+                      <p className="text-base font-black text-indigo-600 mt-1 tabular-nums">{formatCurrency(grandTotals.income.bank)}</p>
+                    </div>
+                  </div>
                 </div>
 
-                <div className="grid grid-cols-2 gap-x-12 gap-y-8">
-                  <div className="space-y-1">
-                    <span className="text-[10px] font-bold text-gray-500 uppercase tracking-widest">Cash (In)</span>
-                    <div className="text-[18px] font-black text-green-600">{formatCurrency(grandTotals.income.cash)}</div>
-                  </div>
-                  <div className="space-y-1">
-                    <span className="text-[10px] font-bold text-gray-500 uppercase tracking-widest">Mobile (In)</span>
-                    <div className="text-[18px] font-black text-blue-600">{formatCurrency(grandTotals.income.mobile)}</div>
-                  </div>
-                  <div className="space-y-1">
-                    <span className="text-[10px] font-bold text-gray-500 uppercase tracking-widest">Bank (In)</span>
-                    <div className="text-[18px] font-black text-cyan-600">{formatCurrency(grandTotals.income.bank)}</div>
-                  </div>
-                  <div className="space-y-1">
-                    <span className="text-[10px] font-bold text-gray-500 uppercase tracking-widest">Total In</span>
-                    <div className="text-[18px] font-black text-gray-900">{formatCurrency(incomeTotal)}</div>
-                  </div>
-                </div>
-
-                <div className="pt-8 space-y-4">
-                  <h4 className="text-[11px] font-black text-gray-400 uppercase tracking-widest border-b pb-2">Expenses Detail</h4>
-                  <div className="space-y-3">
-                    <div className="flex justify-between items-center text-[13px]">
-                      <span className="font-medium text-gray-600">Cash:</span>
-                      <span className="font-bold text-red-500">- {formatCurrency(grandTotals.expense.cash)}</span>
+                <div className="p-4 bg-rose-50/50 rounded-xl border border-rose-100 space-y-3">
+                  <h4 className="text-[10px] font-black text-rose-700 uppercase tracking-widest">Debit Channels Breakdown</h4>
+                  <div className="grid grid-cols-3 gap-2 text-xs">
+                    <div>
+                      <span className="text-slate-500 block text-[10px] font-medium">Cash Outflow:</span>
+                      <span className="font-bold text-rose-600 tabular-nums">- {formatCurrency(grandTotals.expense.cash)}</span>
                     </div>
-                    <div className="flex justify-between items-center text-[13px]">
-                      <span className="font-medium text-gray-600">Mobile:</span>
-                      <span className="font-bold text-gray-800">- {formatCurrency(grandTotals.expense.mobile)}</span>
+                    <div>
+                      <span className="text-slate-500 block text-[10px] font-medium">Mobile Outflow:</span>
+                      <span className="font-bold text-rose-600 tabular-nums">- {formatCurrency(grandTotals.expense.mobile)}</span>
                     </div>
-                    <div className="flex justify-between items-center text-[13px]">
-                      <span className="font-medium text-gray-600">Bank:</span>
-                      <span className="font-bold text-gray-800">- {formatCurrency(grandTotals.expense.bank)}</span>
+                    <div>
+                      <span className="text-slate-500 block text-[10px] font-medium">Bank Outflow:</span>
+                      <span className="font-bold text-rose-600 tabular-nums">- {formatCurrency(grandTotals.expense.bank)}</span>
                     </div>
                   </div>
                 </div>
-              </div>
+              </Card>
             </div>
           )}
         </div>

@@ -63,14 +63,14 @@ const COUNTRY_CODE_OPTIONS = getCountries()
             return null;
         }
     })
-    .filter((v): v is { iso2: string; dialCode: string; name: string } => Boolean(v))
+    .filter((v): v is NonNullable<typeof v> => Boolean(v))
     .sort((a, b) => {
         if (a.iso2 === DEFAULT_COUNTRY_ISO) return -1;
         if (b.iso2 === DEFAULT_COUNTRY_ISO) return 1;
         return a.name.localeCompare(b.name);
     });
 
-const FIELD_CLASS = 'h-12 border-slate-200 bg-slate-50/70 text-slate-800 placeholder:text-slate-400 focus-visible:ring-2 focus-visible:ring-amber-400 focus-visible:ring-offset-0';
+const FIELD_CLASS = 'h-12 border-slate-200 bg-slate-50/70 text-slate-800 placeholder:text-slate-400 focus-visible:ring-2 focus-visible:ring-blue-500 focus-visible:ring-offset-0';
 
 function isoToFlag(iso2: string): string {
     return iso2
@@ -172,22 +172,22 @@ export default function Checkout({ cartItems, subtotal, subtotalAfterDiscount, p
 
             <div className="min-h-screen bg-slate-50">
                 {/* Hero */}
-                <section className="relative bg-amber-400 text-slate-900 overflow-hidden py-8">
-                    <div className="absolute top-0 right-0 w-96 h-96 bg-amber-300/50 rounded-full blur-3xl opacity-50 -translate-y-1/2 translate-x-1/2" />
-                    <div className="absolute bottom-0 left-0 w-96 h-96 bg-amber-300/50 rounded-full blur-3xl opacity-50 translate-y-1/2 -translate-x-1/2" />
-                    <div className="mx-auto w-[99%] max-w-[1920px] px-2 sm:px-4 relative z-10 text-center">
+                <section className="relative bg-blue-600 text-white overflow-hidden py-8">
+                    <div className="absolute top-0 right-0 w-96 h-96 bg-white/10 rounded-full blur-3xl -translate-y-1/2 translate-x-1/2" />
+                    <div className="absolute bottom-0 left-0 w-96 h-96 bg-white/10 rounded-full blur-3xl translate-y-1/2 -translate-x-1/2" />
+                    <div className="mx-auto w-[98%] md:w-[88%] max-w-[1600px] px-2 sm:px-4 md:px-8 relative z-10 text-center">
                         <div className="flex flex-col items-center justify-center gap-2 mb-4">
-                            <div className="w-10 h-10 bg-white/40 backdrop-blur-md rounded-xl flex items-center justify-center border border-amber-300/50 shadow-xl shadow-amber-950/10">
-                                <Lock className="w-5 h-5 text-slate-900" />
+                            <div className="w-10 h-10 bg-white/20 backdrop-blur-md rounded-xl flex items-center justify-center border border-white/30 shadow-xl">
+                                <Lock className="w-5 h-5 text-white" />
                             </div>
-                            <span className="text-[10px] font-bold text-slate-600 tracking-[0.2em]">Secure Transaction Layer</span>
+                            <span className="text-xl font-dancing font-bold text-white">Secure Transaction Layer</span>
                         </div>
                         <h1 className="text-2xl md:text-3xl font-extrabold mb-2 tracking-tight">Secure Checkout</h1>
-                        <p className="text-xs text-slate-800 max-w-2xl mx-auto font-normal">Finalize your order through our encrypted gateway.</p>
+                        <p className="text-xs text-white/80 max-w-2xl mx-auto font-normal">Finalize your order through our encrypted gateway.</p>
                     </div>
                 </section>
 
-                <div className="w-[99%] max-w-[1920px] mx-auto px-2 sm:px-4 py-8">
+                <div className="w-[98%] md:w-[88%] max-w-[1600px] mx-auto px-2 sm:px-4 md:px-8 py-8">
                     <form onSubmit={handleSubmit} className="grid grid-cols-1 lg:grid-cols-2 gap-8">
 
                         {/* LEFT: Delivery Information only */}
@@ -218,7 +218,7 @@ export default function Checkout({ cartItems, subtotal, subtotalAfterDiscount, p
                                     </div>
                                     <div className="space-y-2">
                                         <Label htmlFor="phoneLocal" className="text-xs font-bold text-slate-500">Phone</Label>
-                                        <div className="h-12 rounded-md border border-slate-200 bg-slate-50/70 flex items-stretch overflow-hidden focus-within:ring-2 focus-within:ring-amber-400">
+                                        <div className="h-12 rounded-md border border-slate-200 bg-slate-50/70 flex items-stretch overflow-hidden focus-within:ring-2 focus-within:ring-blue-500">
                                             <select
                                                 id="countryCode"
                                                 value={formData.countryCode}
@@ -268,8 +268,8 @@ export default function Checkout({ cartItems, subtotal, subtotalAfterDiscount, p
 
                         {/* RIGHT: Order Summary */}
                         <div className="space-y-4">
-                            <div className="bg-yellow-50 text-slate-800 rounded-xl p-8 shadow-lg sticky top-8 border border-yellow-200">
-                                <h2 className="text-xl font-bold mb-8 border-b border-yellow-200 pb-4 tracking-tight text-slate-900">
+                            <div className="bg-blue-50 text-slate-800 rounded-xl p-8 shadow-lg sticky top-8 border border-blue-100">
+                                <h2 className="text-xl font-bold mb-8 border-b border-blue-100 pb-4 tracking-tight text-slate-900">
                                     Order Summary
                                 </h2>
 
@@ -277,11 +277,11 @@ export default function Checkout({ cartItems, subtotal, subtotalAfterDiscount, p
                                 <div className="space-y-6 max-h-[300px] overflow-y-auto mb-8 pr-2">
                                     {cartItems && cartItems.map((item, index) => (
                                         <div key={index} className="flex gap-4">
-                                            <div className="w-16 h-16 bg-yellow-100 rounded-lg overflow-hidden flex-shrink-0 border border-yellow-200">
+                                            <div className="w-16 h-16 bg-blue-50 rounded-lg overflow-hidden flex-shrink-0 border border-blue-100">
                                                 {item.product_image ? (
                                                     <img src={item.product_image} alt={item.product_name} className="w-full h-full object-cover" />
                                                 ) : (
-                                                    <div className="w-full h-full flex items-center justify-center text-yellow-600 text-2xl">📦</div>
+                                                    <div className="w-full h-full flex items-center justify-center text-blue-500 text-2xl">📦</div>
                                                 )}
                                             </div>
                                             <div className="flex-grow">
@@ -296,7 +296,7 @@ export default function Checkout({ cartItems, subtotal, subtotalAfterDiscount, p
                                 </div>
 
                                 {/* Totals */}
-                                <div className="space-y-3 pt-6 border-t border-yellow-200">
+                                <div className="space-y-3 pt-6 border-t border-blue-100">
                                     <div className="flex justify-between text-xs font-medium text-slate-600">
                                         <span>Subtotal</span>
                                         <span className="font-semibold text-slate-900">{formatCurrency(subtotal)}</span>
@@ -319,7 +319,7 @@ export default function Checkout({ cartItems, subtotal, subtotalAfterDiscount, p
                                     </div>
 
                                     {/* VAT Toggle Row */}
-                                    <div className="flex items-center justify-between py-3 px-4 bg-yellow-100 rounded-lg border border-yellow-200 mt-2">
+                                    <div className="flex items-center justify-between py-3 px-4 bg-blue-50 rounded-lg border border-blue-100 mt-2">
                                         <div className="flex items-center gap-3">
                                             <Receipt className="w-4 h-4 text-slate-500" />
                                             <div>
@@ -334,7 +334,7 @@ export default function Checkout({ cartItems, subtotal, subtotalAfterDiscount, p
                                             type="button"
                                             onClick={() => setIncludeVat(v => !v)}
                                             className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors focus:outline-none ${
-                                                includeVat ? 'bg-slate-800' : 'bg-yellow-200'
+                                                includeVat ? 'bg-slate-800' : 'bg-slate-200'
                                             }`}
                                             aria-label="Toggle VAT"
                                         >
@@ -347,7 +347,7 @@ export default function Checkout({ cartItems, subtotal, subtotalAfterDiscount, p
                                     </div>
 
                                     {/* Grand Total */}
-                                    <div className="flex justify-between items-center pt-4 border-t border-yellow-200 mt-2">
+                                    <div className="flex justify-between items-center pt-4 border-t border-blue-100 mt-2">
                                         <span className="text-sm font-bold text-slate-900">Total Payable</span>
                                         <span className="text-3xl font-bold text-slate-900">{formatCurrency(grandTotal)}</span>
                                     </div>
@@ -362,7 +362,7 @@ export default function Checkout({ cartItems, subtotal, subtotalAfterDiscount, p
                                     <Button
                                         type="submit"
                                         disabled={isProcessing}
-                                        className="h-16 bg-amber-400 hover:bg-amber-500 text-slate-900 text-base font-bold transition-all shadow-xl shadow-amber-300/40 active:scale-[0.98]"
+                                        className="h-16 bg-red-600 hover:bg-red-700 text-white text-base font-bold transition-all shadow-xl shadow-red-300/40 active:scale-[0.98]"
                                     >
                                         {isProcessing ? 'Processing Order...' : 'Confirm Order'}
                                     </Button>

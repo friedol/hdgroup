@@ -1,3 +1,4 @@
+import { KpiCard } from "@/components/dashboard/KpiCard";
 import { Head, router } from "@inertiajs/react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -38,6 +39,22 @@ interface BalanceSheetProps {
     revenue: number;
     expenses: number;
   }>;
+  product_breakdown?: Array<{
+    name: string;
+    mobile: number;
+    cash: number;
+    bank: number;
+    receivables: number;
+    total_assets: number;
+  }>;
+  customer_breakdown?: Array<{
+    name: string;
+    mobile: number;
+    cash: number;
+    bank: number;
+    receivables: number;
+    total_assets: number;
+  }>;
   summary: {
     mobile: number;
     cash: number;
@@ -71,6 +88,8 @@ export default function BalanceSheet({
   liabilitiesBreakdown,
   equityBreakdown,
   department_breakdown,
+  product_breakdown = [],
+  customer_breakdown = [],
   summary,
 }: BalanceSheetProps) {
   const [selectedPeriod, setSelectedPeriod] = useState(period);
@@ -143,8 +162,8 @@ export default function BalanceSheet({
     <>
       <Head title="Balance Sheet" />
       <AppLayout breadcrumbs={breadcrumbs}>
-        <div className="max-w-[1600px] mx-auto space-y-8 pb-10">
-          <div className="flex flex-col md:flex-row md:items-center justify-between gap-6">
+        <div className="w-full space-y-8 pb-10">
+          <div className="flex items-center justify-between gap-4">
             <div className="space-y-1">
               <h1 className="text-[18px] font-bold text-slate-900 tracking-tight">Balance Sheet</h1>
               <p className="text-xs font-bold text-slate-500">
@@ -225,111 +244,70 @@ export default function BalanceSheet({
           )}
 
           <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-8 gap-3 md:gap-4">
-            <Card className="border-l-4 border-l-blue-500">
-              <CardHeader className="pb-1">
-                <CardTitle className="text-xs font-medium flex items-center gap-1">
-                  <Wallet className="w-3 h-3 text-blue-500" />
-                  MOBILE
-                </CardTitle>
-              </CardHeader>
-              <CardContent className="pb-3">
-                <div className="text-lg font-bold text-foreground">{formatCurrency(summary.mobile)}</div>
-                <p className="text-xs text-muted-foreground mt-0.5">In period</p>
-              </CardContent>
-            </Card>
-
-            <Card className="border-l-4 border-l-emerald-500">
-              <CardHeader className="pb-1">
-                <CardTitle className="text-xs font-medium flex items-center gap-1">
-                  <Banknote className="w-3 h-3 text-emerald-500" />
-                  CASH
-                </CardTitle>
-              </CardHeader>
-              <CardContent className="pb-3">
-                <div className="text-lg font-bold text-foreground">{formatCurrency(summary.cash)}</div>
-                <p className="text-xs text-muted-foreground mt-0.5">In hand</p>
-              </CardContent>
-            </Card>
-
-            <Card className="border-l-4 border-l-violet-500">
-              <CardHeader className="pb-1">
-                <CardTitle className="text-xs font-medium flex items-center gap-1">
-                  <CreditCard className="w-3 h-3 text-violet-500" />
-                  BANK
-                </CardTitle>
-              </CardHeader>
-              <CardContent className="pb-3">
-                <div className="text-lg font-bold text-foreground">{formatCurrency(summary.bank)}</div>
-                <p className="text-xs text-muted-foreground mt-0.5">Accounts</p>
-              </CardContent>
-            </Card>
-
-            <Card className="border-l-4 border-l-orange-500">
-              <CardHeader className="pb-1">
-                <CardTitle className="text-xs font-medium flex items-center gap-1">
-                  <TrendingUp className="w-3 h-3 text-orange-500" />
-                  RECEIVABLES
-                </CardTitle>
-              </CardHeader>
-              <CardContent className="pb-3">
-                <div className="text-lg font-bold text-foreground">{formatCurrency(summary.receivables)}</div>
-                <p className="text-xs text-muted-foreground mt-0.5">Outstanding</p>
-              </CardContent>
-            </Card>
-
-            <Card className="border-l-4 border-l-cyan-500">
-              <CardHeader className="pb-1">
-                <CardTitle className="text-xs font-medium flex items-center gap-1">
-                  <Package className="w-3 h-3 text-cyan-500" />
-                  INVENTORY
-                </CardTitle>
-              </CardHeader>
-              <CardContent className="pb-3">
-                <div className="text-lg font-bold text-foreground">{formatCurrency(summary.inventory)}</div>
-                <p className="text-xs text-muted-foreground mt-0.5">Stock value</p>
-              </CardContent>
-            </Card>
-
-            <Card className="border-l-4 border-l-indigo-500">
-              <CardHeader className="pb-1">
-                <CardTitle className="text-xs font-medium flex items-center gap-1">
-                  <Scale className="w-3 h-3 text-indigo-500" />
-                  TOTAL ASSETS
-                </CardTitle>
-              </CardHeader>
-              <CardContent className="pb-3">
-                <div className="text-lg font-bold text-foreground">{formatCurrency(summary.total_assets)}</div>
-                <p className="text-xs text-muted-foreground mt-0.5">Statement total</p>
-              </CardContent>
-            </Card>
-
-            <Card className="border-l-4 border-l-rose-500">
-              <CardHeader className="pb-1">
-                <CardTitle className="text-xs font-medium flex items-center gap-1">
-                  <PieChart className="w-3 h-3 text-rose-500" />
-                  LIABILITIES
-                </CardTitle>
-              </CardHeader>
-              <CardContent className="pb-3">
-                <div className="text-lg font-bold text-foreground">{formatCurrency(summary.liabilities)}</div>
-                <p className="text-xs text-muted-foreground mt-0.5">Obligations</p>
-              </CardContent>
-            </Card>
-
-            <Card className="border-l-4 border-l-emerald-600">
-              <CardHeader className="pb-1">
-                <CardTitle className="text-xs font-medium flex items-center gap-1">
-                  <TrendingUp className="w-3 h-3 text-emerald-600" />
-                  EQUITY
-                </CardTitle>
-              </CardHeader>
-              <CardContent className="pb-3">
-                <div className={`text-lg font-bold ${summary.equity >= 0 ? "text-emerald-600" : "text-rose-600"}`}>
-                  {formatCurrency(summary.equity)}
-                </div>
-                <p className="text-xs text-muted-foreground mt-0.5">Net position</p>
-              </CardContent>
-            </Card>
+            <KpiCard
+              title="MOBILE"
+              value={formatCurrency(summary.mobile)}
+              change={0}
+              icon={Wallet}
+              bgClass="bg-blue-50/20"
+              iconBgClass="bg-blue-100 text-blue-600"
+            />
+            <KpiCard
+              title="CASH"
+              value={formatCurrency(summary.cash)}
+              change={0}
+              icon={Banknote}
+              bgClass="bg-emerald-50/20"
+              iconBgClass="bg-emerald-100 text-emerald-600"
+            />
+            <KpiCard
+              title="BANK"
+              value={formatCurrency(summary.bank)}
+              change={0}
+              icon={CreditCard}
+              bgClass="bg-violet-50/20"
+              iconBgClass="bg-violet-100 text-violet-600"
+            />
+            <KpiCard
+              title="RECEIVABLES"
+              value={formatCurrency(summary.receivables)}
+              change={0}
+              icon={TrendingUp}
+              bgClass="bg-orange-50/20"
+              iconBgClass="bg-orange-100 text-orange-600"
+            />
+            <KpiCard
+              title="INVENTORY"
+              value={formatCurrency(summary.inventory)}
+              change={0}
+              icon={Package}
+              bgClass="bg-cyan-50/20"
+              iconBgClass="bg-cyan-100 text-cyan-600"
+            />
+            <KpiCard
+              title="TOTAL ASSETS"
+              value={formatCurrency(summary.total_assets)}
+              change={0}
+              icon={Scale}
+              bgClass="bg-indigo-50/20"
+              iconBgClass="bg-indigo-100 text-indigo-600"
+            />
+            <KpiCard
+              title="LIABILITIES"
+              value={formatCurrency(summary.liabilities)}
+              change={0}
+              icon={PieChart}
+              bgClass="bg-rose-50/20"
+              iconBgClass="bg-rose-100 text-rose-600"
+            />
+            <KpiCard
+              title="EQUITY"
+              value={formatCurrency(summary.equity)}
+              change={0}
+              icon={TrendingUp}
+              bgClass="bg-emerald-50/20"
+              iconBgClass="bg-emerald-100 text-emerald-600"
+            />
           </div>
 
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
@@ -423,6 +401,82 @@ export default function BalanceSheet({
                           <td className="px-3 py-2 text-right text-slate-600 text-[13px]">{formatCurrency(dept.bank)}</td>
                           <td className="px-3 py-2 text-right text-slate-600 text-[13px]">{formatCurrency(dept.receivables)}</td>
                           <td className="px-3 py-2 text-right font-semibold text-[13px] text-slate-900">{formatCurrency(dept.total_assets)}</td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              </CardContent>
+            </Card>
+          )}
+
+          {product_breakdown.length > 0 && (
+            <Card className="border border-slate-200 shadow-sm">
+              <CardHeader className="pb-2 border-b border-slate-100">
+                <CardTitle className="text-[14px] font-bold tracking-wide text-slate-900">
+                  By Products ({dateFrom} - {dateTo})
+                </CardTitle>
+              </CardHeader>
+              <CardContent className="pt-4">
+                <div className="overflow-x-auto rounded-md border border-slate-200">
+                  <table className="w-full text-[13px]">
+                    <thead>
+                      <tr className="border-b bg-slate-50">
+                        <th className="px-3 py-2 text-left text-xs font-bold text-slate-700">PRODUCT</th>
+                        <th className="px-3 py-2 text-right text-xs font-bold text-slate-700">MOBILE</th>
+                        <th className="px-3 py-2 text-right text-xs font-bold text-slate-700">CASH</th>
+                        <th className="px-3 py-2 text-right text-xs font-bold text-slate-700">BANK</th>
+                        <th className="px-3 py-2 text-right text-xs font-bold text-slate-700">RECEIVABLES</th>
+                        <th className="px-3 py-2 text-right text-xs font-bold text-slate-700">TOTAL ASSETS</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {product_breakdown.map((item, idx) => (
+                        <tr key={idx} className="border-b border-slate-100 hover:bg-slate-50/70">
+                          <td className="px-3 py-2 font-semibold text-[13px] text-slate-800">{item.name}</td>
+                          <td className="px-3 py-2 text-right text-slate-600 text-[13px]">{formatCurrency(item.mobile)}</td>
+                          <td className="px-3 py-2 text-right text-slate-600 text-[13px]">{formatCurrency(item.cash)}</td>
+                          <td className="px-3 py-2 text-right text-slate-600 text-[13px]">{formatCurrency(item.bank)}</td>
+                          <td className="px-3 py-2 text-right text-slate-600 text-[13px]">{formatCurrency(item.receivables)}</td>
+                          <td className="px-3 py-2 text-right font-semibold text-[13px] text-slate-900">{formatCurrency(item.total_assets)}</td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              </CardContent>
+            </Card>
+          )}
+
+          {customer_breakdown.length > 0 && (
+            <Card className="border border-slate-200 shadow-sm">
+              <CardHeader className="pb-2 border-b border-slate-100">
+                <CardTitle className="text-[14px] font-bold tracking-wide text-slate-900">
+                  By Customers ({dateFrom} - {dateTo})
+                </CardTitle>
+              </CardHeader>
+              <CardContent className="pt-4">
+                <div className="overflow-x-auto rounded-md border border-slate-200">
+                  <table className="w-full text-[13px]">
+                    <thead>
+                      <tr className="border-b bg-slate-50">
+                        <th className="px-3 py-2 text-left text-xs font-bold text-slate-700">CUSTOMER</th>
+                        <th className="px-3 py-2 text-right text-xs font-bold text-slate-700">MOBILE</th>
+                        <th className="px-3 py-2 text-right text-xs font-bold text-slate-700">CASH</th>
+                        <th className="px-3 py-2 text-right text-xs font-bold text-slate-700">BANK</th>
+                        <th className="px-3 py-2 text-right text-xs font-bold text-slate-700">RECEIVABLES</th>
+                        <th className="px-3 py-2 text-right text-xs font-bold text-slate-700">TOTAL ASSETS</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {customer_breakdown.map((item, idx) => (
+                        <tr key={idx} className="border-b border-slate-100 hover:bg-slate-50/70">
+                          <td className="px-3 py-2 font-semibold text-[13px] text-slate-800">{item.name}</td>
+                          <td className="px-3 py-2 text-right text-slate-600 text-[13px]">{formatCurrency(item.mobile)}</td>
+                          <td className="px-3 py-2 text-right text-slate-600 text-[13px]">{formatCurrency(item.cash)}</td>
+                          <td className="px-3 py-2 text-right text-slate-600 text-[13px]">{formatCurrency(item.bank)}</td>
+                          <td className="px-3 py-2 text-right text-slate-600 text-[13px]">{formatCurrency(item.receivables)}</td>
+                          <td className="px-3 py-2 text-right font-semibold text-[13px] text-slate-900">{formatCurrency(item.total_assets)}</td>
                         </tr>
                       ))}
                     </tbody>

@@ -45,22 +45,23 @@ export default function OrderConfirmation({ order, estimatedDelivery, trackingUr
 
             <div className="min-h-screen bg-slate-50">
                 {/* Success Banner */}
-                <div className="bg-amber-400 text-slate-900 py-8 relative overflow-hidden">
-                    <div className="absolute top-0 right-0 w-64 h-64 bg-amber-300/50 rounded-full blur-3xl opacity-50 -translate-y-1/2 translate-x-1/2"></div>
-                    <div className="absolute bottom-0 left-0 w-64 h-64 bg-amber-300/50 rounded-full blur-3xl opacity-50 translate-y-1/2 -translate-x-1/2"></div>
-                    
-                    <div className="mx-auto w-[99%] max-w-[1920px] px-2 sm:px-4 text-center relative z-10">
-                        <div className="inline-flex items-center justify-center w-12 h-12 rounded-full bg-white/40 backdrop-blur-md border border-amber-500/30 mb-4">
-                            <CheckCircle className="w-6 h-6 text-emerald-600" />
+                <div className="bg-blue-600 text-white py-8 relative overflow-hidden">
+                    <div className="absolute top-0 right-0 w-64 h-64 bg-white/10 rounded-full blur-3xl -translate-y-1/2 translate-x-1/2"></div>
+                    <div className="absolute bottom-0 left-0 w-64 h-64 bg-white/10 rounded-full blur-3xl translate-y-1/2 -translate-x-1/2"></div>
+
+                    <div className="mx-auto w-[98%] md:w-[88%] max-w-[1600px] px-2 sm:px-4 md:px-8 text-center relative z-10">
+                        <span className="inline-block bg-white/20 text-white text-xl font-dancing font-bold px-5 py-1.5 rounded-full mb-4 backdrop-blur-sm border border-white/30">Order Confirmed</span>
+                        <div className="inline-flex items-center justify-center w-12 h-12 rounded-full bg-white/20 backdrop-blur-md border border-white/30 mb-4">
+                            <CheckCircle className="w-6 h-6 text-emerald-400" />
                         </div>
                         <h1 className="text-2xl md:text-3xl font-extrabold mb-2 tracking-tight">Order Confirmed!</h1>
-                        <p className="text-sm text-slate-800 max-w-2xl mx-auto font-normal">
-                            Your order <span className="text-amber-900 font-bold">#{order.order_number}</span> is now being processed by our logistics team.
+                        <p className="text-sm text-white/80 max-w-2xl mx-auto font-normal">
+                            Your order <span className="text-white font-bold">#{order.order_number}</span> is now being processed by our logistics team.
                         </p>
                     </div>
                 </div>
 
-                <div className="w-[99%] max-w-[1920px] mx-auto px-2 sm:px-4 pt-8 pb-20">
+                <div className="w-[98%] md:w-[88%] max-w-[1600px] mx-auto px-2 sm:px-4 md:px-8 pt-8 pb-20">
                     <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
                         {/* Summary Cards */}
                         <div className="lg:col-span-2 space-y-6">
@@ -92,18 +93,18 @@ export default function OrderConfirmation({ order, estimatedDelivery, trackingUr
                             {/* Logistics Tracking */}
                             <div className="bg-white rounded-lg p-8 border shadow-sm">
                                 <h3 className="text-xl font-black text-slate-900 mb-8 flex items-center gap-2">
-                                    <Truck className="w-6 h-6 text-amber-500" />
+                                    <Truck className="w-6 h-6 text-blue-600" />
                                     Expedition Roadmap
                                 </h3>
                                 
                                 <div className="relative flex justify-between items-start">
                                     {/* Line */}
                                     <div className="absolute top-6 left-0 right-0 h-0.5 bg-slate-100 -z-0">
-                                        <div className="h-full bg-amber-400 w-1/3"></div>
+                                        <div className="h-full bg-blue-600 w-1/3"></div>
                                     </div>
 
                                     <div className="relative z-10 flex flex-col items-center gap-4 text-center group">
-                                        <div className="w-12 h-12 rounded-full bg-amber-400 text-slate-900 flex items-center justify-center shadow-lg shadow-amber-400/20">
+                                        <div className="w-12 h-12 rounded-full bg-blue-600 text-white flex items-center justify-center shadow-lg shadow-blue-600/20">
                                             <Package className="w-6 h-6" />
                                         </div>
                                         <div>
@@ -145,7 +146,7 @@ export default function OrderConfirmation({ order, estimatedDelivery, trackingUr
                                             <div className="flex items-center gap-4">
                                                 <div className="w-12 h-12 bg-slate-100 rounded-md flex items-center justify-center text-xl">📦</div>
                                                 <div>
-                                                    <p className="font-bold text-slate-900 group-hover:text-amber-600 transition-colors">{item.product_name}</p>
+                                                    <p className="font-bold text-slate-900 group-hover:text-blue-600 transition-colors">{item.product_name}</p>
                                                     <p className="text-[10px] font-black text-slate-400 ">Qty: {item.quantity} {item.unit}</p>
                                                 </div>
                                             </div>
@@ -186,20 +187,20 @@ export default function OrderConfirmation({ order, estimatedDelivery, trackingUr
                                     <div className="pt-4 mt-4 border-t border-dashed border-slate-200">
                                         <div className="flex justify-between items-center">
                                             <span className="text-xs font-black text-slate-900 ">Grand Total</span>
-                                            <span className="text-2xl font-black text-amber-500 tracking-tighter">{formatCurrency(order.total_amount)}</span>
+                                            <span className="text-2xl font-black text-blue-600 tracking-tighter">{formatCurrency(order.total_amount)}</span>
                                         </div>
                                     </div>
                                 </div>
 
                                 <div className="mt-8 flex flex-row gap-2 sm:gap-3">
                                     <Link href="/shop" className="w-full flex-1">
-                                        <Button className="w-full h-14 bg-amber-400 hover:bg-amber-500 text-slate-900 font-black rounded-md transition-all active:scale-95 shadow-lg shadow-amber-300/30 px-2 sm:px-4 text-xs sm:text-sm">
+                                        <Button className="w-full h-14 bg-red-600 hover:bg-red-700 text-white font-black rounded-md transition-all active:scale-95 shadow-lg shadow-red-300/30 px-2 sm:px-4 text-xs sm:text-sm">
                                             <ShoppingBag className="w-4 h-4 mr-1 sm:mr-2 flex-shrink-0" />
                                             <span className="truncate">Store</span>
                                         </Button>
                                     </Link>
                                     <Link href={trackingUrl} className="w-full flex-1">
-                                        <Button type="button" variant="outline" className="w-full h-14 border-2 border-amber-200 hover:bg-amber-50 text-amber-700 font-semibold rounded-md transition-all px-2 sm:px-4 text-xs sm:text-sm">
+                                        <Button type="button" variant="outline" className="w-full h-14 border-2 border-blue-200 hover:bg-blue-50 text-blue-700 font-semibold rounded-md transition-all px-2 sm:px-4 text-xs sm:text-sm">
                                             <Truck className="w-4 h-4 mr-2" />
                                             Track Order
                                         </Button>

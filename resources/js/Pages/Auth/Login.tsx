@@ -1,4 +1,4 @@
-import { Form, Head, Link } from '@inertiajs/react';
+import { Form, Head, Link, usePage } from '@inertiajs/react';
 import { home } from '@/routes';
 import { Mail, Lock, UserPlus, Home } from 'lucide-react';
 import InputError from '@/components/input-error';
@@ -25,6 +25,8 @@ export default function Login({
     canResetPassword,
     canRegister,
 }: Props) {
+    const { onlineShopEnabled } = usePage().props as any;
+
     return (
         <AuthLayout
             title="Welcome Back"
@@ -83,8 +85,8 @@ export default function Login({
                                 </div>
                                 {canResetPassword && (
                                     <TextLink
-                                        href={request()}
-                                        className="text-xs font-semibold text-orange-500 hover:text-orange-600 no-underline"
+                                        href={request().url}
+                                        className="text-xs font-semibold no-underline" style={{ color: '#3a9d75' }}
                                         tabIndex={5}
                                     >
                                         Forgot password?
@@ -95,7 +97,7 @@ export default function Login({
                             <div className="pt-4">
                                 <Button
                                     type="submit"
-                                    className="w-full h-12 bg-amber-400 hover:bg-amber-500 text-black rounded-md font-bold text-sm tracking-wide shadow-md shadow-amber-200/50 border-none transition-all duration-300"
+                                    className="w-full h-12 text-white rounded-md font-bold text-sm tracking-wide border-none transition-all duration-300 shadow-md" style={{ backgroundColor: '#3a9d75' }} onMouseEnter={e => (e.currentTarget.style.backgroundColor='#2d8a63')} onMouseLeave={e => (e.currentTarget.style.backgroundColor='#3a9d75')}
                                     tabIndex={4}
                                     disabled={processing}
                                     data-test="login-button"
@@ -105,36 +107,38 @@ export default function Login({
                             </div>
                         </div>
 
-                        <div className="mt-6 flex flex-col items-center gap-4">
-                            <div className="relative w-full flex items-center justify-center">
-                                <div className="absolute inset-0 flex items-center">
-                                    <span className="w-full border-t border-zinc-100 dark:border-zinc-800" />
+                        {onlineShopEnabled && (
+                            <div className="mt-6 flex flex-col items-center gap-4">
+                                <div className="relative w-full flex items-center justify-center">
+                                    <div className="absolute inset-0 flex items-center">
+                                        <span className="w-full border-t border-zinc-100 dark:border-zinc-800" />
+                                    </div>
+                                    <span className="relative bg-white dark:bg-zinc-900 px-3 text-[10px] font-medium text-zinc-300 uppercase tracking-widest">
+                                        OR
+                                    </span>
                                 </div>
-                                <span className="relative bg-white dark:bg-zinc-900 px-3 text-[10px] font-medium text-zinc-300 uppercase tracking-widest">
-                                    OR
-                                </span>
-                            </div>
 
-                            <div className="flex w-full items-center gap-3">
-                                {canRegister && (
+                                <div className="flex w-full items-center gap-3">
+                                    {canRegister && (
+                                        <Link
+                                            href={register().url}
+                                            className="flex-1 h-12 flex items-center justify-center rounded-md bg-zinc-50 border border-zinc-100 text-zinc-600 font-semibold text-xs hover:bg-zinc-100 transition-all dark:bg-zinc-800 dark:border-zinc-700 dark:text-zinc-300"
+                                        >
+                                            <UserPlus className="size-4 mr-2" />
+                                            Create Account
+                                        </Link>
+                                    )}
+
                                     <Link
-                                        href={register()}
-                                        className="flex-1 h-12 flex items-center justify-center rounded-md bg-zinc-50 border border-zinc-100 text-zinc-600 font-semibold text-xs hover:bg-zinc-100 transition-all dark:bg-zinc-800 dark:border-zinc-700 dark:text-zinc-300"
+                                        href={home().url}
+                                        className="flex-1 h-12 flex items-center justify-center rounded-md bg-zinc-50 border border-zinc-100 text-zinc-400 font-semibold text-xs transition-all dark:bg-zinc-800 dark:border-zinc-700 hover:text-[#3a9d75]"
                                     >
-                                        <UserPlus className="size-4 mr-2" />
-                                        Create Account
+                                        <Home className="size-4 mr-2" />
+                                        Home
                                     </Link>
-                                )}
-
-                                <Link
-                                    href={home()}
-                                    className="flex-1 h-12 flex items-center justify-center rounded-md bg-zinc-50 border border-zinc-100 text-zinc-400 font-semibold text-xs hover:text-amber-600 transition-all dark:bg-zinc-800 dark:border-zinc-700"
-                                >
-                                    <Home className="size-4 mr-2" />
-                                    Home
-                                </Link>
+                                </div>
                             </div>
-                        </div>
+                        )}
                     </>
                 )}
             </Form>

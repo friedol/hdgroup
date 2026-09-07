@@ -4,7 +4,7 @@ namespace App\Models;
 
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
-use App\Models\InventoryTransaction;
+use Illuminate\Support\Str;
 
 class Branch extends Model
 {
@@ -29,13 +29,13 @@ class Branch extends Model
 
         static::creating(function ($branch) {
             if (empty($branch->slug)) {
-                $branch->slug = \Illuminate\Support\Str::slug($branch->name);
+                $branch->slug = Str::slug($branch->name);
             }
         });
 
         static::updating(function ($branch) {
             if ($branch->isDirty('name') && empty($branch->slug)) {
-                $branch->slug = \Illuminate\Support\Str::slug($branch->name);
+                $branch->slug = Str::slug($branch->name);
             }
         });
     }
@@ -55,16 +55,9 @@ class Branch extends Model
         return $this->hasMany(Expense::class);
     }
 
-    public function productions()
-    {
-        return $this->hasMany(InventoryTransaction::class)->where('transaction_type', 'production_output');
-    }
-
-
-
     public function manager()
     {
-        return $this->hasOne(User::class)->whereHas('roles', function($q) {
+        return $this->hasOne(User::class)->whereHas('roles', function ($q) {
             $q->where('role_name', 'Branch Manager');
         });
     }

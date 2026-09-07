@@ -2,8 +2,8 @@
 
 namespace App\Models;
 
-use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
+use Illuminate\Database\Eloquent\Model;
 
 class GatekeeperLog extends Model
 {
@@ -11,7 +11,9 @@ class GatekeeperLog extends Model
 
     protected $fillable = [
         'type', // 'IN' or 'OUT'
+        'item_type', // 'product' or 'raw_material'
         'product_id',
+        'raw_material_id',
         'product_name',
         'quantity',
         'unit_price',

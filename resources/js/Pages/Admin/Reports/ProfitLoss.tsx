@@ -1,3 +1,4 @@
+import { KpiCard } from "@/components/dashboard/KpiCard";
 import { Head, Link, router } from "@inertiajs/react";
 import { 
   TrendingUp, 
@@ -197,10 +198,10 @@ return [];
   return (
     <AppLayout breadcrumbs={breadcrumbs}>
       <Head title="Profit & Loss Audit" />
-      <div className="max-w-[1600px] mx-auto space-y-8 pb-10">
+      <div className="w-full space-y-8 pb-10">
         
         {/* Header */}
-        <div className="flex flex-col md:flex-row md:items-center justify-between gap-6">
+        <div className="flex items-center justify-between gap-4">
           <div className="space-y-1">
             <h1 className="text-[18px] font-bold text-slate-900 tracking-tight">Profit & Loss Audit</h1>
             <p className="text-xs font-bold text-slate-500">Detailed P&L audit and transaction-level profitability analysis</p>
@@ -262,138 +263,87 @@ return [];
         </div>
 
             {/* Global Financial State + Deep Finance Statistics */}
-            <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-5 gap-3 md:gap-4">
-               <Card className="border-l-4 border-l-blue-500">
-                  <CardHeader className="pb-1">
-                     <CardTitle className="text-xs font-medium flex items-center gap-1">
-                        <TrendingUp className="w-3 h-3 text-blue-500" />
-                        TOTAL SALES
-                     </CardTitle>
-                  </CardHeader>
-                  <CardContent className="pb-3">
-                     <div className="text-lg font-bold text-foreground">TZS {(total_sales || 0).toLocaleString()}</div>
-                     <p className="text-xs text-muted-foreground mt-0.5">Live POS revenue</p>
-                  </CardContent>
-               </Card>
-
-               <Card className="border-l-4 border-l-emerald-500">
-                  <CardHeader className="pb-1">
-                     <CardTitle className="text-xs font-medium flex items-center gap-1">
-                        <Scale className="w-3 h-3 text-emerald-500" />
-                        GROSS PROFIT
-                     </CardTitle>
-                  </CardHeader>
-                  <CardContent className="pb-3">
-                     <div className="text-lg font-bold text-foreground">TZS {(gross_profit || 0).toLocaleString()}</div>
-                     <p className="text-xs text-muted-foreground mt-0.5">{total_sales > 0 ? ((gross_profit / total_sales) * 100).toFixed(1) : 0}% margin</p>
-                  </CardContent>
-               </Card>
-
-               <Card className="border-l-4 border-l-rose-500">
-                  <CardHeader className="pb-1">
-                     <CardTitle className="text-xs font-medium flex items-center gap-1">
-                        <ArrowDownRight className="w-3 h-3 text-rose-500" />
-                        TOTAL EXPENSES
-                     </CardTitle>
-                  </CardHeader>
-                  <CardContent className="pb-3">
-                     <div className="text-lg font-bold text-rose-600">-TZS {(total_expenses || 0).toLocaleString()}</div>
-                     <p className="text-xs text-muted-foreground mt-0.5">Approved outflows</p>
-                  </CardContent>
-               </Card>
-
-               <Card className="border-l-4 border-l-indigo-500">
-                  <CardHeader className="pb-1">
-                     <CardTitle className="text-xs font-medium flex items-center gap-1">
-                        <Activity className="w-3 h-3 text-indigo-500" />
-                        NET FLOW (P&L)
-                     </CardTitle>
-                  </CardHeader>
-                  <CardContent className="pb-3">
-                     <div className={`text-lg font-bold ${net_profit >= 0 ? 'text-emerald-600' : 'text-rose-600'}`}>
-                        TZS {(net_profit || 0).toLocaleString()}
-                     </div>
-                     <p className="text-xs text-muted-foreground mt-0.5">Net position</p>
-                  </CardContent>
-               </Card>
-
-               <Card className="border-l-4 border-l-orange-500">
-                  <CardHeader className="pb-1">
-                     <CardTitle className="text-xs font-medium flex items-center gap-1">
-                        <Receipt className="w-3 h-3 text-orange-500" />
-                        COGS
-                     </CardTitle>
-                  </CardHeader>
-                  <CardContent className="pb-3">
-                     <div className="text-sm md:text-base font-bold text-foreground">TZS {stats.total_cogs.toLocaleString()}</div>
-                     <p className="text-xs text-muted-foreground mt-0.5">Cost of sales</p>
-                  </CardContent>
-               </Card>
-
-               <Card className="border-l-4 border-l-rose-500">
-                  <CardHeader className="pb-1">
-                     <CardTitle className="text-xs font-medium flex items-center gap-1">
-                        <ArrowDownRight className="w-3 h-3 text-rose-500" />
-                        DISCOUNTS
-                     </CardTitle>
-                  </CardHeader>
-                  <CardContent className="pb-3">
-                     <div className="text-sm md:text-base font-bold text-foreground">TZS {stats.discounts_total.toLocaleString()}</div>
-                     <p className="text-xs text-muted-foreground mt-0.5">Given in period</p>
-                  </CardContent>
-               </Card>
-
-               <Card className="border-l-4 border-l-sky-500">
-                  <CardHeader className="pb-1">
-                     <CardTitle className="text-xs font-medium flex items-center gap-1">
-                        <Percent className="w-3 h-3 text-sky-500" />
-                        TAX
-                     </CardTitle>
-                  </CardHeader>
-                  <CardContent className="pb-3">
-                     <div className="text-sm md:text-base font-bold text-foreground">TZS {stats.tax_total.toLocaleString()}</div>
-                     <p className="text-xs text-muted-foreground mt-0.5">Collected</p>
-                  </CardContent>
-               </Card>
-
-               <Card className="border-l-4 border-l-indigo-500">
-                  <CardHeader className="pb-1">
-                     <CardTitle className="text-xs font-medium flex items-center gap-1">
-                        <ShoppingCart className="w-3 h-3 text-indigo-500" />
-                        ORDERS
-                     </CardTitle>
-                  </CardHeader>
-                  <CardContent className="pb-3">
-                     <div className="text-sm md:text-base font-bold text-foreground">{stats.orders_count.toLocaleString()}</div>
-                     <p className="text-xs text-muted-foreground mt-0.5">Completed</p>
-                  </CardContent>
-               </Card>
-
-               <Card className="border-l-4 border-l-emerald-500">
-                  <CardHeader className="pb-1">
-                     <CardTitle className="text-xs font-medium flex items-center gap-1">
-                        <Package className="w-3 h-3 text-emerald-500" />
-                        ITEMS SOLD
-                     </CardTitle>
-                  </CardHeader>
-                  <CardContent className="pb-3">
-                     <div className="text-sm md:text-base font-bold text-foreground">{Number(stats.items_sold).toLocaleString()}</div>
-                     <p className="text-xs text-muted-foreground mt-0.5">Units</p>
-                  </CardContent>
-               </Card>
-
-               <Card className="border-l-4 border-l-purple-500">
-                  <CardHeader className="pb-1">
-                     <CardTitle className="text-xs font-medium flex items-center gap-1">
-                        <Wallet className="w-3 h-3 text-purple-500" />
-                        AVG ORDER
-                     </CardTitle>
-                  </CardHeader>
-                  <CardContent className="pb-3">
-                     <div className="text-sm md:text-base font-bold text-foreground">TZS {Math.round(stats.average_order_value).toLocaleString()}</div>
-                     <p className="text-xs text-muted-foreground mt-0.5">Per order</p>
-                  </CardContent>
-               </Card>
+            <div className="grid grid-cols-2 md:grid-cols-5 lg:grid-cols-10 gap-3 md:gap-4">
+               <KpiCard
+                  title="TOTAL SALES"
+                  value={`TZS ${(total_sales || 0).toLocaleString()}`}
+                  change={0}
+                  icon={TrendingUp}
+                  bgClass="bg-blue-50/20"
+                  iconBgClass="bg-blue-100 text-blue-600"
+               />
+               <KpiCard
+                  title="GROSS PROFIT"
+                  value={`TZS ${(gross_profit || 0).toLocaleString()}`}
+                  change={0}
+                  icon={Scale}
+                  bgClass="bg-emerald-50/20"
+                  iconBgClass="bg-emerald-100 text-emerald-600"
+               />
+               <KpiCard
+                  title="TOTAL EXPENSES"
+                  value={`-TZS ${(total_expenses || 0).toLocaleString()}`}
+                  change={0}
+                  icon={ArrowDownRight}
+                  bgClass="bg-rose-50/20"
+                  iconBgClass="bg-rose-100 text-rose-600"
+               />
+               <KpiCard
+                  title="NET FLOW (P&L)"
+                  value={`TZS ${(net_profit || 0).toLocaleString()}`}
+                  change={0}
+                  icon={Activity}
+                  bgClass="bg-indigo-50/20"
+                  iconBgClass="bg-indigo-100 text-indigo-600"
+               />
+               <KpiCard
+                  title="COGS"
+                  value={`TZS ${stats.total_cogs.toLocaleString()}`}
+                  change={0}
+                  icon={Receipt}
+                  bgClass="bg-orange-50/20"
+                  iconBgClass="bg-orange-100 text-orange-600"
+               />
+               <KpiCard
+                  title="DISCOUNTS"
+                  value={`TZS ${stats.discounts_total.toLocaleString()}`}
+                  change={0}
+                  icon={ArrowDownRight}
+                  bgClass="bg-amber-50/20"
+                  iconBgClass="bg-amber-100 text-amber-600"
+               />
+               <KpiCard
+                  title="TAX"
+                  value={`TZS ${stats.tax_total.toLocaleString()}`}
+                  change={0}
+                  icon={Percent}
+                  bgClass="bg-sky-50/20"
+                  iconBgClass="bg-sky-100 text-sky-600"
+               />
+               <KpiCard
+                  title="ORDERS"
+                  value={stats.orders_count.toLocaleString()}
+                  change={0}
+                  icon={ShoppingCart}
+                  bgClass="bg-indigo-50/20"
+                  iconBgClass="bg-indigo-100 text-indigo-600"
+               />
+               <KpiCard
+                  title="ITEMS SOLD"
+                  value={Number(stats.items_sold).toLocaleString()}
+                  change={0}
+                  icon={Package}
+                  bgClass="bg-emerald-50/20"
+                  iconBgClass="bg-emerald-100 text-emerald-600"
+               />
+               <KpiCard
+                  title="AVG ORDER"
+                  value={`TZS ${Math.round(stats.average_order_value).toLocaleString()}`}
+                  change={0}
+                  icon={Wallet}
+                  bgClass="bg-purple-50/20"
+                  iconBgClass="bg-purple-100 text-purple-600"
+               />
             </div>
 
             {/* Ratios + Breakdowns */}

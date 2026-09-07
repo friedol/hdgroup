@@ -110,7 +110,7 @@ export default function PromoCodesIndex({ promoCodes }: { promoCodes: PromoCode[
   return (
     <AppLayout breadcrumbs={[{ title: 'Dashboard', href: '/dashboard' }, { title: 'Promo Codes', href: '/promo-codes' }]}>
       <Head title="Promo Codes" />
-      <div className="max-w-[1700px] mx-auto space-y-8 pb-10">
+      <div className="w-full space-y-8 pb-10">
 
         {/* Header */}
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">

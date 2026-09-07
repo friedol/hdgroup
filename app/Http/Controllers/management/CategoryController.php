@@ -2,33 +2,46 @@
 
 namespace App\Http\Controllers\management;
 
-use App\Models\Product;
-use App\Models\Category;
-use Illuminate\Http\Request;
 use App\Http\Controllers\Controller;
+use App\Models\Category;
+use App\Models\Product;
+use Illuminate\Http\Request;
+use Inertia\Inertia;
 
 class CategoryController extends Controller
 {
     /**
      * Display a listing of the resource.
      */
-    public function index()
+    public function index(Request $request)
     {
-        // The frontend React Index.tsx expects categories.data and category.products_count to be present for reducer computations
-        $categories = Category::withCount('products')->orderBy("category_name")->paginate(15);
-        return \Inertia\Inertia::render('Inventory/Categories/Index', compact('categories'));
+        $search = $request->input('search');
+        $query = Category::withCount('products')->orderBy('category_name');
+
+        if ($search) {
+            $query->where('category_name', 'like', "%{$search}%");
+        }
+
+        $categories = $query->paginate(15)->withQueryString();
+
+        return Inertia::render('Inventory/Categories/Index', [
+            'categories' => $categories,
+            'filters' => [
+                'search' => $search,
+            ],
+        ]);
     }
 
     // ───────────────────────── NEW INERTIA CRUD METHODS ──────────────────────
 
     public function indexCrud(Request $request)
     {
-        return $this->index();
+        return $this->index($request);
     }
 
     public function createCrud()
     {
-        return \Inertia\Inertia::render('Inventory/Categories/Create');
+        return Inertia::render('Inventory/Categories/Create');
     }
 
     public function storeCrud(Request $request)
@@ -36,21 +49,23 @@ class CategoryController extends Controller
         $branchId = session('active_branch_id') ?? (auth()->check() ? auth()->user()->branch_id : null);
 
         $validatedData = $request->validate([
-            'category_name' => 'required|max:200|unique:categories,category_name,NULL,id,branch_id,' . ($branchId ?: 'NULL'),
+            'category_name' => 'required|max:200|unique:categories,category_name,NULL,id,branch_id,'.($branchId ?: 'NULL'),
             'category_desc' => 'nullable|string',
-            'image' => 'nullable|image|max:2048'
+            'image' => 'nullable|image|max:2048',
         ]);
 
         if ($request->hasFile('image')) {
             $imagePath = $request->file('image')->store('categories', 'public');
-            $validatedData['image_url'] = '/storage/' . $imagePath;
+            $validatedData['image_url'] = '/storage/'.$imagePath;
         }
+
+        $validatedData['branch_id'] = $branchId ?? active_branch_id();
 
         try {
             Category::create($validatedData);
+
             return redirect()->route('categories.index.crud')->with('success', 'Category Created successfully.');
-        }
-        catch (\Exception $e) {
+        } catch (\Exception $e) {
             return back()->withErrors(['error' => 'An error occurred while saving the category. Please try again.']);
         }
     }
@@ -63,8 +78,9 @@ class CategoryController extends Controller
     public function editCrud(string $id)
     {
         $category = Category::findOrFail($id);
-        return \Inertia\Inertia::render('Inventory/Categories/Edit', [
-            'category' => $category
+
+        return Inertia::render('Inventory/Categories/Edit', [
+            'category' => $category,
         ]);
     }
 
@@ -73,23 +89,23 @@ class CategoryController extends Controller
         $branchId = session('active_branch_id') ?? (auth()->check() ? auth()->user()->branch_id : null);
 
         $validatedData = $request->validate([
-            'category_name' => 'required|max:200|unique:categories,category_name,' . $id . ',id,branch_id,' . ($branchId ?: 'NULL'),
+            'category_name' => 'required|max:200|unique:categories,category_name,'.$id.',id,branch_id,'.($branchId ?: 'NULL'),
             'category_desc' => 'nullable|string',
-            'image' => 'nullable|image|max:2048'
+            'image' => 'nullable|image|max:2048',
         ]);
 
         $category = Category::findOrFail($id);
 
         if ($request->hasFile('image')) {
             $imagePath = $request->file('image')->store('categories', 'public');
-            $validatedData['image_url'] = '/storage/' . $imagePath;
+            $validatedData['image_url'] = '/storage/'.$imagePath;
         }
 
         try {
             $category->update($validatedData);
+
             return redirect()->route('categories.index.crud')->with('success', 'Category Updated successfully.');
-        }
-        catch (\Exception $e) {
+        } catch (\Exception $e) {
             return back()->withErrors(['error' => 'An error occurred. Please try again.']);
         }
     }
@@ -100,9 +116,9 @@ class CategoryController extends Controller
 
         try {
             $category->delete();
+
             return redirect()->route('categories.index.crud')->with('success', 'Category deleted successfully.');
-        }
-        catch (\Exception $e) {
+        } catch (\Exception $e) {
             return back()->withErrors(['error' => 'An error occurred. Please try again.']);
         }
     }
@@ -110,10 +126,7 @@ class CategoryController extends Controller
     /**
      * Show the form for creating a new resource.
      */
-
-    public function create()
-    {
-    }
+    public function create() {}
 
     /**
      * Store a newly created resource in storage.
@@ -123,13 +136,14 @@ class CategoryController extends Controller
         $branchId = session('active_branch_id') ?? (auth()->check() ? auth()->user()->branch_id : null);
 
         $validatedData = $request->validate([
-            'category_name' => 'required|max:200|unique:categories,category_name,NULL,id,branch_id,' . ($branchId ?: 'NULL'),
+            'category_name' => 'required|max:200|unique:categories,category_name,NULL,id,branch_id,'.($branchId ?: 'NULL'),
         ]);
+        $validatedData['branch_id'] = $branchId ?? active_branch_id();
         try {
             $category = Category::create($validatedData);
+
             return response()->json(['success' => 'Category Created  successfully.']);
-        }
-        catch (\Exception $e) {
+        } catch (\Exception $e) {
             return response()->json(['error' => 'An error occurred while saving the budget. Please try again.'], 500);
         }
     }
@@ -139,9 +153,9 @@ class CategoryController extends Controller
      */
     public function show(string $id)
     {
-        $category = Category::where('id', $id)
-            ->orWhere('category_name', $id)
-            ->firstOrFail();
+        $category = Category::where(function ($q) use ($id) {
+            $q->where('id', $id)->orWhere('category_name', $id);
+        })->firstOrFail();
 
         $categoryId = $category->id;
 
@@ -149,12 +163,13 @@ class CategoryController extends Controller
         $d['products'] = Product::withSum('inventories as total_qty', 'qty')
             ->with('productManagement')
             ->whereHas('productManagement', function ($q) use ($categoryId) {
-            $q->where('category_id', $categoryId);
-        })
+                $q->where('category_id', $categoryId);
+            })
             ->orderBy('product_name', 'asc')
             ->get();
+
         // dd($d);
-        return \Inertia\Inertia::render('Admin/Management/Categories/Show', $d);
+        return Inertia::render('Admin/Management/Categories/Show', $d);
     }
 
     /**
@@ -162,9 +177,10 @@ class CategoryController extends Controller
      */
     public function edit(string $id)
     {
-        $category = Category::where('id', $id)
-            ->orWhere('category_name', $id)
-            ->firstOrFail();
+        $category = Category::where(function ($q) use ($id) {
+            $q->where('id', $id)->orWhere('category_name', $id);
+        })->firstOrFail();
+
         return response()->json($category);
     }
 
@@ -176,18 +192,18 @@ class CategoryController extends Controller
         $branchId = session('active_branch_id') ?? (auth()->check() ? auth()->user()->branch_id : null);
 
         $validatedData = $request->validate([
-            'category_name' => 'required|max:200|unique:categories,category_name,' . $id . ',id,branch_id,' . ($branchId ?: 'NULL'),
+            'category_name' => 'required|max:200|unique:categories,category_name,'.$id.',id,branch_id,'.($branchId ?: 'NULL'),
         ]);
 
-        $category = Category::where('id', $id)
-            ->orWhere('category_name', $id)
-            ->firstOrFail();
+        $category = Category::where(function ($q) use ($id) {
+            $q->where('id', $id)->orWhere('category_name', $id);
+        })->firstOrFail();
 
         try {
             $category->update($validatedData);
+
             return response()->json(['success' => 'Category Updated  successfully.']);
-        }
-        catch (\Exception $e) {
+        } catch (\Exception $e) {
             return response()->json(['error' => 'An error occurred. Please try again.'], 500);
         }
     }
@@ -197,15 +213,15 @@ class CategoryController extends Controller
      */
     public function destroy(string $id)
     {
-        $category = Category::where('id', $id)
-            ->orWhere('category_name', $id)
-            ->firstOrFail();
+        $category = Category::where(function ($q) use ($id) {
+            $q->where('id', $id)->orWhere('category_name', $id);
+        })->firstOrFail();
 
         try {
             $category->delete();
+
             return response()->json(['success' => 'Category deleted  successfully.']);
-        }
-        catch (\Exception $e) {
+        } catch (\Exception $e) {
             return response()->json(['error' => 'An error occurred. Please try again.'], 500);
         }
     }

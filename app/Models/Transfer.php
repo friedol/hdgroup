@@ -7,13 +7,13 @@ use Illuminate\Database\Eloquent\Model;
 
 class Transfer extends Model
 {
-    use HasFactory, \App\Traits\HasBranch;
+    use \App\Traits\HasBranch, HasFactory;
 
     public function scopeFilter($query, array $filters)
     {
         if ($filters['search'] ?? false) {
-            $query->where('product_name', 'like', '%' . request('search') . '%')
-                ->orwhere('created_at', 'like', '%' . request('search') . '%');
+            $query->where('product_name', 'like', '%'.request('search').'%')
+                ->orwhere('created_at', 'like', '%'.request('search').'%');
         }
     }
 
@@ -27,7 +27,11 @@ class Transfer extends Model
         'store_name',
         'staff_recommeded',
         'product_quantity',
+        'unit_factor',
+        'base_unit',
         'product_price',
+        'buying_price',
+        'selling_price',
         'product_image',
         'status',
         'source_store',

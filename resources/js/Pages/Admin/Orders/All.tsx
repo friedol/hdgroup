@@ -1,16 +1,21 @@
-import { Head, router, Link } from '@inertiajs/react';
+import { Head, router, Link, usePage } from '@inertiajs/react';
 import {
-  ClipboardList, Search, Filter, Calendar,
+  ClipboardList, Search,
   ArrowRight, Eye, Edit, Trash2, CheckCircle2,
   Clock, AlertCircle, TrendingUp, DollarSign, Users,
-  X, ChevronDown, Download, Printer, Plus
+  X, ChevronDown, Download, Printer, Plus, Send, Building2,
+  FileText, ScrollText, MoreVertical,
 } from 'lucide-react';
 import React, { useState } from 'react';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { Card, CardHeader, CardContent, CardTitle } from '@/components/ui/card';
+import {
+  DropdownMenu, DropdownMenuTrigger, DropdownMenuContent,
+  DropdownMenuItem, DropdownMenuSeparator,
+} from '@/components/ui/dropdown-menu';
 import AppLayout from '@/layouts/app-layout';
+import { KpiCard } from "@/components/dashboard/KpiCard";
 
 interface Order {
   unique_id: string;
@@ -25,6 +30,14 @@ interface Order {
   items_preview?: string;
   created_at: string;
   sale_type: string;
+  branch_name?: string | null;
+  branch_id?: number | null;
+}
+
+interface Branch {
+  id: number;
+  name: string;
+  system_name?: string;
 }
 
 interface Metrics {
@@ -38,22 +51,22 @@ interface Props {
   orders: Order[];
   metrics: Metrics;
   staff_members: string[];
+  is_global?: boolean;
 }
 
 const fmt = (n: number) =>
   'TZS ' + n.toLocaleString('en-US', { minimumFractionDigits: 0, maximumFractionDigits: 0 });
 
 const fmtDate = (d: string) => {
-  if (!d) {
-return '—';
-}
-
+  if (!d) return '—';
   return new Date(d).toLocaleDateString('en-US', { year: 'numeric', month: 'short', day: 'numeric' });
 };
 
-export default function SalesOrders({ orders, metrics, staff_members }: Props) {
+export default function SalesOrders({ orders, metrics, staff_members, is_global }: Props) {
+  const { branches } = usePage().props as unknown as { branches: Branch[] };
   const [search, setSearch] = useState('');
   const [paymentStatus, setPaymentStatus] = useState('all');
+  const [assigningId, setAssigningId] = useState<string | null>(null);
 
   const filteredOrders = orders.filter(o => {
     const s = search.toLowerCase();
@@ -78,15 +91,30 @@ export default function SalesOrders({ orders, metrics, staff_members }: Props) {
     return 'bg-rose-50 text-rose-700 border-rose-200';
   };
 
+  const assignBranch = (orderId: string, branchId: string) => {
+    if (!branchId) return;
+    setAssigningId(orderId);
+    router.put(`/orders-crud/${orderId}`, { branch_id: parseInt(branchId) }, {
+      preserveScroll: true,
+      onFinish: () => setAssigningId(null),
+    });
+  };
+
+  const kpis = [
+    { title: "Total Orders", value: metrics.total_orders.toString(), change: 0, icon: ClipboardList, href: "#", bgClass: "bg-blue-50/50", iconBgClass: "bg-blue-100 text-blue-600" },
+    { title: "Total Collections", value: fmt(metrics.total_revenue), change: 0, icon: TrendingUp, href: "#", bgClass: "bg-emerald-50/50", iconBgClass: "bg-emerald-100 text-emerald-600" },
+    { title: "Pending / Unpaid", value: metrics.pending_check.toString(), change: 0, icon: Clock, href: "#", bgClass: "bg-amber-50/50", iconBgClass: "bg-amber-100 text-amber-600" },
+    { title: "Total Outstanding", value: fmt(metrics.total_balance), change: 0, icon: DollarSign, href: "#", bgClass: "bg-rose-50/50", iconBgClass: "bg-rose-100 text-rose-600" },
+  ];
 
   return (
     <>
       <Head title="Sales Orders" />
       <AppLayout breadcrumbs={breadcrumbs}>
-        <div className="max-w-[1700px] mx-auto space-y-8 pb-20">
+        <div className="w-full space-y-8 pb-20">
 
           {/* Header */}
-          <div className="flex flex-col md:flex-row md:items-center justify-between gap-6">
+          <div className="flex items-center justify-between gap-6">
             <div>
               <h1 className="text-[18px] font-bold text-slate-900 tracking-tight leading-none">Customer orders</h1>
             </div>
@@ -94,52 +122,10 @@ export default function SalesOrders({ orders, metrics, staff_members }: Props) {
 
           {/* Metrics */}
           <div className="grid grid-cols-2 md:grid-cols-4 gap-3 md:gap-4">
-            {[
-              {
-                label: 'TOTAL ORDERS',
-                value: metrics.total_orders,
-                note: 'All customer orders',
-                icon: <ClipboardList className="w-3 h-3 text-blue-500" />,
-                border: 'border-l-blue-500',
-                valueClass: 'text-foreground',
-              },
-              {
-                label: 'TOTAL COLLECTIONS',
-                value: fmt(metrics.total_revenue),
-                note: 'Collected amount',
-                icon: <TrendingUp className="w-3 h-3 text-emerald-500" />,
-                border: 'border-l-emerald-500',
-                valueClass: 'text-emerald-600',
-              },
-              {
-                label: 'PENDING / UNPAID',
-                value: metrics.pending_check,
-                note: 'Needs follow-up',
-                icon: <Clock className="w-3 h-3 text-amber-500" />,
-                border: 'border-l-amber-500',
-                valueClass: 'text-amber-600',
-              },
-              {
-                label: 'TOTAL OUTSTANDING',
-                value: fmt(metrics.total_balance),
-                note: 'Unpaid balance',
-                icon: <DollarSign className="w-3 h-3 text-rose-500" />,
-                border: 'border-l-rose-500',
-                valueClass: 'text-rose-600',
-              },
-            ].map(k => (
-              <Card key={k.label} className={`border-l-4 ${k.border}`}>
-                <CardHeader className="pb-1">
-                  <CardTitle className="text-xs font-medium flex items-center gap-1 text-slate-700">
-                    {k.icon}
-                    {k.label}
-                  </CardTitle>
-                </CardHeader>
-                <CardContent className="pb-3">
-                  <p className={`text-sm md:text-lg font-bold leading-none ${k.valueClass}`}>{k.value}</p>
-                  <p className="text-xs text-muted-foreground mt-1">{k.note}</p>
-                </CardContent>
-              </Card>
+            {kpis.map((kpi, i) => (
+              <div key={kpi.title} className={`animate-fade-up stagger-${i + 1}`}>
+                <KpiCard {...kpi} className="shadow-sm hover:shadow-md transition-shadow" />
+              </div>
             ))}
           </div>
 
@@ -151,7 +137,7 @@ export default function SalesOrders({ orders, metrics, staff_members }: Props) {
                 <Input
                   value={search}
                   onChange={e => setSearch(e.target.value)}
-                  placeholder="Seach by ID or customer name..."
+                  placeholder="Search by ID or customer name..."
                   className="pl-10 h-11 rounded-xl border-slate-200 bg-slate-50/50 focus:bg-white transition-all shadow-none"
                 />
               </div>
@@ -190,6 +176,7 @@ export default function SalesOrders({ orders, metrics, staff_members }: Props) {
                     <th className="px-6 py-4 text-xs font-semibold text-slate-500 tracking-tight text-left">Collected</th>
                     <th className="px-6 py-4 text-xs font-semibold text-slate-500 tracking-tight text-left">Balance</th>
                     <th className="px-6 py-4 text-xs font-semibold text-slate-500 tracking-tight text-left">Payment status</th>
+                    {is_global && <th className="px-6 py-4 text-xs font-semibold text-slate-500 tracking-tight text-left">Branch</th>}
                     <th className="px-6 py-4 text-xs font-semibold text-slate-500 tracking-tight text-left">Date</th>
                     <th className="px-6 py-4 text-xs font-semibold text-slate-500 tracking-tight text-left">Actions</th>
                   </tr>
@@ -197,7 +184,7 @@ export default function SalesOrders({ orders, metrics, staff_members }: Props) {
                 <tbody className="divide-y divide-slate-50">
                   {filteredOrders.length === 0 ? (
                     <tr>
-                      <td colSpan={9} className="px-6 py-20 text-center">
+                      <td colSpan={is_global ? 10 : 9} className="px-6 py-20 text-center">
                         <div className="flex flex-col items-center gap-3">
                           <ClipboardList className="h-12 w-12 text-slate-200" />
                           <p className="text-base font-bold text-slate-800 tracking-tight">No matching sales orders found</p>
@@ -242,37 +229,127 @@ export default function SalesOrders({ orders, metrics, staff_members }: Props) {
                           {o.payment_status}
                         </Badge>
                       </td>
+                      {is_global && (
+                        <td className="px-6 py-4 text-left min-w-[160px]">
+                          {o.branch_id ? (
+                            <span className="text-xs font-bold text-blue-700 bg-blue-50 px-2 py-0.5 rounded-md border border-blue-100">
+                              {o.branch_name}
+                            </span>
+                          ) : (
+                            <div className="flex items-center gap-1">
+                              <Building2 className="h-3.5 w-3.5 text-amber-500 flex-shrink-0" />
+                              <div className="relative">
+                                <select
+                                  key={o.unique_id}
+                                  disabled={assigningId === o.unique_id}
+                                  defaultValue=""
+                                  onChange={e => assignBranch(o.unique_id, e.target.value)}
+                                  className="text-xs font-bold text-amber-700 bg-amber-50 border border-amber-200 rounded-md pl-2 pr-6 py-0.5 outline-none focus:border-amber-400 focus:ring-1 focus:ring-amber-100 appearance-none cursor-pointer disabled:opacity-50 disabled:cursor-wait transition-all"
+                                >
+                                  <option value="" disabled>
+                                    {assigningId === o.unique_id ? 'Saving…' : 'Unassigned ▾'}
+                                  </option>
+                                  {(branches ?? []).map(b => (
+                                    <option key={b.id} value={b.id}>
+                                      {b.system_name ?? b.name}
+                                    </option>
+                                  ))}
+                                </select>
+                              </div>
+                            </div>
+                          )}
+                        </td>
+                      )}
                       <td className="px-6 py-4">
                         <p className="text-sm font-semibold text-slate-700">{fmtDate(o.created_at)}</p>
                       </td>
                       <td className="px-6 py-4 text-left">
                         <div className="flex items-center justify-start gap-2">
-                          <Button
-                            variant="ghost"
-                            size="icon"
-                            title="Reprint receipt"
-                            className="h-8 w-8 rounded-lg text-slate-400 hover:text-emerald-600 hover:bg-emerald-50"
-                            onClick={() => window.open(`/finance/invoices/${encodeURIComponent(o.unique_id)}/receipt`, '_blank', 'width=450,height=700')}
-                          >
-                            <Printer className="h-4 w-4" />
-                          </Button>
-                          <Link href={`/orders-crud/${o.unique_id}`}>
-                            <Button variant="ghost" size="icon" className="h-8 w-8 rounded-lg text-slate-400 hover:text-blue-600 hover:bg-blue-50">
-                              <Eye className="h-4 w-4" />
-                            </Button>
-                          </Link>
-                          <Link href={`/orders-crud/${o.unique_id}/edit`}>
-                             <Button variant="ghost" size="icon" className="h-8 w-8 rounded-lg text-slate-400 hover:text-violet-600 hover:bg-violet-50">
-                               <Edit className="h-4 w-4" />
-                             </Button>
-                          </Link>
-                          <Button variant="ghost" size="icon" className="h-8 w-8 rounded-lg text-slate-400 hover:text-rose-600 hover:bg-rose-50" onClick={() => {
- if(confirm('Delete this sale permanently?')) {
-router.delete(`/orders-crud/${o.unique_id}`)
-} 
-}}>
-                            <Trash2 className="h-4 w-4" />
-                          </Button>
+                          <DropdownMenu>
+                            <DropdownMenuTrigger asChild>
+                              <Button variant="ghost" size="icon" className="h-8 w-8 rounded-lg text-slate-400 hover:text-slate-700 hover:bg-slate-100">
+                                <MoreVertical className="h-4 w-4" />
+                              </Button>
+                            </DropdownMenuTrigger>
+                            <DropdownMenuContent align="end" className="w-52">
+                              <DropdownMenuItem asChild>
+                                <Link href={`/orders-crud/${o.unique_id}`} className="flex items-center gap-2">
+                                  <Eye className="h-4 w-4 text-blue-500" />
+                                  <span>View Order</span>
+                                </Link>
+                              </DropdownMenuItem>
+                              <DropdownMenuItem asChild>
+                                <Link href={`/orders-crud/${o.unique_id}/edit`} className="flex items-center gap-2">
+                                  <Edit className="h-4 w-4 text-violet-500" />
+                                  <span>Edit Order</span>
+                                </Link>
+                              </DropdownMenuItem>
+                              <DropdownMenuSeparator />
+                              <DropdownMenuItem
+                                className="flex items-center gap-2"
+                                onClick={() => window.open(`/invoice/receipt/${encodeURIComponent(o.unique_id)}`, '_blank', 'width=450,height=700')}
+                              >
+                                <Printer className="h-4 w-4 text-blue-500" />
+                                <span>Print Receipt</span>
+                              </DropdownMenuItem>
+                              <DropdownMenuItem
+                                className="flex items-center gap-2"
+                                onClick={() => {
+                                  const existing = document.getElementById('print-iframe');
+                                  if (existing) document.body.removeChild(existing);
+                                  const iframe = document.createElement('iframe');
+                                  iframe.id = 'print-iframe';
+                                  iframe.style.cssText = 'position:fixed;left:-9999px;top:0;width:900px;height:1200px;border:none;';
+                                  iframe.src = `/orders-crud/${encodeURIComponent(o.unique_id)}/invoice`;
+                                  iframe.onload = () => { try { iframe.contentWindow?.print(); } catch(e) {} };
+                                  document.body.appendChild(iframe);
+                                }}
+                              >
+                                <FileText className="h-4 w-4 text-emerald-500" />
+                                <span>Print Invoice</span>
+                              </DropdownMenuItem>
+                              <DropdownMenuItem
+                                className="flex items-center gap-2"
+                                onClick={() => {
+                                  const existing = document.getElementById('print-iframe');
+                                  if (existing) document.body.removeChild(existing);
+                                  const iframe = document.createElement('iframe');
+                                  iframe.id = 'print-iframe';
+                                  iframe.style.cssText = 'position:fixed;left:-9999px;top:0;width:900px;height:1200px;border:none;';
+                                  iframe.src = `/orders-crud/${encodeURIComponent(o.unique_id)}/proforma`;
+                                  iframe.onload = () => { try { iframe.contentWindow?.print(); } catch(e) {} };
+                                  document.body.appendChild(iframe);
+                                }}
+                              >
+                                <ScrollText className="h-4 w-4 text-violet-500" />
+                                <span>Print Proforma</span>
+                              </DropdownMenuItem>
+                              <DropdownMenuSeparator />
+                              <DropdownMenuItem
+                                className="flex items-center gap-2"
+                                onClick={() => {
+                                  const url = `${window.location.origin}/invoice/receipt/${encodeURIComponent(o.unique_id)}`;
+                                  const text = `Habari ${o.customer_name}, hapa kuna Invoice / Risiti yako ya TZS ${o.formatted_total.toLocaleString()} kutoka Jopo Juniours Co. Ltd. Unaweza kuipata hapa: ${url}`;
+                                  window.open(`https://api.whatsapp.com/send?text=${encodeURIComponent(text)}`, '_blank');
+                                }}
+                              >
+                                <Send className="h-4 w-4 text-emerald-500" />
+                                <span>Share via WhatsApp</span>
+                              </DropdownMenuItem>
+                              <DropdownMenuSeparator />
+                              <DropdownMenuItem
+                                className="flex items-center gap-2 text-rose-600 focus:text-rose-600 focus:bg-rose-50"
+                                onClick={() => {
+                                  if (confirm('Delete this sale permanently?')) {
+                                    router.delete(`/orders-crud/${o.unique_id}`);
+                                  }
+                                }}
+                              >
+                                <Trash2 className="h-4 w-4" />
+                                <span>Delete</span>
+                              </DropdownMenuItem>
+                            </DropdownMenuContent>
+                          </DropdownMenu>
                         </div>
                       </td>
                     </tr>
@@ -280,13 +357,12 @@ router.delete(`/orders-crud/${o.unique_id}`)
                 </tbody>
               </table>
             </div>
-            {/* Pagination placeholder - The controller uses ->get(), so no real pagination yet, but we could add if needed */}
             <div className="px-6 py-4 border-t border-slate-50 bg-slate-50/30 flex items-center justify-between">
               <p className="text-xs font-bold text-slate-400">Displaying most recent {filteredOrders.length} records</p>
-               <div className="flex items-center gap-2">
+              <div className="flex items-center gap-2">
                 <Button variant="outline" disabled className="h-10 px-4 rounded-xl text-xs font-bold border-slate-200">Previous</Button>
                 <Button variant="outline" disabled className="h-10 px-4 rounded-xl text-xs font-bold border-slate-200">Next</Button>
-               </div>
+              </div>
             </div>
           </div>
 

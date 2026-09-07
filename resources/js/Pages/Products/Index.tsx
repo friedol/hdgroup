@@ -2,12 +2,17 @@ import { Head, Link, router } from '@inertiajs/react';
 import axios from 'axios';
 import {
   Plus, Download, Eye, Edit, Trash2, Search, Package,
-  Globe, EyeOff, Filter, ChevronLeft, ChevronRight, Image, RotateCcw
+  Globe, EyeOff, Filter, ChevronLeft, ChevronRight, Image, RotateCcw,
+  MoreVertical,
 } from 'lucide-react';
 import React, { useState } from 'react';
 import { toast } from 'sonner';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
+import {
+  DropdownMenu, DropdownMenuTrigger, DropdownMenuContent,
+  DropdownMenuItem, DropdownMenuSeparator,
+} from '@/components/ui/dropdown-menu';
 import AppLayout from '@/layouts/app-layout';
 
 /* ─── Types ────────────────────────────────────── */
@@ -19,7 +24,13 @@ interface Product {
   product_type: string;
   product_price: number;
   buying_price: number;
+  selling_price?: number;
+  plain_price?: number;
+  printed_price?: number;
   current_stock: number;
+  display_qty?: number;
+  stock_unit?: string;
+  stock_factor?: number;
   total_qty: number;
   status: 'active' | 'inactive';
   is_public: boolean;
@@ -37,6 +48,11 @@ interface Paginated {
 interface Props {
   products: Paginated;
   filters?: { search?: string; status?: string; type?: string };
+  storeReport?: {
+    total_bags_sold: number;
+    colors_sold: Array<{ color: string; qty: number }>;
+    sizes_sold: Array<{ size: string; qty: number }>;
+  };
 }
 
 /* ─── Helpers ──────────────────────────────────── */
@@ -68,7 +84,7 @@ const typeLabel = (type: string) => {
 };
 
 /* ─── Component ────────────────────────────────── */
-export default function ProductsIndex({ products, filters = {} }: Props) {
+export default function ProductsIndex({ products, filters = {}, storeReport }: Props) {
   const [searchQuery, setSearchQuery]   = useState(filters.search ?? '');
   const [activeType, setActiveType]     = useState(filters.type ?? 'all');
   const [toggling, setToggling]         = useState<number | null>(null);
@@ -106,7 +122,7 @@ return;
 }
 
     router.delete(`/products-new/${row.id}`, {
-      onSuccess: () => toast.success('Product removed or archived successfully'),
+      onSuccess: () => toast.success('Product permanently deleted'),
       onError: (errors) => toast.error((errors?.error as string) || 'Failed to delete product'),
     });
   };
@@ -178,6 +194,7 @@ return;
             ))}
           </div>
 
+
           {/* ── Table card ── */}
           <div className="bg-white border border-slate-200 rounded-2xl shadow-sm overflow-hidden">
 
@@ -219,7 +236,7 @@ return;
                     <th className="px-5 py-3 text-left">SKU</th>
                     <th className="px-5 py-3 text-left">Category</th>
                     <th className="px-5 py-3 text-right">Stock</th>
-                    <th className="px-5 py-3 text-right">Price</th>
+                    <th className="px-5 py-3 text-right">Selling Price</th>
                     <th className="px-5 py-3 text-right">Cost</th>
                     <th className="px-5 py-3 text-center">Status</th>
                     <th className="px-5 py-3 text-center">Visibility</th>
@@ -229,7 +246,7 @@ return;
                 <tbody>
                   {products.data.length === 0 ? (
                     <tr>
-                      <td colSpan={9} className="px-5 py-16 text-center">
+                      <td colSpan={10} className="px-5 py-16 text-center">
                         <Package className="h-12 w-12 mx-auto text-slate-200 mb-3" />
                         <p className="text-sm font-semibold text-slate-400">No products found</p>
                         <p className="text-[11px] text-slate-300 mt-1">Try a different search or filter</p>
@@ -241,18 +258,14 @@ return;
                       {/* Image */}
                       <td className="px-5 py-3">
                         <div className="h-10 w-10 rounded-xl overflow-hidden bg-slate-100 border border-slate-200 flex items-center justify-center shrink-0">
-                          {row.image_url ? (
-                            <img
-                              src={row.image_url}
-                              alt={row.clean_name || row.product_name}
-                              className="h-full w-full object-cover"
-                              onError={e => {
- (e.target as HTMLImageElement).style.display = 'none'; 
-}}
-                            />
-                          ) : (
-                            <Image className="h-4 w-4 text-slate-300" />
-                          )}
+                          <img
+                            src={row.image_url || '/placeholder.png'}
+                            alt={row.clean_name || row.product_name}
+                            className="h-full w-full object-cover"
+                            onError={e => {
+                              (e.target as HTMLImageElement).src = '/placeholder.png';
+                            }}
+                          />
                         </div>
                       </td>
 
@@ -274,12 +287,24 @@ return;
                       {/* Category */}
                       <td className="px-5 py-3 text-xs text-slate-600 font-bold">{row.category_name}</td>
                       <td className="px-5 py-3 text-right font-semibold text-slate-800 tabular-nums">
-                        {(row.current_stock ?? 0).toLocaleString()}
+                        {(row.display_qty ?? row.current_stock ?? 0).toLocaleString()}
+                        {row.stock_unit && <span className="text-[10px] font-normal text-slate-400 ml-1">{row.stock_unit}</span>}
                       </td>
 
-                      {/* Price */}
-                      <td className="px-5 py-3 text-right font-semibold text-slate-900 tabular-nums">
-                        {(row.product_price ?? 0).toLocaleString()}
+                      {/* Selling Price */}
+                      <td className="px-5 py-3 text-right tabular-nums">
+                        {row.product_type === 'manufactured' ? (
+                          <span className="text-xs leading-tight">
+                            <span className="font-semibold text-slate-900">{(row.plain_price ?? row.selling_price ?? row.product_price ?? 0).toLocaleString()}</span>
+                            <span className="text-slate-400 mx-0.5">/</span>
+                            <span className="font-medium text-slate-600">{(row.printed_price ?? row.plain_price ?? row.product_price ?? 0).toLocaleString()}</span>
+                            <span className="block text-[9px] text-slate-400 font-medium mt-0.5">plain / printed</span>
+                          </span>
+                        ) : row.product_type === 'raw_material' ? (
+                          <span className="font-medium text-slate-400 text-xs">—</span>
+                        ) : (
+                          <span className="font-semibold text-slate-900">{(row.selling_price ?? row.product_price ?? 0).toLocaleString()}</span>
+                        )}
                       </td>
 
                       {/* Cost */}
@@ -309,43 +334,57 @@ return;
                         </button>
                       </td>
 
-                      {/* Actions — always visible */}
+                      {/* Actions — dropdown */}
                       <td className="px-5 py-3">
-                        <div className="flex items-center justify-end gap-1.5">
-                          <Link href={`/products-new/${row.id}`} id={`view-product-${row.id}`}>
-                            <button
-                              title="View product"
-                              className="h-8 w-8 rounded-xl flex items-center justify-center text-slate-400 hover:text-blue-600 hover:bg-blue-50 border border-transparent hover:border-blue-100 transition-all"
-                            >
-                              <Eye className="h-4 w-4" />
-                            </button>
-                          </Link>
-                          <Link href={`/products-new/${row.id}/edit`} id={`edit-product-${row.id}`}>
-                            <button
-                              title="Edit product"
-                              className="h-8 w-8 rounded-xl flex items-center justify-center text-slate-400 hover:text-amber-600 hover:bg-amber-50 border border-transparent hover:border-amber-100 transition-all"
-                            >
-                              <Edit className="h-4 w-4" />
-                            </button>
-                          </Link>
-                          <button
-                            id={`delete-product-${row.id}`}
-                            title="Delete product"
-                            onClick={() => handleDelete(row)}
-                            className="h-8 w-8 rounded-xl flex items-center justify-center text-slate-400 hover:text-rose-600 hover:bg-rose-50 border border-transparent hover:border-rose-100 transition-all"
-                          >
-                            <Trash2 className="h-4 w-4" />
-                          </button>
-                          {row.status === 'inactive' && (
-                            <button
-                              id={`reactivate-product-${row.id}`}
-                              title="Reactivate product"
-                              onClick={() => handleReactivate(row)}
-                              className="h-8 w-8 rounded-xl flex items-center justify-center text-slate-400 hover:text-emerald-600 hover:bg-emerald-50 border border-transparent hover:border-emerald-100 transition-all"
-                            >
-                              <RotateCcw className="h-4 w-4" />
-                            </button>
-                          )}
+                        <div className="flex items-center justify-end">
+                          <DropdownMenu>
+                            <DropdownMenuTrigger asChild>
+                              <button className="h-8 w-8 rounded-xl flex items-center justify-center text-slate-400 hover:text-slate-700 hover:bg-slate-100 border border-transparent hover:border-slate-200 transition-all">
+                                <MoreVertical className="h-4 w-4" />
+                              </button>
+                            </DropdownMenuTrigger>
+                            <DropdownMenuContent align="end" className="w-48">
+                              <DropdownMenuItem asChild>
+                                <Link href={`/products-new/${row.id}`} className="flex items-center gap-2">
+                                  <Eye className="h-4 w-4 text-blue-500" />
+                                  <span>View Product</span>
+                                </Link>
+                              </DropdownMenuItem>
+                              <DropdownMenuItem asChild>
+                                <Link href={`/products-new/${row.id}/edit`} className="flex items-center gap-2">
+                                  <Edit className="h-4 w-4 text-amber-500" />
+                                  <span>Edit Product</span>
+                                </Link>
+                              </DropdownMenuItem>
+                              <DropdownMenuSeparator />
+                              <DropdownMenuItem
+                                className="flex items-center gap-2"
+                                onClick={() => handleToggleVisibility(row)}
+                              >
+                                {row.is_public
+                                  ? <><EyeOff className="h-4 w-4 text-slate-500" /><span>Set Private</span></>
+                                  : <><Globe className="h-4 w-4 text-emerald-500" /><span>Set Public</span></>
+                                }
+                              </DropdownMenuItem>
+                              {row.status === 'inactive' && (
+                                <DropdownMenuItem
+                                  className="flex items-center gap-2"
+                                  onClick={() => handleReactivate(row)}
+                                >
+                                  <RotateCcw className="h-4 w-4 text-emerald-500" />
+                                  <span>Reactivate</span>
+                                </DropdownMenuItem>
+                              )}
+                              <DropdownMenuSeparator />
+                              <DropdownMenuItem
+                                className="flex items-center gap-2 text-rose-600 focus:text-rose-600 focus:bg-rose-50"
+                                onClick={() => handleDelete(row)}
+                              >
+                                <Trash2 className="h-4 w-4" />
+                                <span>Delete</span>
+                              </DropdownMenuItem>
+                            </DropdownMenuContent>
+                          </DropdownMenu>
                         </div>
                       </td>
                     </tr>

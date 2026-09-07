@@ -4,13 +4,14 @@ import {
   ArrowRight, Eye, Edit, Trash2, CheckCircle2,
   Clock, AlertCircle, TrendingUp, DollarSign, Users,
   X, ChevronDown, Download, Printer, Plus, Mail, Phone,
-  PackageCheck, ShoppingBag
+  PackageCheck, ShoppingBag, Send
 } from 'lucide-react';
 import React, { useState } from 'react';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import AppLayout from '@/layouts/app-layout';
+import { KpiCard } from "@/components/dashboard/KpiCard";
 
 interface OnlineOrder {
   unique_id: string;
@@ -97,14 +98,20 @@ return 'bg-amber-50 text-amber-700 border-amber-200';
     return 'bg-blue-50 text-blue-700 border-blue-200';
   };
 
+  const kpis = [
+    { title: "Total Online Orders", value: metrics.total_orders.toString(), change: 0, icon: ShoppingBag, href: "#", bgClass: "bg-blue-50/50", iconBgClass: "bg-blue-100 text-blue-600" },
+    { title: "Total Sales Value", value: fmt(metrics.total_revenue), change: 0, icon: TrendingUp, href: "#", bgClass: "bg-emerald-50/50", iconBgClass: "bg-emerald-100 text-emerald-600" },
+    { title: "Website Pending Checks", value: metrics.pending_check.toString(), change: 0, icon: PackageCheck, href: "#", bgClass: "bg-amber-50/50", iconBgClass: "bg-amber-100 text-amber-600" },
+  ];
+
   return (
     <>
       <Head title="Online Orders" />
       <AppLayout breadcrumbs={breadcrumbs}>
-        <div className="max-w-[1700px] mx-auto space-y-8 pb-20">
+        <div className="w-full space-y-8 pb-20">
 
           {/* Header */}
-          <div className="flex flex-col md:flex-row md:items-center justify-between gap-6">
+          <div className="flex items-center justify-between gap-6">
             <div>
               <h1 className="text-[18px] font-bold text-slate-900 tracking-tight leading-none">Online Orders</h1>
             </div>
@@ -114,39 +121,9 @@ return 'bg-amber-50 text-amber-700 border-amber-200';
 
           {/* Metrics */}
           <div className="grid grid-cols-2 lg:grid-cols-3 gap-3 md:gap-4">
-            {[
-              {
-                label: 'TOTAL ONLINE ORDERS',
-                value: metrics.total_orders,
-                note: 'Website submitted orders',
-                icon: <ShoppingBag className="w-3 h-3 text-blue-500" />,
-                valueClass: 'text-slate-900',
-                border: 'border-l-blue-500',
-              },
-              {
-                label: 'TOTAL SALES VALUE',
-                value: fmt(metrics.total_revenue),
-                note: 'Online channel revenue',
-                icon: <TrendingUp className="w-3 h-3 text-emerald-500" />,
-                valueClass: 'text-emerald-600',
-                border: 'border-l-emerald-500',
-              },
-              {
-                label: 'WEBSITE PENDING CHECKS',
-                value: metrics.pending_check,
-                note: 'Awaiting verification',
-                icon: <PackageCheck className="w-3 h-3 text-amber-500" />,
-                valueClass: 'text-amber-600',
-                border: 'border-l-amber-500',
-              },
-            ].map(k => (
-              <div key={k.label} className={`border border-slate-200 border-l-4 ${k.border} rounded-xl p-4 shadow-sm bg-white`}>
-                <div className="flex items-center gap-2 text-slate-600 mb-2">
-                  {k.icon}
-                  <p className="text-[10px] font-medium uppercase tracking-tight leading-none">{k.label}</p>
-                </div>
-                <p className={`text-sm md:text-lg font-bold leading-none ${k.valueClass}`}>{k.value}</p>
-                <p className="text-xs text-muted-foreground mt-1">{k.note}</p>
+            {kpis.map((kpi, i) => (
+              <div key={kpi.title} className={`animate-fade-up stagger-${i + 1}`}>
+                <KpiCard {...kpi} className="shadow-sm hover:shadow-md transition-shadow" />
               </div>
             ))}
           </div>
@@ -247,10 +224,22 @@ return 'bg-amber-50 text-amber-700 border-amber-200';
                         <div className="flex items-center justify-end gap-2">
                           <Button
                             variant="outline"
+                            className="h-8 rounded-lg px-2 text-emerald-600 border-emerald-200 hover:bg-emerald-50"
+                            title="Tuma / Share Invoice"
+                            onClick={() => {
+                              const url = `${window.location.origin}/invoice/receipt/${encodeURIComponent(o.unique_id)}`;
+                              const text = `Habari ${o.name}, hapa kuna Invoice / Risiti yako ya TZS ${o.total_disc_price.toLocaleString()} kutoka Jopo Juniours Co. Ltd. Unaweza kuipata hapa: ${url}`;
+                              window.open(`https://api.whatsapp.com/send?phone=${o.phone_number || ''}&text=${encodeURIComponent(text)}`, '_blank');
+                            }}
+                          >
+                            <Send className="h-4 w-4" />
+                          </Button>
+                          <Button
+                            variant="outline"
                             className="h-8 rounded-lg px-2"
                             title={o.is_checked ? 'Reprint receipt' : 'Finalize order first to print receipt'}
                             disabled={!o.is_checked}
-                            onClick={() => window.open(`/finance/invoices/${encodeURIComponent(o.unique_id)}/receipt`, '_blank', 'width=450,height=700')}
+                            onClick={() => window.open(`/invoice/receipt/${encodeURIComponent(o.unique_id)}`, '_blank', 'width=450,height=700')}
                           >
                             <Printer className="h-4 w-4" />
                           </Button>

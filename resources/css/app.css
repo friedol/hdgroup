@@ -8,7 +8,7 @@
 @source '../views';
 @source '../../vendor/laravel/framework/src/Illuminate/Pagination/resources/views/*.blade.php';
 
-@custom-variant dark (&:is(.dark *));
+@custom-variant dark (&:where(.dark, .dark *));
 
 @theme {
     --font-sans:
@@ -62,10 +62,17 @@
     --color-sidebar-accent-foreground: var(--sidebar-accent-foreground);
     --color-sidebar-border: var(--sidebar-border);
     --color-sidebar-ring: var(--sidebar-ring);
+
+    /* Softer, smarter shadows globally */
+    --shadow-sm: 0 1px 2px 0 rgba(0, 0, 0, 0.02);
+    --shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.03), 0 1px 2px -1px rgba(0, 0, 0, 0.03);
+    --shadow-md: 0 3px 8px -1px rgba(0, 0, 0, 0.04), 0 2px 4px -2px rgba(0, 0, 0, 0.04);
+    --shadow-lg: 0 8px 16px -3px rgba(0, 0, 0, 0.05), 0 4px 6px -4px rgba(0, 0, 0, 0.03);
+    --shadow-xl: 0 12px 24px -8px rgba(0, 0, 0, 0.06);
 }
 
 :root {
-    --background: oklch(95.539% 0.01347 234.031);
+    --background: oklch(100% 0.00011 271.152);
     --foreground: oklch(0.145 0 0);
     --card: oklch(1 0 0);
     --card-foreground: oklch(0.145 0 0);
@@ -104,38 +111,38 @@
 }
 
 .dark {
-    --background: oklch(0.145 0 0);
-    --foreground: oklch(0.985 0 0);
-    --card: oklch(0.145 0 0);
-    --card-foreground: oklch(0.985 0 0);
-    --popover: oklch(0.145 0 0);
-    --popover-foreground: oklch(0.985 0 0);
-    --primary: oklch(0.985 0 0);
-    --primary-foreground: oklch(0.205 0 0);
-    --secondary: oklch(0.269 0 0);
-    --secondary-foreground: oklch(0.985 0 0);
-    --muted: oklch(0.269 0 0);
-    --muted-foreground: oklch(0.708 0 0);
-    --accent: oklch(0.74 0.187 76);
-    --accent-foreground: oklch(0.145 0 0);
-    --destructive: oklch(0.396 0.141 25.723);
-    --destructive-foreground: oklch(0.637 0.237 25.331);
-    --border: oklch(0.269 0 0);
-    --input: oklch(0.269 0 0);
-    --ring: oklch(0.74 0.187 76);
-    --chart-1: oklch(0.74 0.187 76);
-    --chart-2: oklch(0.696 0.17 162.48);
-    --chart-3: oklch(0.769 0.188 70.08);
-    --chart-4: oklch(0.627 0.265 303.9);
-    --chart-5: oklch(0.645 0.246 16.439);
-    --sidebar: oklch(0.205 0 0);
-    --sidebar-foreground: oklch(0.985 0 0);
-    --sidebar-primary: #D4AF37;
-    --sidebar-primary-foreground: oklch(0.205 0 0);
-    --sidebar-accent: oklch(0.269 0 0);
-    --sidebar-accent-foreground: #D4AF37;
-    --sidebar-border: oklch(0.269 0 0);
-    --sidebar-ring: #D4AF37;
+    --background: #0b1329;
+    --foreground: #f8fafc;
+    --card: #111c38;
+    --card-foreground: #f8fafc;
+    --popover: #111c38;
+    --popover-foreground: #f8fafc;
+    --primary: #3b82f6;
+    --primary-foreground: #ffffff;
+    --secondary: #1b2a4a;
+    --secondary-foreground: #f8fafc;
+    --muted: #1b2a4a;
+    --muted-foreground: #94a3b8;
+    --accent: #2563eb;
+    --accent-foreground: #ffffff;
+    --destructive: #ef4444;
+    --destructive-foreground: #ffffff;
+    --border: #1e2e4f;
+    --input: #1e2e4f;
+    --ring: #3b82f6;
+    --chart-1: #3b82f6;
+    --chart-2: #10b981;
+    --chart-3: #f59e0b;
+    --chart-4: #8b5cf6;
+    --chart-5: #ec4899;
+    --sidebar: #0b1329;
+    --sidebar-foreground: #f8fafc;
+    --sidebar-primary: #3b82f6;
+    --sidebar-primary-foreground: #ffffff;
+    --sidebar-accent: #1b2a4a;
+    --sidebar-accent-foreground: #f8fafc;
+    --sidebar-border: #1e2e4f;
+    --sidebar-ring: #3b82f6;
     --gold: #D4AF37;
     --gold-light: #F4E4C1;
     --gold-dark: #B8860B;
@@ -150,8 +157,13 @@
     body {
         font-family: 'Nunito Sans', ui-sans-serif, system-ui, sans-serif;
         @apply bg-background text-foreground;
-        background-color: #e1e7ee;
         font-size: 14.5px;
+    }
+
+    html.dark,
+    body.dark {
+        background-color: #0b1329 !important;
+        color: #f8fafc !important;
     }
 
     /* Soften bold weights app-wide */
@@ -171,6 +183,80 @@
         .text-4xl { font-size: 1.6rem; }
     }
 }
+
+/* Global Adaptive Dark Mode Fallbacks */
+.dark {
+    color-scheme: dark;
+}
+
+.dark .bg-white {
+    background-color: #111c38 !important;
+}
+
+.dark .bg-slate-50,
+.dark .bg-slate-100,
+.dark .bg-zinc-50,
+.dark .bg-zinc-100,
+.dark .bg-gray-50,
+.dark .bg-gray-100 {
+    background-color: #0b1329 !important;
+}
+
+.dark .bg-slate-200,
+.dark .bg-zinc-200,
+.dark .bg-gray-200 {
+    background-color: #1b2a4a !important;
+}
+
+.dark .text-slate-900,
+.dark .text-slate-800,
+.dark .text-zinc-900,
+.dark .text-zinc-800,
+.dark .text-gray-900,
+.dark .text-gray-800 {
+    color: #f8fafc !important;
+}
+
+.dark .text-slate-700,
+.dark .text-slate-600,
+.dark .text-zinc-700,
+.dark .text-zinc-600,
+.dark .text-gray-700,
+.dark .text-gray-600 {
+    color: #cbd5e1 !important;
+}
+
+.dark .text-slate-500,
+.dark .text-slate-400,
+.dark .text-zinc-500,
+.dark .text-zinc-400 {
+    color: #94a3b8 !important;
+}
+
+.dark .border-slate-100,
+.dark .border-slate-200,
+.dark .border-zinc-100,
+.dark .border-zinc-200,
+.dark .border-gray-100,
+.dark .border-gray-200 {
+    border-color: #1e2e4f !important;
+}
+
+.dark .divide-slate-100 > :not([hidden]) ~ :not([hidden]),
+.dark .divide-slate-200 > :not([hidden]) ~ :not([hidden]),
+.dark .divide-zinc-100 > :not([hidden]) ~ :not([hidden]),
+.dark .divide-zinc-200 > :not([hidden]) ~ :not([hidden]) {
+    border-color: #1e2e4f !important;
+}
+
+.dark input:not([type="checkbox"]):not([type="radio"]),
+.dark select,
+.dark textarea {
+    background-color: #132042 !important;
+    color: #f8fafc !important;
+    border-color: #1e2e4f !important;
+}
+
 
 
 /* KPI Card */
@@ -208,7 +294,7 @@
 
 /* Dashboard background */
 .bg-background {
-    background-color: #e3ebf4;
+    background-color: #ffffff;
 }
 
 /* Force light-blue page backgrounds across common full-page wrappers */
@@ -216,7 +302,7 @@
 .min-h-screen.bg-slate-50,
 .min-h-svh.bg-background,
 .min-h-screen.bg-background {
-    background-color: #f0f4f8 !important;
+background-color: #F8F9FA !important;
 }
 
 /* Premium Gold Decorations */
@@ -327,3 +413,9 @@
     background-clip: text;
     font-weight: 700;
 }
+
+.font-dancing {
+    font-family: 'Dancing Script', cursive !important;
+}
+/* Hide header descriptions globally */
+h1 + p.text-slate-400, h1 + p.text-slate-500 { display: none !important; }

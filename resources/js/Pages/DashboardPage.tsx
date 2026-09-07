@@ -82,23 +82,18 @@ interface DashboardProps {
   total_expenses: number;
   inventory_value: number;
   total_orders: number;
-  pending_production: number;
   stock_alerts: number;
   total_customers: number;
   balance_due?: number;
   receivables: number;
   staff_count: number;
   containers_count: number;
-  rm_metres: number;
   recentSales: any[];
-  recentProduction: any[];
   recentExpenses: any[];
   staffPerformance: any[];
   trend_labels: string[];
   revenue_trend: number[];
   expense_trend: number[];
-  production_trend: number[];
-  prod_stats: Record<string, number>;
   my_sales?: number;
   daily_sales?: number;
   pending_deliveries?: number;
@@ -121,16 +116,29 @@ interface DashboardProps {
     failed_count: number;
   };
   recent_deliveries?: any[];
-  performance_chart?: {
-    labels: string[];
-    data: number[];
-  };
+  performance_chart?: { labels: string[]; data: number[] };
   driver_info?: any;
+  // New analytics
+  payment_distribution?: Array<{ status: string; count: number; total: number }>;
+  top_products?: Array<{ name: string; image: string | null; qty: number; revenue: number }>;
+  low_stock_products?: Array<{ name: string; image: string | null; stock: number; threshold: number }>;
+  unpaid_orders?: Array<{ invoice: string; customer: string; payable: number; paid: number; status: string; date: string }>;
+  expense_by_category?: Array<{ category: string; total: number }>;
+  monthly_bar_data?: Array<{ month: string; revenue: number; expenses: number }>;
+  customer_growth?: Array<{ month: string; customers: number }>;
 }
 
 const breadcrumbs = [
   { title: "Dashboard", href: "/dashboard" },
 ];
+
+const PIE_COLORS = ["#10b981", "#f59e0b", "#ef4444", "#6366f1", "#3b82f6", "#8b5cf6", "#f97316", "#14b8a6"];
+
+const fmtK = (n: number) => {
+  if (n >= 1_000_000) return `TZS ${(n / 1_000_000).toFixed(1)}M`;
+  if (n >= 1_000) return `TZS ${(n / 1_000).toFixed(0)}K`;
+  return `TZS ${n.toLocaleString()}`;
+};
 
 export default function DashboardPage({
   user,
@@ -140,23 +148,18 @@ export default function DashboardPage({
   total_expenses,
   inventory_value,
   total_orders,
-  pending_production,
   stock_alerts,
   total_customers,
   balance_due,
   receivables,
   staff_count,
   containers_count,
-  rm_metres,
   recentSales,
-  recentProduction,
   recentExpenses,
   staffPerformance,
   trend_labels,
   revenue_trend,
   expense_trend,
-  production_trend,
-  prod_stats,
   my_sales,
   daily_sales,
   pending_deliveries,
@@ -175,7 +178,14 @@ export default function DashboardPage({
   delivery_stats,
   recent_deliveries,
   performance_chart,
-  driver_info
+  driver_info,
+  payment_distribution = [],
+  top_products = [],
+  low_stock_products = [],
+  unpaid_orders = [],
+  expense_by_category = [],
+  monthly_bar_data = [],
+  customer_growth = [],
 }: DashboardProps) {
   const [gatekeeperChartType, setGatekeeperChartType] = useState<"area" | "bar">("area");
   const [selectedPeriod, setSelectedPeriod] = useState<string>(() => {
@@ -234,48 +244,42 @@ export default function DashboardPage({
   const isReceptionist = receptionistRoles.includes(roleName);
 
   const allKpis = [
-    { title: "Total Revenue", value: `TZS ${Number(total_revenue || 0).toLocaleString()}`, change: 0, icon: DollarSign, href: "/sales-history", bgClass: "bg-blue-50/50", iconBgClass: "bg-blue-100 text-blue-600" },
-    { title: "Net Profit", value: `TZS ${Number(net_profit || 0).toLocaleString()}`, change: 0, icon: TrendingUp, href: "/report_profit", bgClass: "bg-emerald-50/50", iconBgClass: "bg-emerald-100 text-emerald-600" },
-    { title: "Total Expenses", value: `TZS ${Number(total_expenses || 0).toLocaleString()}`, change: 0, icon: Activity, href: "/expenses-crud", bgClass: "bg-rose-50/50", iconBgClass: "bg-rose-100 text-rose-600" },
-    { title: "Balance Due", value: `TZS ${Number(balance_due || 0).toLocaleString()}`, change: 0, icon: ArrowUpRight, href: "/sales-history", bgClass: "bg-red-50/50", iconBgClass: "bg-red-100 text-red-600" },
-    { title: "Inventory Value", value: `TZS ${Number(inventory_value || 0).toLocaleString()}`, change: 0, icon: Package, href: "/report_inventory", bgClass: "bg-amber-50/50", iconBgClass: "bg-amber-100 text-amber-600" },
-    { title: "Sales Orders", value: (total_orders || 0).toLocaleString(), change: 0, icon: ShoppingCart, href: "/orders-crud", bgClass: "bg-indigo-50/50", iconBgClass: "bg-indigo-100 text-indigo-600" },
-    { title: "Pending Prod.", value: (pending_production || 0).toLocaleString(), change: 0, icon: Factory, href: "/production-orders-new", bgClass: "bg-orange-50/50", iconBgClass: "bg-orange-100 text-orange-600" },
-    { title: "Stock Alerts", value: (stock_alerts || 0).toLocaleString(), change: 0, icon: AlertTriangle, href: "/all-products", bgClass: "bg-red-50/50", iconBgClass: "bg-red-100 text-red-600" },
-    { title: "Total Customers", value: (total_customers || 0).toLocaleString(), change: 0, icon: Users, href: "/customers", bgClass: "bg-sky-50/50", iconBgClass: "bg-sky-100 text-sky-600" },
-    { title: "Active Staff", value: (staff_count || 0).toLocaleString(), change: 0, icon: UserCheck, href: "/users-crud", bgClass: "bg-violet-50/50", iconBgClass: "bg-violet-100 text-violet-600" },
-    { title: "Containers", value: (containers_count || 0).toLocaleString(), change: 0, icon: Truck, href: "/containers-crud", bgClass: "bg-slate-50/50", iconBgClass: "bg-slate-100 text-slate-600" },
-    { title: "Raw Material (M)", value: (rm_metres || 0).toLocaleString(), change: 0, icon: Layers, href: "/raw-materials", bgClass: "bg-lime-50/50", iconBgClass: "bg-lime-100 text-lime-600" },
+    { title: "Total Revenue", value: `TZS ${Number(total_revenue || 0).toLocaleString()}`, change: 0, icon: DollarSign, href: "/sales-history", bgClass: "bg-blue-600 text-white border-none shadow-sm", iconBgClass: "bg-white/10 text-white", subtitle: "Billed" },
+    { title: "Net Profit", value: `TZS ${Number(net_profit || 0).toLocaleString()}`, change: 0, icon: TrendingUp, href: "/report_profit", bgClass: "bg-violet-600 text-white border-none shadow-sm", iconBgClass: "bg-white/10 text-white", subtitle: "After expenses" },
+    { title: "Total Expenses", value: `TZS ${Number(total_expenses || 0).toLocaleString()}`, change: 0, icon: Activity, href: "/expenses-crud", bgClass: "bg-red-500 text-white border-none shadow-sm", iconBgClass: "bg-white/10 text-white", subtitle: "Spending" },
+    { title: "Balance Due", value: `TZS ${Number(balance_due || 0).toLocaleString()}`, change: 0, icon: ArrowUpRight, href: "/sales-history", bgClass: "bg-amber-500 text-white border-none shadow-sm", iconBgClass: "bg-white/10 text-white", subtitle: "Outstanding" },
+    { title: "Inventory Value", value: `TZS ${Number(inventory_value || 0).toLocaleString()}`, change: 0, icon: Package, href: "/report_inventory", bgClass: "bg-blue-500 text-white border-none shadow-sm", iconBgClass: "bg-white/10 text-white", subtitle: "Stock valuation" },
+    { title: "Sales Orders", value: (total_orders || 0).toLocaleString(), change: 0, icon: ShoppingCart, href: "/orders-crud", bgClass: "bg-blue-600 text-white border-none shadow-sm", iconBgClass: "bg-white/10 text-white", subtitle: "In period" },
   ];
 
   const sellerKpis = [
-    { title: "My Lifetime Sales", value: Number(my_sales || 0).toLocaleString(), change: 0, icon: ShoppingCart, href: "/sales-history", bgClass: "bg-blue-50/50", iconBgClass: "bg-blue-100 text-blue-600" },
-    { title: "Today Revenue", value: `TZS ${Number(daily_sales || 0).toLocaleString()}`, change: 0, icon: DollarSign, href: "/sales-history", bgClass: "bg-emerald-50/50", iconBgClass: "bg-emerald-100 text-emerald-600" },
-    { title: "My Customers", value: Number(total_customers || 0).toLocaleString(), change: 0, icon: Users, href: "/customers", bgClass: "bg-sky-50/50", iconBgClass: "bg-sky-100 text-sky-600" },
+    { title: "My Lifetime Sales", value: Number(my_sales || 0).toLocaleString(), change: 0, icon: ShoppingCart, href: "/sales-history", bgClass: "bg-blue-600 text-white border-none shadow-sm", iconBgClass: "bg-white/10 text-white", subtitle: "All-time total" },
+    { title: "Today Revenue", value: `TZS ${Number(daily_sales || 0).toLocaleString()}`, change: 0, icon: DollarSign, href: "/sales-history", bgClass: "bg-emerald-600 text-white border-none shadow-sm", iconBgClass: "bg-white/10 text-white", subtitle: "Earned today" },
+    { title: "My Customers", value: Number(total_customers || 0).toLocaleString(), change: 0, icon: Users, href: "/customers", bgClass: "bg-sky-600 text-white border-none shadow-sm", iconBgClass: "bg-white/10 text-white", subtitle: "Total registered" },
   ];
 
   const deliveryKpis = [
-    { title: "Assigned", value: (delivery_stats?.assigned_count || 0).toLocaleString(), change: 0, subtitle: "Tasks for today", icon: ListTodo, href: "/deliveries", color: "blue", bgClass: "bg-blue-50/50", iconBgClass: "bg-blue-100 text-blue-600", dotColor: "bg-blue-500" },
-    { title: "Pending", value: (delivery_stats?.pending_count || 0).toLocaleString(), change: 0, subtitle: "On the way", icon: Truck, href: "/deliveries", color: "amber", bgClass: "bg-amber-50/50", iconBgClass: "bg-amber-100 text-amber-600", dotColor: "bg-amber-500" },
-    { title: "Delivered", value: (delivery_stats?.delivered_count || 0).toLocaleString(), change: 0, subtitle: "Successfully closed", icon: CheckCircle2, href: "/deliveries", color: "emerald", bgClass: "bg-emerald-50/50", iconBgClass: "bg-emerald-100 text-emerald-600", dotColor: "bg-emerald-500" },
-    { title: "Failed", value: (delivery_stats?.failed_count || 0).toLocaleString(), change: 0, subtitle: "Issues to report", icon: XCircle, href: "/deliveries", color: "rose", bgClass: "bg-rose-50/50", iconBgClass: "bg-rose-100 text-rose-600", dotColor: "bg-rose-500" },
+    { title: "Assigned", value: (delivery_stats?.assigned_count || 0).toLocaleString(), change: 0, subtitle: "Tasks for today", icon: ListTodo, href: "/deliveries", color: "blue", bgClass: "bg-blue-600 text-white border-none shadow-sm", iconBgClass: "bg-white/10 text-white", dotColor: "bg-white" },
+    { title: "Pending", value: (delivery_stats?.pending_count || 0).toLocaleString(), change: 0, subtitle: "On the way", icon: Truck, href: "/deliveries", color: "amber", bgClass: "bg-amber-500 text-white border-none shadow-sm", iconBgClass: "bg-white/10 text-white", dotColor: "bg-white" },
+    { title: "Delivered", value: (delivery_stats?.delivered_count || 0).toLocaleString(), change: 0, subtitle: "Successfully closed", icon: CheckCircle2, href: "/deliveries", color: "emerald", bgClass: "bg-emerald-600 text-white border-none shadow-sm", iconBgClass: "bg-white/10 text-white", dotColor: "bg-white" },
+    { title: "Failed", value: (delivery_stats?.failed_count || 0).toLocaleString(), change: 0, subtitle: "Issues to report", icon: XCircle, href: "/deliveries", color: "rose", bgClass: "bg-rose-500 text-white border-none shadow-sm", iconBgClass: "bg-white/10 text-white", dotColor: "bg-white" },
   ];
 
   const gatekeeperKpis = [
-    { title: "Total Movements", value: (total_movements || 0).toLocaleString(), change: 0, icon: Activity, href: "/gatekeeper", bgClass: "bg-blue-50/50", iconBgClass: "bg-blue-100 text-blue-600" },
-    { title: "My Entries", value: (my_entries || 0).toLocaleString(), change: 0, icon: Users, href: "/gatekeeper", bgClass: "bg-sky-50/50", iconBgClass: "bg-sky-100 text-sky-600" },
-    { title: "Incoming", value: (incoming_today || 0).toLocaleString(), change: 0, icon: ArrowDownRight, href: "/gatekeeper/record-in", bgClass: "bg-emerald-50/50", iconBgClass: "bg-emerald-100 text-emerald-600", isGatekeeperIn: true },
-    { title: "Outgoing", value: (outgoing_today || 0).toLocaleString(), change: 0, icon: ArrowUpRight, href: "/gatekeeper/record-out", bgClass: "bg-amber-50/50", iconBgClass: "bg-amber-100 text-amber-600", isGatekeeperOut: true },
+    { title: "Total Movements", value: (total_movements || 0).toLocaleString(), change: 0, icon: Activity, href: "/gatekeeper", bgClass: "bg-blue-600 text-white border-none shadow-sm", iconBgClass: "bg-white/10 text-white" },
+    { title: "My Entries", value: (my_entries || 0).toLocaleString(), change: 0, icon: Users, href: "/gatekeeper", bgClass: "bg-sky-600 text-white border-none shadow-sm", iconBgClass: "bg-white/10 text-white" },
+    { title: "Incoming", value: (incoming_today || 0).toLocaleString(), change: 0, icon: ArrowDownRight, href: "/gatekeeper/record-in", bgClass: "bg-emerald-600 text-white border-none shadow-sm", iconBgClass: "bg-white/10 text-white", isGatekeeperIn: true },
+    { title: "Outgoing", value: (outgoing_today || 0).toLocaleString(), change: 0, icon: ArrowUpRight, href: "/gatekeeper/record-out", bgClass: "bg-amber-500 text-white border-none shadow-sm", iconBgClass: "bg-white/10 text-white", isGatekeeperOut: true },
   ];
 
   const receptionistKpis = [
-    { title: "Today Visitors", value: (today_visitors || 0).toLocaleString(), change: 0, icon: Users, href: "/customers", bgClass: "bg-sky-50/50", iconBgClass: "bg-sky-100 text-sky-600" },
-    { title: "Pending Follows", value: (pending_followups || 0).toLocaleString(), change: 0, icon: Activity, href: "/customer-followups", bgClass: "bg-rose-50/50", iconBgClass: "bg-rose-100 text-rose-600" },
+    { title: "Today Visitors", value: (today_visitors || 0).toLocaleString(), change: 0, icon: Users, href: "/customers", bgClass: "bg-sky-600 text-white border-none shadow-sm", iconBgClass: "bg-white/10 text-white" },
+    { title: "Pending Follows", value: (pending_followups || 0).toLocaleString(), change: 0, icon: Activity, href: "/customer-followups", bgClass: "bg-rose-500 text-white border-none shadow-sm", iconBgClass: "bg-white/10 text-white" },
   ];
 
   let kpis = allKpis;
   if (isInventory) {
-    kpis = allKpis.filter((k) => ["Inventory Value", "Stock Alerts", "Raw Material (M)", "Pending Prod.", "Sales Orders"].includes(k.title));
+    kpis = allKpis.filter((k) => ["Inventory Value", "Sales Orders"].includes(k.title));
   } else if (isSeller) {
     kpis = sellerKpis;
   } else if (isDelivery) {
@@ -287,7 +291,7 @@ export default function DashboardPage({
   } else if (isFinancial) {
     kpis = allKpis.filter((k) => ["Total Revenue", "Net Profit", "Total Expenses", "Balance Due", "Inventory Value"].includes(k.title));
   } else if (isBranchManager) {
-    kpis = allKpis.filter((k) => ["Total Revenue", "Sales Orders", "Pending Prod.", "Stock Alerts", "Total Customers", "Active Staff"].includes(k.title));
+    kpis = allKpis.filter((k) => ["Total Revenue", "Sales Orders"].includes(k.title));
   }
 
   let xlGridCols = "xl:grid-cols-6";
@@ -316,10 +320,10 @@ export default function DashboardPage({
         {/* Header with Welcome and Period Filter */}
         <div className="flex items-start justify-between gap-3 sm:gap-4">
           <div className="space-y-1 min-w-0">
-            <h1 className="text-[18px] font-bold text-slate-900 tracking-tight">
+            <h1 className="text-[18px] font-bold text-slate-900 dark:text-white tracking-tight">
               Hello! <span className="text-blue-600 font-bold">{user?.staff_name}</span>
             </h1>
-            <p className="text-xs font-bold text-slate-500 italic flex items-center gap-2">
+            <p className="text-xs font-bold text-slate-500 dark:text-slate-400 italic flex items-center gap-2">
               <Activity className="w-3 h-3 text-emerald-500" />
               {roleName} Dashboard
             </p>
@@ -327,10 +331,10 @@ export default function DashboardPage({
           
           <div className="flex flex-col items-end gap-2 shrink-0">
             {!isDelivery && !isGatekeeper && !isReceptionist && (
-              <div className="flex items-center gap-2 h-10 px-3 rounded-md border border-slate-200 bg-white shadow-sm">
-                <Calendar className="w-4 h-4 text-slate-500" />
+              <div className="flex items-center gap-2 h-10 px-3 rounded-md border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 shadow-sm">
+                <Calendar className="w-4 h-4 text-slate-500 dark:text-slate-400" />
                 <select
-                  className="bg-transparent text-xs font-bold text-slate-700 outline-none"
+                  className="bg-transparent text-xs font-bold text-slate-700 dark:text-slate-200 outline-none"
                   value={selectedPeriod}
                   onChange={(e) => handlePeriodChange(e.target.value)}
                 >
@@ -351,13 +355,13 @@ export default function DashboardPage({
                   type="date"
                   value={startDate}
                   onChange={(e) => setStartDate(e.target.value)}
-                  className="h-8 w-[118px] rounded-md border border-slate-200 bg-white px-2 text-[11px] text-slate-700 outline-none"
+                  className="h-8 w-[118px] rounded-md border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 px-2 text-[11px] text-slate-700 dark:text-slate-200 outline-none"
                 />
                 <input
                   type="date"
                   value={endDate}
                   onChange={(e) => setEndDate(e.target.value)}
-                  className="h-8 w-[118px] rounded-md border border-slate-200 bg-white px-2 text-[11px] text-slate-700 outline-none"
+                  className="h-8 w-[118px] rounded-md border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 px-2 text-[11px] text-slate-700 dark:text-slate-200 outline-none"
                 />
                 <Button type="button" onClick={applyCustomRange} className="h-8 px-3 text-[10px] font-bold">
                   Apply
@@ -372,7 +376,7 @@ export default function DashboardPage({
           {kpis.map((kpi: any, i) => (
             <div key={kpi.title} className={`animate-fade-up stagger-${(i % 6) + 1}`}>
               {isDelivery ? (
-                 <div className={`rounded-xl border ${getKpiBorderClass(kpi.iconBgClass)} p-4 sm:p-5 ${kpi.bgClass} flex flex-col justify-between h-full group transition-all duration-300 hover:shadow-lg hover:-translate-y-1`}>
+                 <div className={`rounded-xl border border-slate-200 p-4 sm:p-5 bg-white flex flex-col justify-between h-full group transition-all duration-300 hover:shadow-lg hover:-translate-y-1`}>
                     <div className="flex items-center justify-between mb-4">
                        <div className={`p-1.5 sm:p-2 rounded-lg ${kpi.iconBgClass} shadow-sm transition-transform duration-300 group-hover:scale-110`}>
                          <kpi.icon className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
@@ -390,7 +394,7 @@ export default function DashboardPage({
                     </div>
                  </div>
               ) : isGatekeeper && (kpi.isGatekeeperIn || kpi.isGatekeeperOut) ? (
-                <div className={`rounded-xl border ${getKpiBorderClass(kpi.iconBgClass)} p-4 sm:p-5 ${kpi.bgClass} flex flex-col justify-between h-full group transition-all duration-300 hover:shadow-lg`}>
+                <div className={`rounded-xl border border-slate-200 p-4 sm:p-5 bg-white flex flex-col justify-between h-full group transition-all duration-300 hover:shadow-lg`}>
                    <div className="flex items-start justify-between mb-3 sm:mb-4">
                       <div className={`p-2 sm:p-2.5 rounded-xl ${kpi.iconBgClass}`}>
                         <kpi.icon className="w-4 h-4 sm:w-5 sm:h-5" />
@@ -413,56 +417,357 @@ export default function DashboardPage({
           ))}
         </div>
 
-        {/* Main Intelligence Row */}
+        {/* ══ EXECUTIVE / FINANCIAL / BRANCH MANAGER — Smart Analytics Layout ══ */}
         {(isExecutive || isFinancial || isBranchManager || isInventory) && (
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-          {/* Revenue & Expenses Intelligence */}
-          <div className="lg:col-span-2 space-y-6 animate-fade-up stagger-1">
-            <RevenueChart 
-              revenueData={revenue_trend} 
-              expenseData={expense_trend} 
-              labels={trend_labels} 
-            />
-          </div>
+          <div className="space-y-6">
 
-          {/* Top Performance Leaderboard */}
-          <Card className="animate-fade-up stagger-2 border-slate-200">
-            <CardHeader>
-              <div className="flex items-center gap-2">
-                <div className="p-2 bg-indigo-50 rounded-lg">
-                  <BarChart3 className="w-4 h-4 text-indigo-600" />
-                </div>
-                <div>
-                  <CardTitle className="text-sm font-bold">Top Sellers Performance</CardTitle>
-                  <CardDescription className="text-[10px]">Highest revenue contributors this month</CardDescription>
-                </div>
+            {/* ROW 1 — Hero: 30-day trend (2/3) + Payment Status donut (1/3) */}
+            <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+              <div className="lg:col-span-2">
+                <RevenueChart revenueData={revenue_trend} expenseData={expense_trend} labels={trend_labels} />
               </div>
-            </CardHeader>
-            <CardContent>
-              <div className="space-y-4">
-                {staffPerformance?.map((staff, idx) => (
-                  <div key={staff.name} className="flex items-center justify-between group cursor-default">
-                    <div className="flex items-center gap-3">
-                      <div className="h-8 w-8 rounded-full bg-slate-100 flex items-center justify-center text-[10px] font-bold text-slate-600 group-hover:bg-indigo-600 group-hover:text-white transition-colors">
-                        {idx + 1}
-                      </div>
-                      <div>
-                        <p className="text-xs font-bold text-slate-800">{staff.name}</p>
-                        <p className="text-[10px] text-slate-500 italic">Senior Sales Specialist</p>
-                      </div>
-                    </div>
-                    <div className="text-right">
-                      <p className="text-xs font-semibold text-slate-900">TZS {Number(staff.total_sales || 0).toLocaleString()}</p>
-                      <div className="flex items-center justify-end gap-1 text-[9px] text-emerald-600 font-bold leading-none mt-1">
-                        <TrendingUp size={10} /> 12%
-                      </div>
+              <Card className="border-slate-200 shadow-sm">
+                <CardHeader className="pb-3 border-b border-slate-50">
+                  <div className="flex items-center gap-2">
+                    <div className="p-2 bg-emerald-50 rounded-lg"><PieChartIcon className="w-4 h-4 text-emerald-600" /></div>
+                    <div>
+                      <CardTitle className="text-sm font-bold">Payment Status</CardTitle>
+                      <CardDescription className="text-[10px]">Order payment distribution</CardDescription>
                     </div>
                   </div>
-                ))}
-              </div>
-            </CardContent>
-          </Card>
-        </div>
+                </CardHeader>
+                <CardContent className="pt-4 flex flex-col items-center">
+                  <ResponsiveContainer width="100%" height={180}>
+                    <PieChart>
+                      <Pie data={payment_distribution.map(d => ({ name: d.status, value: d.count }))}
+                        innerRadius={50} outerRadius={72} paddingAngle={4} dataKey="value">
+                        {payment_distribution.map((_, i) => <Cell key={i} fill={PIE_COLORS[i % PIE_COLORS.length]} />)}
+                      </Pie>
+                      <Tooltip formatter={(v: any, name: any) => [v + ' orders', name]} contentStyle={{ fontSize: 11, fontWeight: 600 }} />
+                    </PieChart>
+                  </ResponsiveContainer>
+                  <div className="w-full space-y-1.5 mt-2">
+                    {payment_distribution.map((d, i) => (
+                      <div key={d.status} className="flex items-center justify-between px-3 py-1.5 rounded-lg text-xs font-bold border"
+                        style={{ borderColor: PIE_COLORS[i % PIE_COLORS.length] + '40', backgroundColor: PIE_COLORS[i % PIE_COLORS.length] + '12' }}>
+                        <span className="flex items-center gap-2">
+                          <span className="w-2 h-2 rounded-full inline-block shrink-0" style={{ backgroundColor: PIE_COLORS[i % PIE_COLORS.length] }} />
+                          {d.status}
+                        </span>
+                        <span className="font-black text-slate-800 shrink-0">{d.count} <span className="text-slate-400 font-bold text-[10px]">({fmtK(d.total)})</span></span>
+                      </div>
+                    ))}
+                    {payment_distribution.length === 0 && <p className="text-center text-xs text-slate-400 py-4">No data for selected period</p>}
+                  </div>
+                </CardContent>
+              </Card>
+            </div>
+
+            {/* ROW 2 — Monthly Revenue vs Expenses bar (2/3) + Staff Leaderboard (1/3) */}
+            <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+              <Card className="lg:col-span-2 border-slate-200 shadow-sm">
+                <CardHeader className="pb-3 border-b border-slate-50">
+                  <div className="flex items-center gap-2">
+                    <div className="p-2 bg-blue-50 rounded-lg"><BarChartIcon className="w-4 h-4 text-blue-600" /></div>
+                    <div>
+                      <CardTitle className="text-sm font-bold">Monthly Revenue vs Expenses</CardTitle>
+                      <CardDescription className="text-[10px]">Full-year comparison — current year</CardDescription>
+                    </div>
+                  </div>
+                </CardHeader>
+                <CardContent className="pt-4">
+                  <ResponsiveContainer width="100%" height={260}>
+                    <BarChart data={monthly_bar_data} barCategoryGap="28%">
+                      <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#f1f5f9" />
+                      <XAxis dataKey="month" axisLine={false} tickLine={false} tick={{ fontSize: 10, fontWeight: 600 }} />
+                      <YAxis axisLine={false} tickLine={false} tick={{ fontSize: 10 }} tickFormatter={v => fmtK(v).replace('TZS ', '')} />
+                      <Tooltip formatter={(v: any) => [`TZS ${Number(v).toLocaleString()}`, '']} contentStyle={{ fontSize: 11, fontWeight: 600 }} />
+                      <Bar dataKey="revenue" name="Revenue" fill="#3b82f6" radius={[4, 4, 0, 0]} />
+                      <Bar dataKey="expenses" name="Expenses" fill="#f87171" radius={[4, 4, 0, 0]} />
+                    </BarChart>
+                  </ResponsiveContainer>
+                  <div className="flex items-center gap-4 mt-2 justify-center">
+                    <span className="flex items-center gap-1.5 text-[11px] font-bold text-slate-500"><span className="w-3 h-3 rounded-sm bg-blue-500 inline-block" /> Revenue</span>
+                    <span className="flex items-center gap-1.5 text-[11px] font-bold text-slate-500"><span className="w-3 h-3 rounded-sm bg-red-400 inline-block" /> Expenses</span>
+                  </div>
+                </CardContent>
+              </Card>
+
+              {/* Top Selling Products — replaces staff leaderboard */}
+              <Card className="border-slate-200 shadow-sm">
+                <CardHeader className="pb-3 border-b border-slate-50">
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center gap-2">
+                      <div className="p-2 bg-violet-50 rounded-lg"><TrendingUp className="w-4 h-4 text-violet-600" /></div>
+                      <div>
+                        <CardTitle className="text-sm font-bold">Top Selling Products</CardTitle>
+                        <CardDescription className="text-[10px]">By revenue — selected period</CardDescription>
+                      </div>
+                    </div>
+                    <Link href="/report_inventory" className="text-[10px] font-bold text-violet-600">View All</Link>
+                  </div>
+                </CardHeader>
+                <CardContent className="pt-3 space-y-2">
+                  {top_products.length === 0 && <p className="text-center text-xs text-slate-400 py-8">No sales data for this period</p>}
+                  {top_products.map((p, i) => {
+                    const maxRev = top_products[0]?.revenue || 1;
+                    const pct = Math.round((p.revenue / maxRev) * 100);
+                    return (
+                      <div key={i} className="flex items-center gap-3">
+                        <div className="h-9 w-9 rounded-lg border border-slate-100 bg-slate-50 overflow-hidden shrink-0 flex items-center justify-center">
+                          {p.image
+                            ? <img src={p.image} alt={p.name} className="h-full w-full object-cover" onError={e => { (e.target as HTMLImageElement).style.display = 'none'; }} />
+                            : <Package className="h-4 w-4 text-slate-300" />
+                          }
+                        </div>
+                        <div className="flex-1 min-w-0 space-y-1">
+                          <div className="flex items-center justify-between text-[11px]">
+                            <span className="font-bold text-slate-800 truncate max-w-[55%]">{p.name}</span>
+                            <span className="font-black text-slate-900 shrink-0">TZS {p.revenue.toLocaleString()}</span>
+                          </div>
+                          <div className="flex items-center gap-2">
+                            <div className="flex-1 bg-slate-100 rounded-full h-1.5">
+                              <div className="h-1.5 rounded-full bg-violet-500 transition-all" style={{ width: `${pct}%` }} />
+                            </div>
+                            <span className="text-[10px] text-slate-500 font-bold w-14 text-right shrink-0">{p.qty.toLocaleString()} pcs</span>
+                          </div>
+                        </div>
+                      </div>
+                    );
+                  })}
+                </CardContent>
+              </Card>
+            </div>
+
+            {/* ROW 3 — Customer Growth (full width) */}
+            <Card className="border-slate-200 shadow-sm">
+                <CardHeader className="pb-3 border-b border-slate-50">
+                  <div className="flex items-center gap-2">
+                    <div className="p-2 bg-sky-50 rounded-lg"><Users className="w-4 h-4 text-sky-600" /></div>
+                    <div>
+                      <CardTitle className="text-sm font-bold">Customer Growth</CardTitle>
+                      <CardDescription className="text-[10px]">New customers per month — current year</CardDescription>
+                    </div>
+                  </div>
+                </CardHeader>
+                <CardContent className="pt-4">
+                  <ResponsiveContainer width="100%" height={230}>
+                    <AreaChart data={customer_growth}>
+                      <defs>
+                        <linearGradient id="custGrad" x1="0" y1="0" x2="0" y2="1">
+                          <stop offset="0%" stopColor="#0ea5e9" stopOpacity={0.2} />
+                          <stop offset="100%" stopColor="#0ea5e9" stopOpacity={0} />
+                        </linearGradient>
+                      </defs>
+                      <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#f1f5f9" />
+                      <XAxis dataKey="month" axisLine={false} tickLine={false} tick={{ fontSize: 10, fontWeight: 600 }} />
+                      <YAxis axisLine={false} tickLine={false} tick={{ fontSize: 10 }} allowDecimals={false} />
+                      <Tooltip formatter={(v: any) => [v + ' customers', 'New']} contentStyle={{ fontSize: 11, fontWeight: 600 }} />
+                      <Area type="monotone" dataKey="customers" stroke="#0ea5e9" fill="url(#custGrad)" strokeWidth={2.5}
+                        dot={{ r: 3, fill: '#0ea5e9', strokeWidth: 2, stroke: '#fff' }} activeDot={{ r: 5, strokeWidth: 0 }} />
+                    </AreaChart>
+                  </ResponsiveContainer>
+                </CardContent>
+              </Card>
+
+            {/* ROW 4 — Critical Alerts: Low Stock | Outstanding Orders | Expense Categories */}
+            <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+              <Card className="border-slate-200 bg-white shadow-sm">
+                <CardHeader className="pb-3 border-b border-slate-100">
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center gap-2">
+                      <div className="p-2 bg-amber-100 rounded-lg"><AlertTriangle className="w-4 h-4 text-amber-600" /></div>
+                      <div>
+                        <CardTitle className="text-sm font-bold text-slate-900">Low Stock</CardTitle>
+                        <CardDescription className="text-[10px]">{stock_alerts} product(s) below threshold</CardDescription>
+                      </div>
+                    </div>
+                    <Link href="/report_inventory" className="text-[10px] font-bold text-slate-500 hover:text-slate-700">Report</Link>
+                  </div>
+                </CardHeader>
+                <CardContent className="p-0">
+                  <Table>
+                    <TableHeader>
+                      <TableRow className="bg-slate-50 hover:bg-slate-50 border-none">
+                        <TableHead className="text-[10px] font-black text-slate-500 pl-5">Product</TableHead>
+                        <TableHead className="text-[10px] font-black text-slate-500 text-center">Stock</TableHead>
+                        <TableHead className="text-[10px] font-black text-slate-500 text-center pr-5">Min</TableHead>
+                      </TableRow>
+                    </TableHeader>
+                    <TableBody>
+                      {low_stock_products.length === 0 ? (
+                        <TableRow><TableCell colSpan={3} className="text-center text-xs text-slate-400 py-6">All stock levels healthy ✓</TableCell></TableRow>
+                      ) : low_stock_products.map((p, i) => (
+                        <TableRow key={i} className="hover:bg-slate-50 border-slate-100 transition-colors">
+                          <TableCell className="py-2 pl-5">
+                            <div className="flex items-center gap-2.5">
+                              <div className="h-8 w-8 rounded-lg border border-slate-100 bg-white overflow-hidden shrink-0 flex items-center justify-center">
+                                {p.image
+                                  ? <img src={p.image} alt={p.name} className="h-full w-full object-cover" onError={e => { (e.target as HTMLImageElement).style.display = 'none'; }} />
+                                  : <Package className="h-3.5 w-3.5 text-slate-300" />
+                                }
+                              </div>
+                              <span className="text-xs font-bold text-slate-800 truncate max-w-[110px]">{p.name}</span>
+                            </div>
+                          </TableCell>
+                          <TableCell className="py-2 text-center">
+                            <span className={`text-xs font-black px-1.5 py-0.5 rounded-full ${p.stock === 0 ? 'bg-rose-100 text-rose-700' : 'bg-amber-100 text-amber-700'}`}>{p.stock}</span>
+                          </TableCell>
+                          <TableCell className="py-2 text-center pr-5 text-xs font-bold text-slate-400">{p.threshold}</TableCell>
+                        </TableRow>
+                      ))}
+                    </TableBody>
+                  </Table>
+                </CardContent>
+              </Card>
+
+              <Card className="border-slate-200 bg-white shadow-sm">
+                <CardHeader className="pb-3 border-b border-slate-100">
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center gap-2">
+                      <div className="p-2 bg-rose-100 rounded-lg"><ArrowUpRight className="w-4 h-4 text-rose-600" /></div>
+                      <div>
+                        <CardTitle className="text-sm font-bold text-slate-900">Outstanding</CardTitle>
+                        <CardDescription className="text-[10px]">Unpaid & partially paid orders</CardDescription>
+                      </div>
+                    </div>
+                    <Link href="/sales-history?status=Unpaid" className="text-[10px] font-bold text-slate-500 hover:text-slate-700">View All</Link>
+                  </div>
+                </CardHeader>
+                <CardContent className="p-0">
+                  <Table>
+                    <TableHeader>
+                      <TableRow className="bg-slate-50 hover:bg-slate-50 border-none">
+                        <TableHead className="text-[10px] font-black text-slate-500 pl-5">Invoice</TableHead>
+                        <TableHead className="text-[10px] font-black text-slate-500">Customer</TableHead>
+                        <TableHead className="text-[10px] font-black text-slate-500 text-right pr-5">Balance</TableHead>
+                      </TableRow>
+                    </TableHeader>
+                    <TableBody>
+                      {unpaid_orders.length === 0 ? (
+                        <TableRow><TableCell colSpan={3} className="text-center text-xs text-slate-400 py-6">No outstanding orders ✓</TableCell></TableRow>
+                      ) : unpaid_orders.map((o, i) => (
+                        <TableRow key={i} className="hover:bg-slate-50 border-slate-100 transition-colors">
+                          <TableCell className="py-2 pl-5">
+                            <Link href={`/orders-crud/${o.invoice}`} className="text-[11px] font-black text-slate-700 font-mono hover:underline">{o.invoice}</Link>
+                            <p className="text-[9px] text-slate-400">{o.date}</p>
+                          </TableCell>
+                          <TableCell className="py-2 text-[11px] font-bold text-slate-700 truncate max-w-[90px]">{o.customer}</TableCell>
+                          <TableCell className="py-2 text-right pr-5">
+                            <p className="text-[11px] font-black text-slate-900">TZS {(o.payable - o.paid).toLocaleString()}</p>
+                            <Badge variant="outline" className={`text-[9px] font-black border-none ${o.status === 'Partially Paid' ? 'bg-amber-50 text-amber-700' : 'bg-rose-50 text-rose-700'}`}>{o.status}</Badge>
+                          </TableCell>
+                        </TableRow>
+                      ))}
+                    </TableBody>
+                  </Table>
+                </CardContent>
+              </Card>
+
+              <Card className="border-slate-200 shadow-sm">
+                <CardHeader className="pb-3 border-b border-slate-50">
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center gap-2">
+                      <div className="p-2 bg-rose-50 rounded-lg"><ArrowDownRight className="w-4 h-4 text-rose-600" /></div>
+                      <div>
+                        <CardTitle className="text-sm font-bold">Expenses by Category</CardTitle>
+                        <CardDescription className="text-[10px]">Where money is going</CardDescription>
+                      </div>
+                    </div>
+                    <Link href="/expenses-crud" className="text-[10px] font-bold text-rose-600">Ledger</Link>
+                  </div>
+                </CardHeader>
+                <CardContent className="pt-4">
+                  <ResponsiveContainer width="100%" height={220}>
+                    <BarChart data={expense_by_category.map(e => ({ name: e.category.length > 12 ? e.category.slice(0, 11) + '…' : e.category, total: e.total }))} layout="vertical">
+                      <CartesianGrid strokeDasharray="3 3" horizontal={false} stroke="#f1f5f9" />
+                      <XAxis type="number" axisLine={false} tickLine={false} tick={{ fontSize: 9 }} tickFormatter={v => fmtK(v).replace('TZS ', '')} />
+                      <YAxis type="category" dataKey="name" axisLine={false} tickLine={false} tick={{ fontSize: 10, fontWeight: 600 }} width={80} />
+                      <Tooltip formatter={(v: any) => [`TZS ${Number(v).toLocaleString()}`, 'Spent']} contentStyle={{ fontSize: 11 }} />
+                      <Bar dataKey="total" fill="#f87171" radius={[0, 4, 4, 0]} />
+                    </BarChart>
+                  </ResponsiveContainer>
+                  {expense_by_category.length === 0 && <p className="text-center text-xs text-slate-400 py-4">No expense data</p>}
+                </CardContent>
+              </Card>
+            </div>
+
+            {/* ROW 5 — Full-width Recent Orders table */}
+            <RecentOrders orders={recentSales?.map((sale: any) => ({
+              id: sale.invoice || `#SAL-${sale.id}`,
+              name: sale.pos_customer?.customer_name || sale.posCustomer?.customer_name || sale.customer?.name || 'Walk-in Customer',
+              email: '',
+              amount: sale.payable_amount || sale.total_amount || 0,
+              status: sale.payment_status || sale.status || 'Paid',
+              date: new Date(sale.created_at).toLocaleDateString()
+            }))} />
+
+            {/* ROW 6 — Recent POS Activity (1/2) + Recent Expenses (1/2) */}
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+              <Card className="border-slate-200 shadow-sm">
+                <CardHeader className="pb-3 border-b border-slate-50">
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center gap-2">
+                      <ShoppingCart className="w-4 h-4 text-rose-500" />
+                      <CardTitle className="text-sm font-bold">Recent POS Activity</CardTitle>
+                    </div>
+                    <Link href="/sales-history" className="text-[10px] font-bold text-rose-600">View All</Link>
+                  </div>
+                </CardHeader>
+                <CardContent className="pt-4">
+                  <Table>
+                    <TableBody>
+                      {recentSales?.map((sale: any) => (
+                        <TableRow key={sale.id} className="hover:bg-slate-50 border-none transition-colors">
+                          <TableCell className="py-2 pl-0">
+                            <p className="text-xs font-bold text-slate-800">{sale.invoice || `#SAL-${sale.id}`}</p>
+                            <p className="text-[10px] text-slate-400 italic">{sale.pos_customer?.customer_name || sale.posCustomer?.customer_name || 'Walk-in Customer'}</p>
+                          </TableCell>
+                          <TableCell className="py-2 text-right pr-0">
+                            <p className="text-xs font-semibold text-slate-900">TZS {Number(sale.payable_amount || 0).toLocaleString()}</p>
+                            <Badge variant="outline" className={`text-[9px] h-4 font-bold border-none ${sale.payment_status === 'Paid' ? 'bg-emerald-50 text-emerald-600' : sale.payment_status === 'Partially Paid' ? 'bg-amber-50 text-amber-600' : 'bg-rose-50 text-rose-600'}`}>
+                              {sale.payment_status || 'Paid'}
+                            </Badge>
+                          </TableCell>
+                        </TableRow>
+                      ))}
+                    </TableBody>
+                  </Table>
+                </CardContent>
+              </Card>
+
+              <Card className="border-slate-200 shadow-sm">
+                <CardHeader className="pb-3 border-b border-slate-50">
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center gap-2">
+                      <ArrowDownRight className="w-4 h-4 text-red-500" />
+                      <CardTitle className="text-sm font-bold">Recent Expenses</CardTitle>
+                    </div>
+                    <Link href="/expenses-crud" className="text-[10px] font-bold text-red-600">Ledger</Link>
+                  </div>
+                </CardHeader>
+                <CardContent className="pt-4">
+                  <Table>
+                    <TableBody>
+                      {recentExpenses?.map((expense: any) => (
+                        <TableRow key={expense.id} className="hover:bg-slate-50 border-none transition-colors">
+                          <TableCell className="py-2 pl-0">
+                            <p className="text-xs font-bold text-slate-800 truncate max-w-[200px]">{expense.particulars}</p>
+                            <p className="text-[10px] text-slate-400 italic">{expense.category || 'General'}</p>
+                          </TableCell>
+                          <TableCell className="py-2 text-right pr-0">
+                            <p className="text-xs font-semibold text-red-600">- TZS {Number(expense.amount || 0).toLocaleString()}</p>
+                            <p className="text-[9px] text-slate-400">{new Date(expense.created_at).toLocaleDateString()}</p>
+                          </TableCell>
+                        </TableRow>
+                      ))}
+                    </TableBody>
+                  </Table>
+                </CardContent>
+              </Card>
+            </div>
+
+          </div>
         )}
 
         {/* Gatekeeper Specialized Analytics */}
@@ -643,107 +948,6 @@ export default function DashboardPage({
             </Card>
           )}
           
-          {/* Recent Sales Command (Shared by many) */}
-          {(isExecutive || isFinancial || isBranchManager || isInventory || isSeller) && (
-          <Card className="animate-fade-up stagger-3 border-slate-200">
-            <CardHeader className="pb-3 border-b border-slate-50">
-               <div className="flex items-center justify-between">
-                <div className="flex items-center gap-2">
-                   <ShoppingCart className="w-4 h-4 text-rose-500" />
-                   <CardTitle className="text-sm font-bold">Recent POS Activity</CardTitle>
-                </div>
-                <Link href="/sales-history" className="text-[10px] font-bold text-rose-600">View All</Link>
-               </div>
-            </CardHeader>
-            <CardContent className="pt-4">
-              <Table>
-                <TableBody>
-                  {recentSales?.map((sale) => (
-                    <TableRow key={sale.id} className="hover:bg-slate-50 border-none transition-colors">
-                      <TableCell className="py-2 pl-0">
-                        <p className="text-xs font-bold text-slate-800">{sale.invoice || `#SAL-${sale.id}`}</p>
-                        <p className="text-[10px] text-slate-400 italic capitalize">{sale.customer?.name || 'Walk-in Customer'}</p>
-                      </TableCell>
-                      <TableCell className="py-2 text-right pr-0">
-                        <p className="text-xs font-semibold text-slate-900">TZS {Number(sale.payable_amount || 0).toLocaleString()}</p>
-                        <Badge variant="outline" className="text-[9px] h-4 font-bold border-rose-100 bg-rose-50 text-rose-600">
-                           Paid
-                        </Badge>
-                      </TableCell>
-                    </TableRow>
-                  ))}
-                </TableBody>
-              </Table>
-            </CardContent>
-          </Card>
-          )}
-
-           {/* Manufacturing Operations */}
-           {(isExecutive || isBranchManager || isInventory) && (
-           <Card className="animate-fade-up stagger-4 border-slate-200">
-            <CardHeader className="pb-3 border-b border-slate-50">
-               <div className="flex items-center justify-between">
-                <div className="flex items-center gap-2">
-                   <Factory className="w-4 h-4 text-orange-500" />
-                   <CardTitle className="text-sm font-bold">Real-time Manufacturing</CardTitle>
-                </div>
-                <Link href="/production-orders-new" className="text-[10px] font-bold text-orange-600">Operations</Link>
-               </div>
-            </CardHeader>
-            <CardContent className="pt-4">
-              <Table>
-                <TableBody>
-                  {recentProduction?.map((job) => (
-                    <TableRow key={job.id} className="hover:bg-slate-50 border-none transition-colors">
-                      <TableCell className="py-2 pl-0">
-                        <p className="text-xs font-bold text-slate-800">{job.batch_number || `BATCH-${job.id}`}</p>
-                        <p className="text-[10px] text-slate-400 italic">Produced by: {job.created_by?.staff_name || 'System'}</p>
-                      </TableCell>
-                      <TableCell className="py-2 text-right pr-0">
-                         <Badge variant="outline" className={`text-[10px] font-bold border-amber-100 bg-amber-50 text-amber-600`}>
-                            {job.status || 'Active'}
-                          </Badge>
-                      </TableCell>
-                    </TableRow>
-                  ))}
-                </TableBody>
-              </Table>
-            </CardContent>
-          </Card>
-           )}
-
-          {/* Expense Tracking */}
-          {(isExecutive || isFinancial) && (
-          <Card className="animate-fade-up stagger-5 border-slate-200 xl:col-span-1">
-            <CardHeader className="pb-3 border-b border-slate-50">
-               <div className="flex items-center justify-between">
-                <div className="flex items-center gap-2">
-                   <ArrowDownRight className="w-4 h-4 text-red-500" />
-                   <CardTitle className="text-sm font-bold">Expense Monitoring</CardTitle>
-                </div>
-                <Link href="/expenses-crud" className="text-[10px] font-bold text-red-600">Ledger</Link>
-               </div>
-            </CardHeader>
-            <CardContent className="pt-4">
-              <Table>
-                <TableBody>
-                  {recentExpenses?.map((expense) => (
-                    <TableRow key={expense.id} className="hover:bg-slate-50 border-none transition-colors">
-                      <TableCell className="py-2 pl-0">
-                        <p className="text-xs font-bold text-slate-800 truncate max-w-[150px]">{expense.particulars}</p>
-                        <p className="text-[10px] text-slate-400 italic">{expense.category || 'General'}</p>
-                      </TableCell>
-                      <TableCell className="py-2 text-right pr-0">
-                        <p className="text-xs font-semibold text-red-600">- TZS {Number(expense.amount || 0).toLocaleString()}</p>
-                        <p className="text-[9px] text-slate-400">{new Date(expense.created_at).toLocaleDateString()}</p>
-                      </TableCell>
-                    </TableRow>
-                  ))}
-                </TableBody>
-              </Table>
-            </CardContent>
-          </Card>
-          )}
 
           {/* Gatekeeper Board */}
           {isGatekeeper && (
@@ -816,19 +1020,6 @@ export default function DashboardPage({
 
         </div>
 
-        {/* Real-time Order Intensity (Optional Full-width recent orders) */}
-        {(isExecutive || isFinancial || isBranchManager || isSeller) && (
-          <div className="animate-fade-up stagger-6">
-             <RecentOrders orders={recentSales?.map((sale: any) => ({
-                id: sale.invoice || `#SAL-${sale.id}`,
-                name: sale.customer?.name || 'Walk-in Customer',
-                email: '',
-                amount: sale.payable_amount || sale.total_amount || 0,
-                status: sale.payment_status || sale.status || 'Paid',
-                date: new Date(sale.created_at).toLocaleDateString()
-             }))} />
-          </div>
-        )}
 
         {/* Delivery Specialized Analytics */}
         {isDelivery && (
@@ -876,7 +1067,7 @@ export default function DashboardPage({
 
                {/* Right: Driver Status / Info */}
                <div>
-                  <Card className="h-full border-slate-200 animate-fade-up stagger-2 bg-gradient-to-br from-white to-slate-50/50">
+                  <Card className="h-full border-slate-200 animate-fade-up stagger-2 bg-white">
                     <CardHeader>
                       <CardTitle className="text-sm font-bold flex items-center gap-2">
                         <Truck className="w-4 h-4 text-emerald-600" />

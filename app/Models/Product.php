@@ -2,22 +2,22 @@
 
 namespace App\Models;
 
+use App\Services\InventoryService;
+use App\Traits\HasBranch;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 
-use App\Traits\HasBranch;
-
 class Product extends Model
 {
-    use HasFactory, HasBranch;
+    use HasBranch, HasFactory;
 
     public function scopeFilter($query, array $filters)
     {
         if ($filters['search'] ?? false) {
-            $query->where('product_name', 'like', '%' . request('search') . '%')
-                ->orwhere('product_id', 'like', '%' . request('search') . '%')
-                ->orwhere('store_name', 'like', '%' . request('search') . '%')
-                ->orwhere('created_at', 'like', '%' . request('search') . '%');
+            $query->where('product_name', 'like', '%'.request('search').'%')
+                ->orwhere('product_id', 'like', '%'.request('search').'%')
+                ->orwhere('store_name', 'like', '%'.request('search').'%')
+                ->orwhere('created_at', 'like', '%'.request('search').'%');
         }
     }
 
@@ -44,7 +44,7 @@ class Product extends Model
     ];
 
     protected $casts = [
-        'is_enabled' => 'boolean'
+        'is_enabled' => 'boolean',
     ];
 
     public static function single($id)
@@ -65,7 +65,7 @@ class Product extends Model
 
     public function getCurrentStockAttribute()
     {
-        return (new \App\Services\InventoryService())->getTotalInventoryQuantity($this->id, 'finished_product', 'all');
+        return (new InventoryService)->getTotalInventoryQuantity($this->id, 'finished_product', 'all');
     }
 
     protected $appends = ['current_stock', 'average_rating', 'reviews_count'];
@@ -85,7 +85,6 @@ class Product extends Model
         return $this->reviews()->count();
     }
 
-
     public function productManagement()
     {
         return $this->belongsTo(ProductManagement::class);
@@ -101,14 +100,8 @@ class Product extends Model
         return $this->hasOne(ProductSpecification::class);
     }
 
-    public function bom()
-    {
-        return $this->hasOne(Bom::class, 'finished_product_id');
-    }
-
     public function variants()
     {
         return $this->hasMany(ProductVariant::class, 'product_id');
     }
-
 }

@@ -2,59 +2,56 @@
 
 namespace App\Http\Controllers;
 
-use App\Models\Unit;
-use App\Models\User;
-use App\Models\Store;
-use App\Models\Product;
 use App\Models\Category;
-use App\Models\Transfer;
-use Illuminate\Http\Request;
-use App\Models\UpcomingProduct;
-use App\Traits\FileUploadTrait;
+use App\Models\Product;
 use App\Models\ProductManagement;
 use App\Models\ProductManagementImage;
+use App\Models\Store;
+use App\Models\Transfer;
+use App\Models\Unit;
+use App\Models\UpcomingProduct;
+use App\Models\User;
 use App\Services\InventoryService;
-use App\Http\Controllers\Controller;
-use App\Http\Requests\StoreUpcomingProductRequest;
-use App\Http\Requests\UpdateUpcomingProductRequest;
+use App\Traits\FileUploadTrait;
+use Illuminate\Http\Request;
+use Inertia\Inertia;
 
 class UpcomingProductController extends Controller
 {
     use FileUploadTrait;
+
     protected $inventoryService;
+
     public function __construct(InventoryService $inventoryService)
     {
         $this->inventoryService = $inventoryService;
     }
+
     public function index()
     {
-
         $categories = Category::orderBy('category_name', 'asc')->get();
-
         $transfers = Transfer::all();
 
-        foreach ($transfers as $key => $transfer) {
-            $transfers[$key]->product_name = json_decode($transfer->product_name, true);
-            $transfers[$key]->store_name = json_decode($transfer->store_name, true);
-            $transfers[$key]->product_quantity = json_decode($transfer->product_quantity, true);
-        }
+        $myProducts = UpcomingProduct::filter(request(['search']))
+            ->orderBy('product_name', 'asc')
+            ->get()
+            ->map(function ($product) {
+                if ($product->image_1 && ! filter_var($product->image_1, FILTER_VALIDATE_URL)) {
+                    $product->image_1 = asset('storage/'.$product->image_1);
+                }
 
-        $myProducts = UpcomingProduct::filter(request(['search']))->orderBy('product_name', 'asc')->get();
+                return $product;
+            });
 
-        $images = [];
-
-        foreach ($myProducts as $key => $product) {
-            $myProducts[$key]->images = json_decode($product->images, true);
-        }
-
-        return \Inertia\Inertia::render('Admin/Products/Upcoming', [
+        return Inertia::render('Admin/Products/Upcoming', [
             'stores' => Store::all(),
             'products' => $myProducts,
+            'categories' => $categories,
+            'transfers' => $transfers,
+            'units' => Unit::orderBy('unit_name')->get(),
             'users' => User::filter(request(['search']))->whereNot('role_id', 4)->get(),
-
-        ], compact('transfers', 'categories', 'images'));
+        ]);
     }
-
 
     public function store(Request $request)
     {
@@ -66,7 +63,7 @@ class UpcomingProductController extends Controller
             'buying_price.*' => 'nullable',
             'product_management_id.*' => 'required|string|max:30',
             'product_quantity.*' => 'required|integer|min:0',
-            'upcoming_order_id' => 'required|exists:upcoming_orders,id'
+            'upcoming_order_id' => 'required|exists:upcoming_orders,id',
         ]);
 
         try {
@@ -92,16 +89,16 @@ class UpcomingProductController extends Controller
 
             return response()->json(['success' => 'Product added successfully.']);
         } catch (\Exception $e) {
-            return response()->json(['error' => 'An error occurred. Please try again.' . $e], 500);
+            return response()->json(['error' => 'An error occurred. Please try again.'.$e], 500);
         }
         // Create product
     }
 
     public function edit(string $id)
     {
-        return \Inertia\Inertia::render('Admin/Products/EditUpcoming', [
-                'product' => UpcomingProduct::findOrFail($id),
-            ]);
+        return Inertia::render('Admin/Products/EditUpcoming', [
+            'product' => UpcomingProduct::findOrFail($id),
+        ]);
     }
 
     /**
@@ -112,8 +109,23 @@ class UpcomingProductController extends Controller
         $this->phpInitialize();
         $product = UpcomingProduct::findOrFail($id);
 
+        $exceptProductId = 'NULL';
+        if (! empty($product->product_id) || ! empty($product->product_management_id)) {
+            $existingQuery = Product::query();
+            if (! empty($product->product_id)) {
+                $existingQuery->where('product_id', $product->product_id);
+            }
+            if (! empty($product->product_management_id)) {
+                $existingQuery->orWhere('product_management_id', $product->product_management_id);
+            }
+            $found = $existingQuery->first();
+            if ($found) {
+                $exceptProductId = $found->id;
+            }
+        }
+
         $validatedData = $request->validate([
-            'sku' => 'required|string|max:100|unique:products,product_id|unique:upcoming_products,sku,' . $id,
+            'sku' => 'required|string|max:100|unique:products,product_id,'.$exceptProductId.'|unique:upcoming_products,sku,'.$id,
             'product_name' => 'required|string|max:255',
             'barcode' => 'nullable|string|max:100',
             'category_id' => 'required|exists:categories,id',
@@ -121,7 +133,7 @@ class UpcomingProductController extends Controller
             'brand' => 'nullable|string|max:100',
             'description' => 'nullable|string',
             'unit_id' => 'required|exists:units,id',
-            
+
             'buying_price' => 'required|numeric',
             'buying_unit_id' => 'nullable|exists:units,id',
             'qty_in_buying_unit' => 'nullable|numeric|min:1',
@@ -186,7 +198,7 @@ class UpcomingProductController extends Controller
             for ($i = 1; $i <= 5; $i++) {
                 $slotName = "image_slot_$i";
                 $existingSlot = "existing_image_slot_$i";
-                
+
                 if ($request->hasFile($slotName)) {
                     // Delete old if exists
                     if ($product->{"image_$i"}) {
@@ -202,8 +214,8 @@ class UpcomingProductController extends Controller
             // 3. Metadata fetching for display columns
             $cat = Category::find($validatedData['category_id']);
             $unit = Unit::find($validatedData['unit_id']);
-            $store = \App\Models\Store::find($validatedData['store_id']);
-            
+            $store = Store::find($validatedData['store_id']);
+
             // Sync product_id with sku as per legacy usage if needed, but sku is the new primary
             $product_id = $validatedData['sku'];
 
@@ -219,33 +231,49 @@ class UpcomingProductController extends Controller
                 'is_featured' => $request->has('is_featured'),
                 'is_public' => $request->has('is_public'),
                 'product_price' => $saleUnits[0]['price'] ?? 0, // Primary price from first unit
-                'unit_price' => $saleUnits[0]['price'] ?? 0, 
+                'unit_price' => $saleUnits[0]['price'] ?? 0,
             ]));
 
-            return response()->json([
-                'success' => 'Draft Asset Updated successfully.',
-                'redirect' => route('upcoming-orders.show', $product->upcoming_order_id)
-            ]);
+            if ($request->wantsJson() || $request->ajax()) {
+                return response()->json([
+                    'success' => 'Draft Asset Updated successfully.',
+                    'redirect' => route('upcoming-orders.show', $product->upcoming_order_id),
+                ]);
+            }
+
+            return back()->with('success', 'Draft product updated successfully.');
 
         } catch (\Exception $e) {
-            return response()->json(['error' => 'Update Failed: ' . $e->getMessage()], 500);
+            if ($request->wantsJson() || $request->ajax()) {
+                return response()->json(['error' => 'Update Failed: '.$e->getMessage()], 500);
+            }
+
+            return back()->with('error', 'Update Failed: '.$e->getMessage());
         }
     }
-
 
     /**
      * Remove the specified resource from storage.
      */
-    public function destroy(string $id)
+    public function destroy(Request $request, string $id)
     {
-        $unit = UpcomingProduct::findOrFail($id);
+        $product = UpcomingProduct::findOrFail($id);
         try {
-            $unit->delete();
-            return response()->json(['success' => 'Unit Deleted  successfully.']);
+            $product->delete();
+            if ($request->wantsJson() || $request->ajax()) {
+                return response()->json(['success' => 'Draft product deleted successfully.']);
+            }
+
+            return back()->with('success', 'Draft product deleted successfully.');
         } catch (\Exception $e) {
-            return response()->json(['error' => 'An error occurred. Please try again.'], 500);
+            if ($request->wantsJson() || $request->ajax()) {
+                return response()->json(['error' => 'An error occurred. Please try again.'], 500);
+            }
+
+            return back()->with('error', 'An error occurred. Please try again.');
         }
     }
+
     public function publish($product_id)
     {
         $upcomingProduct = UpcomingProduct::findOrFail($product_id);
@@ -259,7 +287,7 @@ class UpcomingProductController extends Controller
             $store = Store::find($upcomingProduct->store_id) ?? Store::first();
 
             // 1. Auto-create ProductManagement entry if it doesn't exist (Draft Staging)
-            if (!$upcomingProduct->product_management_id) {
+            if (! $upcomingProduct->product_management_id) {
                 $management = ProductManagement::create([
                     'product_name' => $upcomingProduct->product_name,
                     'sku' => $upcomingProduct->sku,
@@ -291,8 +319,8 @@ class UpcomingProductController extends Controller
                     'dimension_unit' => $upcomingProduct->dimension_unit,
                     'volume' => $upcomingProduct->volume,
                     'volume_unit' => $upcomingProduct->volume_unit,
-                    'sale_units' => $upcomingProduct->sale_units,
-                    'specifications' => $upcomingProduct->specifications,
+                    'sale_units' => is_string($upcomingProduct->sale_units) ? json_decode($upcomingProduct->sale_units, true) : $upcomingProduct->sale_units,
+                    'specifications' => is_string($upcomingProduct->specifications) ? json_decode($upcomingProduct->specifications, true) : $upcomingProduct->specifications,
                     'image_1' => $upcomingProduct->image_1,
                     'image_2' => $upcomingProduct->image_2,
                     'image_3' => $upcomingProduct->image_3,
@@ -305,7 +333,7 @@ class UpcomingProductController extends Controller
                     'is_public' => $upcomingProduct->is_public ?? true,
                     'status' => 'active',
                 ]);
-                
+
                 $upcomingProduct->update(['product_management_id' => $management->id]);
 
                 // 1.1 Create ProductManagementImage records for all 5 slots
@@ -328,6 +356,9 @@ class UpcomingProductController extends Controller
                     'increase'
                 );
             } else {
+                $management = ProductManagement::find($upcomingProduct->product_management_id);
+                $productType = $management ? $management->product_type : 'trading';
+
                 // Create new product entry linked to catalog
                 $product = Product::create([
                     'product_id' => $upcomingProduct->product_id,
@@ -336,7 +367,7 @@ class UpcomingProductController extends Controller
                     'product_price' => $upcomingProduct->product_price,
                     'unit_price' => $upcomingProduct->unit_price,
                     'buying_price' => $upcomingProduct->buying_price,
-                    'image' => $upcomingProduct->image_1,
+                    'product_type' => $productType,
                 ]);
 
                 $this->inventoryService->adjustInventory(
@@ -349,12 +380,12 @@ class UpcomingProductController extends Controller
 
             // Mark as published
             $upcomingProduct->update([
-                'is_published' => true
+                'is_published' => true,
             ]);
 
             return back()->with('success', 'Product published successfully.');
         } catch (\Exception $e) {
-            return back()->with('error', 'An error occurred: ' . $e->getMessage());
+            return back()->with('error', 'An error occurred: '.$e->getMessage());
         }
     }
 }

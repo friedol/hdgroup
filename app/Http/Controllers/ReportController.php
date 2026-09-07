@@ -2,87 +2,406 @@
 
 namespace App\Http\Controllers;
 
-use Illuminate\Http\Request;
-use App\Models\Product;
-use App\Models\Inventory;
-use App\Models\Export;
+use App\Models\Branch;
+use App\Models\Category;
 use App\Models\Expense;
+use App\Models\Inventory;
 use App\Models\Loan;
 use App\Models\Payment;
+use App\Models\Product;
+use App\Models\ProductManagement;
 use App\Models\Sale;
 use App\Models\SaleItem;
 use App\Models\SalesTarget;
-use App\Models\Category;
-use App\Models\Order;
-use App\Models\User;
-use App\Models\Mzigo;
 use App\Models\Setting;
-use App\Models\Branch;
-use Illuminate\Support\Facades\DB;
-use Illuminate\Support\Facades\Auth;
+use App\Models\Store;
+use App\Models\Transfer;
+use App\Models\User;
 use Carbon\Carbon;
+use Illuminate\Http\Request;
+use Illuminate\Support\Collection;
+use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\DB;
+use Inertia\Inertia;
 
-class ReportController extends Controller 
+class ReportController extends Controller
 {
+    /**
+     * Inventory Report — a combined stock dashboard, store-level inventory,
+     * product list and stock-transfer view in one interface.
+     */
     public function inventory_index(Request $request)
     {
-        if ($request->filled('start_date') || $request->filled('end_date')) {
-            return $this->filter_inventory_by_date($request);
-        }
+        $filters = $this->resolveInventoryFilters($request);
+        $storeId = $filters['store_id'];
+        $range = $filters['range']; // [start Carbon, end Carbon] or null
 
-        $prd = $this->getInventoryProducts();
-
-        $inventory_profit = $this->calculateInventoryProfit();
-
-        $outStock = $this->getOutOfStockProducts();
-
-        $totalQty = DB::table('mzigos')->sum('pro_quantity');
-
+        $prd = $this->getInventoryProducts($storeId);
+        $overview = $this->getInventoryOverview($storeId, $range);
+        $productList = $this->getInventoryProductList($storeId);
+        $transfers = $this->getInventoryTransfers($storeId, $range);
+        $outStock = $this->getOutOfStockProducts($storeId);
+        $totalQty = $overview['total_stock'];
+        $inventory_profit = $overview['stock_cost'];
         $categories = Category::orderBy('category_name')->get();
+        $stores = Store::withoutGlobalScope('branch')->orderBy('store_name')->get(['id', 'store_name']);
 
-        return \Inertia\Inertia::render('Admin/Reports/Inventory', compact('prd', 'totalQty', 'inventory_profit', 'outStock', 'categories'));
+        $topProductsQ = DB::table('sale_items')
+            ->join('products', 'sale_items.product_id', '=', 'products.id')
+            ->join('sales', 'sale_items.sale_id', '=', 'sales.id')
+            ->leftJoin('product_managements', 'products.product_management_id', '=', 'product_managements.id')
+            ->where('sales.is_return', false);
+        if ($range) {
+            $topProductsQ->whereBetween('sales.created_at', [$range[0], $range[1]]);
+        }
+        if ($storeId) {
+            $topProductsQ->where('sale_items.source_store_id', $storeId);
+        }
+        $topProducts = $topProductsQ
+            ->selectRaw('products.product_name, product_managements.image_1, SUM(sale_items.quantity) as total_qty, SUM(sale_items.subtotal) as total_revenue')
+            ->groupBy('products.id', 'products.product_name', 'product_managements.image_1')
+            ->orderByDesc('total_revenue')
+            ->limit(10)
+            ->get()
+            ->map(fn ($r) => [
+                'name' => $r->product_name,
+                'image' => $r->image_1,
+                'qty' => (int) $r->total_qty,
+                'revenue' => (float) $r->total_revenue,
+            ]);
+
+        return Inertia::render('Admin/Reports/Inventory', compact(
+            'prd',
+            'totalQty',
+            'inventory_profit',
+            'overview',
+            'productList',
+            'transfers',
+            'outStock',
+            'categories',
+            'topProducts',
+            'stores',
+            'filters'
+        ));
     }
 
+    public function print_inventory(Request $request)
+    {
+        $filters = $this->resolveInventoryFilters($request);
+        $storeId = $filters['store_id'];
+        $range = $filters['range'];
+
+        $prd = $this->getInventoryProducts($storeId);
+        $overview = $this->getInventoryOverview($storeId, $range);
+        $outStock = $this->getOutOfStockProducts($storeId);
+
+        $topProductsQ = DB::table('sale_items')
+            ->join('products', 'sale_items.product_id', '=', 'products.id')
+            ->join('sales', 'sale_items.sale_id', '=', 'sales.id')
+            ->where('sales.is_return', false);
+        if ($range) {
+            $topProductsQ->whereBetween('sales.created_at', [$range[0], $range[1]]);
+        }
+        if ($storeId) {
+            $topProductsQ->where('sale_items.source_store_id', $storeId);
+        }
+        $topProducts = $topProductsQ
+            ->selectRaw('products.product_name, SUM(sale_items.quantity) as total_qty, SUM(sale_items.subtotal) as total_revenue')
+            ->groupBy('products.id', 'products.product_name')
+            ->orderByDesc('total_revenue')
+            ->limit(10)
+            ->get();
+
+        $storeName = $filters['store_name'];
+        $periodLabel = $range
+            ? $range[0]->format('d M Y').' — '.$range[1]->format('d M Y')
+            : 'All dates';
+
+        $type = $request->get('type', 'valued'); // valued, unvalued, top-selling, alerts
+        $data = compact('prd', 'type', 'topProducts', 'outStock', 'overview', 'storeName', 'periodLabel');
+
+        if ($request->has('download')) {
+            $pdf = \PDF::loadView('admin.reports.print-inventory', $data);
+
+            return $pdf->download('inventory-report-'.$type.'.pdf');
+        }
+
+        return view('admin.reports.print-inventory', $data);
+    }
+
+    /**
+     * Kept for backwards compatibility with the old filter route.
+     */
     public function filter_inventory_by_date(Request $request)
     {
-        $startDateInput = $request->input('start_date');
-        $endDateInput = $request->input('end_date');
+        return $this->inventory_index($request);
+    }
 
-        if ($startDateInput && $endDateInput && $startDateInput > $endDateInput) {
-            return redirect()->back()->with('error', 'Start date cannot be greater than End date');
+    /**
+     * Resolve the store + date-range filters shared across the inventory report.
+     *
+     * @return array{store_id: int|null, store_name: string, range: array{0: Carbon, 1: Carbon}|null, start_date: string|null, end_date: string|null}
+     */
+    private function resolveInventoryFilters(Request $request): array
+    {
+        $storeId = $request->filled('store_id') && $request->store_id !== 'all'
+            ? (int) $request->store_id
+            : null;
+
+        $storeName = 'All Stores';
+        if ($storeId) {
+            $storeName = Store::withoutGlobalScope('branch')->whereKey($storeId)->value('store_name') ?: 'All Stores';
         }
-        $query = $this->getInventoryProductsQuery();
-        if ($startDateInput && $endDateInput) {
-            $startDate = Carbon::parse($startDateInput)->startOfDay()->toDateTimeString();
-            $endDate = Carbon::parse($endDateInput)->endOfDay()->toDateTimeString();
-            $query->whereBetween('exports.created_at', [$startDate, $endDate]);
+
+        $start = $request->input('start_date');
+        $end = $request->input('end_date');
+
+        $range = null;
+        if ($start && $end) {
+            $s = Carbon::parse($start)->startOfDay();
+            $e = Carbon::parse($end)->endOfDay();
+            if ($s->lte($e)) {
+                $range = [$s, $e];
+            }
         }
-        $prd = $query->get();
-        $inventory_profit = $this->calculateInventoryProfit();
-        $outStock = $this->getOutOfStockProducts();
-        $totalQty = DB::table('mzigos')->sum('pro_quantity');
-        $categories = Category::orderBy('category_name')->get();
-        return \Inertia\Inertia::render('Admin/Reports/Inventory', compact('prd', 'totalQty', 'inventory_profit', 'outStock', 'categories'));
+
+        return [
+            'store_id' => $storeId,
+            'store_name' => $storeName,
+            'range' => $range,
+            'start_date' => $start,
+            'end_date' => $end,
+        ];
+    }
+
+    /**
+     * Stock overview + "important inventory information" figures, all derived
+     * from live database data (never hardcoded).
+     */
+    private function getInventoryOverview(?int $storeId, ?array $range): array
+    {
+        $buyExpr = 'COALESCE(NULLIF(products.buying_price, 0), NULLIF(product_managements.buying_price, 0), 0)';
+        $sellExpr = 'COALESCE(NULLIF(products.product_price, 0), NULLIF(product_managements.product_price, 0), 0)';
+
+        $stockQ = DB::table('inventories')
+            ->join('products', 'inventories.product_id', '=', 'products.id')
+            ->leftJoin('product_managements', 'products.product_management_id', '=', 'product_managements.id');
+        if ($storeId) {
+            $stockQ->where('inventories.store_id', $storeId);
+        }
+        $stock = $stockQ->selectRaw("
+            COALESCE(SUM(inventories.qty), 0) as total_stock,
+            COALESCE(SUM(inventories.qty * {$buyExpr}), 0) as stock_cost,
+            COALESCE(SUM(inventories.qty * {$sellExpr}), 0) as expected_sale_value
+        ")->first();
+
+        $stockCost = (float) ($stock->stock_cost ?? 0);
+        $saleValue = (float) ($stock->expected_sale_value ?? 0);
+        $totalStock = (float) ($stock->total_stock ?? 0);
+
+        // Total distinct products that carry an inventory record (optionally in the store).
+        $productsQ = DB::table('inventories')->distinct();
+        if ($storeId) {
+            $productsQ->where('store_id', $storeId);
+        }
+        $totalProducts = $productsQ->count('product_id');
+
+        // Low stock / out of stock against the product reorder level.
+        $levelQ = DB::table('inventories')
+            ->join('products', 'inventories.product_id', '=', 'products.id')
+            ->join('product_managements', 'products.product_management_id', '=', 'product_managements.id')
+            ->whereNotNull('product_managements.level');
+        if ($storeId) {
+            $levelQ->where('inventories.store_id', $storeId);
+        }
+        $levelRows = $levelQ->selectRaw('inventories.qty, product_managements.level')->get();
+        $lowStock = $levelRows->filter(fn ($r) => $r->qty > 0 && $r->qty <= $r->level)->count();
+        $outOfStock = $levelRows->filter(fn ($r) => $r->qty <= 0)->count();
+
+        // Stock transfers in the period.
+        $transferQ = Transfer::withoutGlobalScope('branch');
+        if ($range) {
+            $transferQ->whereBetween('created_at', [$range[0], $range[1]]);
+        }
+        if ($storeId) {
+            $transferQ->where(function ($q) use ($storeId) {
+                $q->where('source_store_id', $storeId)->orWhere('destination_store_id', $storeId);
+            });
+        }
+        $stockTransfers = (clone $transferQ)->distinct('unique_id')->count('unique_id');
+
+        // Units sold in the period.
+        $soldQ = DB::table('sale_items')
+            ->join('sales', 'sale_items.sale_id', '=', 'sales.id')
+            ->where('sales.is_return', false);
+        if ($range) {
+            $soldQ->whereBetween('sales.created_at', [$range[0], $range[1]]);
+        }
+        if ($storeId) {
+            $soldQ->where('sale_items.source_store_id', $storeId);
+        }
+        $productsSold = (float) $soldQ->sum('sale_items.quantity');
+
+        // Stock adjustments in the period.
+        $adjustQ = DB::table('stock_adjustments');
+        if ($range) {
+            $adjustQ->whereBetween('created_at', [$range[0], $range[1]]);
+        }
+        if ($storeId) {
+            $adjustQ->where('store_id', $storeId);
+        }
+        $stockAdjustments = $adjustQ->count();
+
+        return [
+            'stock_cost' => $stockCost,
+            'expected_sale_value' => $saleValue,
+            'expected_sell_profit' => $saleValue - $stockCost,
+            'total_stock' => $totalStock,
+            'total_products' => $totalProducts,
+            'low_stock' => $lowStock,
+            'out_of_stock' => $outOfStock,
+            'stock_transfers' => $stockTransfers,
+            'products_sold' => $productsSold,
+            'stock_adjustments' => $stockAdjustments,
+        ];
+    }
+
+    /**
+     * Product list — every product with its current stock level, optionally
+     * scoped to a single store.
+     */
+    private function getInventoryProductList(?int $storeId): Collection
+    {
+        $buyExpr = 'COALESCE(NULLIF(products.buying_price, 0), NULLIF(product_managements.buying_price, 0), 0)';
+        $sellExpr = 'COALESCE(NULLIF(products.product_price, 0), NULLIF(product_managements.product_price, 0), 0)';
+
+        $query = DB::table('products')
+            ->join('product_managements', 'products.product_management_id', '=', 'product_managements.id')
+            ->leftJoin('inventories', function ($join) use ($storeId) {
+                $join->on('inventories.product_id', '=', 'products.id');
+                if ($storeId) {
+                    $join->where('inventories.store_id', '=', $storeId);
+                }
+            })
+            ->groupBy(
+                'products.id',
+                'products.product_name',
+                'products.product_id',
+                'products.buying_price',
+                'products.product_price',
+                'product_managements.unit_name',
+                'product_managements.category_name',
+                'product_managements.level',
+                'product_managements.buying_price',
+                'product_managements.product_price'
+            )
+            ->orderBy('products.product_name')
+            ->selectRaw("
+                products.id,
+                products.product_name,
+                products.product_id as sku,
+                product_managements.unit_name,
+                product_managements.category_name,
+                product_managements.level,
+                COALESCE(SUM(inventories.qty), 0) as qty,
+                {$buyExpr} as buying_price,
+                {$sellExpr} as selling_price,
+                COALESCE(SUM(inventories.qty), 0) * {$buyExpr} as stock_cost,
+                COALESCE(SUM(inventories.qty), 0) * {$sellExpr} as stock_value
+            ");
+
+        return $query->get()->map(function ($r) {
+            $qty = (float) $r->qty;
+            $level = $r->level !== null ? (float) $r->level : null;
+            $status = $qty <= 0 ? 'out' : ($level !== null && $qty <= $level ? 'low' : 'ok');
+
+            return [
+                'id' => $r->id,
+                'product_name' => $r->product_name,
+                'sku' => $r->sku,
+                'unit_name' => $r->unit_name,
+                'category_name' => $r->category_name,
+                'level' => $level,
+                'qty' => $qty,
+                'buying_price' => (float) $r->buying_price,
+                'selling_price' => (float) $r->selling_price,
+                'stock_cost' => (float) $r->stock_cost,
+                'stock_value' => (float) $r->stock_value,
+                'status' => $status,
+            ];
+        });
+    }
+
+    /**
+     * Grouped stock transfers for the report (source/destination store, item
+     * count, quantity and internal buying + selling values).
+     */
+    private function getInventoryTransfers(?int $storeId, ?array $range): Collection
+    {
+        $query = Transfer::withoutGlobalScope('branch')
+            ->selectRaw('
+                unique_id,
+                MIN(created_at) as created_at,
+                MIN(staff_name) as staff_name,
+                MIN(status) as status,
+                MIN(source_store_id) as source_store_id,
+                MIN(destination_store_id) as destination_store_id,
+                COUNT(*) as product_count,
+                SUM(product_quantity) as total_quantity,
+                SUM(product_quantity * COALESCE(buying_price, 0)) as total_buying_value,
+                SUM(product_quantity * COALESCE(selling_price, 0)) as total_selling_value
+            ')
+            ->groupBy('unique_id')
+            ->orderByDesc('created_at')
+            ->limit(200);
+
+        if ($range) {
+            $query->whereBetween('created_at', [$range[0], $range[1]]);
+        }
+        if ($storeId) {
+            $query->where(function ($q) use ($storeId) {
+                $q->where('source_store_id', $storeId)->orWhere('destination_store_id', $storeId);
+            });
+        }
+
+        $rows = $query->get();
+
+        $storeNames = Store::withoutGlobalScope('branch')
+            ->whereIn('id', $rows->pluck('source_store_id')->merge($rows->pluck('destination_store_id'))->filter()->unique())
+            ->pluck('store_name', 'id');
+
+        return $rows->map(fn ($t) => [
+            'unique_id' => $t->unique_id,
+            'created_at' => $t->created_at,
+            'staff_name' => $t->staff_name,
+            'status' => $t->status,
+            'product_count' => (int) $t->product_count,
+            'total_quantity' => (float) $t->total_quantity,
+            'total_buying_value' => (float) $t->total_buying_value,
+            'total_selling_value' => (float) $t->total_selling_value,
+            'source_store' => $storeNames[$t->source_store_id] ?? '—',
+            'destination_store' => $storeNames[$t->destination_store_id] ?? '—',
+        ]);
     }
 
     public function profit_index(Request $request)
     {
-        $period   = $request->get('period', 'month');
-        /** @var \App\Models\User $user */
-        $user     = Auth::user();
+        $period = $request->get('period', 'month');
+        /** @var User $user */
+        $user = Auth::user();
         $isGlobal = $user->isGlobal();
         $branchId = $isGlobal ? $request->get('branch_id') : $user->branch_id;
         $dateFrom = $request->get('date_from');
-        $dateTo   = $request->get('date_to');
+        $dateTo = $request->get('date_to');
 
         $startDate = match ($period) {
-            'today'   => Carbon::today(),
-            'week'    => Carbon::now()->startOfWeek(),
-            'month'   => Carbon::now()->startOfMonth(),
+            'today' => Carbon::today(),
+            'week' => Carbon::now()->startOfWeek(),
+            'month' => Carbon::now()->startOfMonth(),
             'quarter' => Carbon::now()->startOfQuarter(),
-            'year'    => Carbon::now()->startOfYear(),
-            'custom'  => $dateFrom ? Carbon::parse($dateFrom) : Carbon::now()->startOfMonth(),
-            default   => Carbon::now()->startOfMonth(),
+            'year' => Carbon::now()->startOfYear(),
+            'custom' => $dateFrom ? Carbon::parse($dateFrom) : Carbon::now()->startOfMonth(),
+            default => Carbon::now()->startOfMonth(),
         };
         $endDate = ($period === 'custom' && $dateTo) ? Carbon::parse($dateTo)->endOfDay() : Carbon::now();
 
@@ -134,12 +453,12 @@ class ReportController extends Controller
             ->map(fn ($item) => [
                 'id' => $item->id,
                 'type' => 'Sales',
-                'description' => 'Sale: ' . $item->invoice_number,
+                'description' => 'Sale: '.$item->invoice_number,
                 'amount' => (float) $item->payable_amount,
                 'date' => $item->created_at,
             ]);
 
-        $transactions = $expenses->merge($salesTransactions)->sortByDesc('date')->values();
+        $transactions = collect($expenses->all())->merge($salesTransactions->all())->sortByDesc('date')->values();
 
         $topProducts = (clone $saleItemsQuery)
             ->selectRaw('sale_items.product_id, products.product_name, SUM(sale_items.subtotal - (COALESCE(products.buying_price,0) * sale_items.quantity)) as total_profit')
@@ -204,6 +523,7 @@ class ReportController extends Controller
             $revenue = (float) ($salesDaily[$day] ?? 0);
             $cogs = (float) ($cogsDaily[$day] ?? 0);
             $expenses = (float) ($expensesDaily[$day] ?? 0);
+
             return [
                 'day' => $day,
                 'revenue' => $revenue,
@@ -229,10 +549,10 @@ class ReportController extends Controller
         ];
 
         $categories = Category::orderBy('category_name')->get();
-        $branches   = $isGlobal ? \App\Models\Branch::select('id', 'name')->orderBy('name')->get() : [];
-        $filters    = ['period' => $period, 'branch_id' => $branchId, 'date_from' => $dateFrom, 'date_to' => $dateTo];
+        $branches = $isGlobal ? Branch::select('id', 'name')->orderBy('name')->get() : [];
+        $filters = ['period' => $period, 'branch_id' => $branchId, 'date_from' => $dateFrom, 'date_to' => $dateTo];
 
-        return \Inertia\Inertia::render('Admin/Reports/ProfitLoss', compact(
+        return Inertia::render('Admin/Reports/ProfitLoss', compact(
             'total_sales', 'gross_profit', 'total_expenses',
             'transactions', 'topProducts', 'paymentBreakdown', 'statusBreakdown',
             'expenseCategories', 'profitTrend', 'financialStats',
@@ -242,22 +562,22 @@ class ReportController extends Controller
 
     public function profit_print(Request $request)
     {
-        $period   = $request->get('period', 'month');
-        /** @var \App\Models\User $user */
-        $user     = Auth::user();
+        $period = $request->get('period', 'month');
+        /** @var User $user */
+        $user = Auth::user();
         $isGlobal = $user->isGlobal();
         $branchId = $isGlobal ? $request->get('branch_id') : $user->branch_id;
         $dateFrom = $request->get('date_from');
-        $dateTo   = $request->get('date_to');
+        $dateTo = $request->get('date_to');
 
         $startDate = match ($period) {
-            'today'   => Carbon::today(),
-            'week'    => Carbon::now()->startOfWeek(),
-            'month'   => Carbon::now()->startOfMonth(),
+            'today' => Carbon::today(),
+            'week' => Carbon::now()->startOfWeek(),
+            'month' => Carbon::now()->startOfMonth(),
             'quarter' => Carbon::now()->startOfQuarter(),
-            'year'    => Carbon::now()->startOfYear(),
-            'custom'  => $dateFrom ? Carbon::parse($dateFrom) : Carbon::now()->startOfMonth(),
-            default   => Carbon::now()->startOfMonth(),
+            'year' => Carbon::now()->startOfYear(),
+            'custom' => $dateFrom ? Carbon::parse($dateFrom) : Carbon::now()->startOfMonth(),
+            default => Carbon::now()->startOfMonth(),
         };
         $endDate = ($period === 'custom' && $dateTo) ? Carbon::parse($dateTo)->endOfDay() : Carbon::now();
 
@@ -298,7 +618,7 @@ class ReportController extends Controller
             ->orderByDesc('total_amount')
             ->get();
 
-        $companyName = Setting::getValue('business_name', Setting::getValue('system_name', config('app.name', 'HD Group')));
+        $companyName = Setting::getValue('business_name', Setting::getValue('system_name', config('app.name', 'Jopo Juniours Co. Ltd')));
         $companyAddress = Setting::getValue('business_address', '');
         $branchName = 'Global';
         if ($branchId) {
@@ -331,24 +651,24 @@ class ReportController extends Controller
         ]);
     }
 
-
     public function loans_index(Request $request)
     {
-        $startDate=$request->query('start');
-        $EndDate=$request->query('end');
-        $Amount=$request->query('amount');
-        $overDue=$request->query('overDue');
-        $loan=Loan::where('status','pending')
-        ->where('payment_date', '>', now()->toDateString())
-        ->get();
-        $loan_paid=Loan::where('status','paid')->get();
+        $startDate = $request->query('start');
+        $EndDate = $request->query('end');
+        $Amount = $request->query('amount');
+        $overDue = $request->query('overDue');
+        $loan = Loan::where('status', 'pending')
+            ->where('payment_date', '>', now()->toDateString())
+            ->get();
+        $loan_paid = Loan::where('status', 'paid')->get();
         // $loan_Due = Loan::whereBetween('payment_date', [now()->toDateString(), now()->addDays(7)->toDateString()])->get();
         $loan_Due = Loan::where('payment_date', '<', now()->toDateString())
-        ->where('status','!=','paid')
-        ->get();
-        $payment_history=Payment::all();
+            ->where('status', '!=', 'paid')
+            ->get();
+        $payment_history = Payment::all();
         $categories = Category::orderBy('category_name')->get();
-        return \Inertia\Inertia::render('Admin/Reports/Loans', compact('loan','loan_paid','loan_Due','payment_history', 'categories'));
+
+        return Inertia::render('Admin/Reports/Loans', compact('loan', 'loan_paid', 'loan_Due', 'payment_history', 'categories'));
     }
 
     public function sales_index(Request $request)
@@ -402,26 +722,33 @@ class ReportController extends Controller
             : $currentStart->format('Y-m');
 
         // Fetch Current Period Data from modern POS tables
+        $user = Auth::user();
+        $branchId = $user->isGlobal() ? ($request->get('branch_id') ?: session('active_branch_id')) : $user->branch_id;
+
         $query = SaleItem::select(
-                'sale_items.*', 
-                'sale_items.unit_price as product_price',
-                'sale_items.quantity as product_quantity',
-                'p.product_name', 
-                'p.buying_price', 
-                'pm.sku as linked_sku', 
-                'c.category_name',
-                's.payment_method as sale_mode',
-                's.user_id as seller_id',
-                'u.staff_name as seller_name'
-            )
+            'sale_items.*',
+            'sale_items.unit_price as product_price',
+            'sale_items.quantity as product_quantity',
+            'p.product_name',
+            'p.buying_price',
+            'pm.sku as linked_sku',
+            'c.category_name',
+            's.payment_method as sale_mode',
+            's.user_id as seller_id',
+            'u.staff_name as seller_name'
+        )
             ->join('sales as s', 'sale_items.sale_id', '=', 's.id')
             ->join('products as p', 'sale_items.product_id', '=', 'p.id')
             ->leftJoin('product_managements as pm', 'p.product_management_id', '=', 'pm.id')
             ->leftJoin('categories as c', 'pm.category_id', '=', 'c.id')
             ->leftJoin('users as u', 's.user_id', '=', 'u.id')
-            ->whereBetween('sale_items.created_at', [$currentStart, $currentEnd]);
+            ->whereBetween('sale_items.created_at', [$currentStart, $currentEnd])
+            ->where('s.is_return', false);
 
         // Apply Multi-Dimension Filters
+        if ($branchId && $branchId !== 'all') {
+            $query->where('s.branch_id', $branchId);
+        }
         if ($categoryId) {
             $query->where('pm.category_id', $categoryId);
         }
@@ -432,20 +759,31 @@ class ReportController extends Controller
         $exports = $query->orderBy('sale_items.created_at', 'DESC')->get();
 
         // Fetch Previous Period Data for Growth
-        $prevExports = SaleItem::select('sale_items.*', 'p.buying_price')
+        $prevQuery = SaleItem::select('sale_items.*', 'p.buying_price')
+            ->join('sales as s', 'sale_items.sale_id', '=', 's.id')
             ->join('products as p', 'sale_items.product_id', '=', 'p.id')
             ->whereBetween('sale_items.created_at', [$prevStart, $prevEnd])
-            ->get();
+            ->where('s.is_return', false);
 
-        // Calculate Core Metrics
-        $metricCalc = function($data) {
-            $rev = (float)$data->sum(function($i) { return (float)$i->unit_price * (float)$i->quantity; });
-            $prof = (float)$data->sum(function($i) { return ((float)$i->unit_price - (float)$i->buying_price) * (float)$i->quantity; });
+        if ($branchId && $branchId !== 'all') {
+            $prevQuery->where('s.branch_id', $branchId);
+        }
+
+        $prevExports = $prevQuery->get();
+
+        // Calculate Core Metrics matching Dashboard exactly
+        $metricCalc = function ($data) {
+            $saleIds = $data->pluck('sale_id')->unique()->filter();
+            $rev = (float) Sale::whereIn('id', $saleIds)->where('is_return', false)->sum('payable_amount');
+            $prof = (float) $data->sum(function ($i) {
+                return ((float) $i->unit_price - (float) $i->buying_price) * (float) $i->quantity;
+            });
+
             return [
                 'revenue' => $rev,
                 'profit' => $prof,
-                'velocity' => $data->unique('sale_id')->count(),
-                'margin' => $rev > 0 ? ($prof / $rev) * 100 : 0
+                'velocity' => $saleIds->count(),
+                'margin' => $rev > 0 ? ($prof / $rev) * 100 : 0,
             ];
         };
 
@@ -458,8 +796,11 @@ class ReportController extends Controller
             ? $currMetrics['revenue'] / $currMetrics['velocity']
             : 0;
 
-        $growth = function($curr, $prev) {
-            if ($prev == 0) return $curr > 0 ? 100 : 0;
+        $growth = function ($curr, $prev) {
+            if ($prev == 0) {
+                return $curr > 0 ? 100 : 0;
+            }
+
             return (($curr - $prev) / $prev) * 100;
         };
 
@@ -470,15 +811,15 @@ class ReportController extends Controller
             'unit_margin' => $currMetrics['margin'],
             'total_units' => $totalUnits,
             'avg_order_value' => $avgOrderValue,
-            'growth_revenue' => (float)$growth($currMetrics['revenue'], $prevMetrics['revenue']),
-            'growth_profit' => (float)$growth($currMetrics['profit'], $prevMetrics['profit']),
-            'growth_velocity' => (float)$growth($currMetrics['velocity'], $prevMetrics['velocity']),
-            'growth_margin' => (float)($currMetrics['margin'] - $prevMetrics['margin'])
+            'growth_revenue' => (float) $growth($currMetrics['revenue'], $prevMetrics['revenue']),
+            'growth_profit' => (float) $growth($currMetrics['profit'], $prevMetrics['profit']),
+            'growth_velocity' => (float) $growth($currMetrics['velocity'], $prevMetrics['velocity']),
+            'growth_margin' => (float) ($currMetrics['margin'] - $prevMetrics['margin']),
         ];
 
         // 1. Revenue Dynamics (Daily vs Hourly Intelligence)
         $isSingleDay = $currentStart->diffInDays($currentEnd) < 1;
-        
+
         if ($isSingleDay) {
             // Initialize 24-hour skeleton for "Continuous Analysis"
             $hourSkeleton = collect();
@@ -488,12 +829,16 @@ class ReportController extends Controller
             }
 
             // Group actual sales
-            $actualDynamics = $exports->groupBy(function($item) {
+            $actualDynamics = $exports->groupBy(function ($item) {
                 return Carbon::parse($item->created_at)->format('H:00');
-            })->map(function($hour) {
+            })->map(function ($hour) {
                 return [
-                    'revenue' => (float)$hour->sum(function($i) { return (float)$i->unit_price * (float)$i->quantity; }),
-                    'profit' => (float)$hour->sum(function($i) { return ((float)$i->unit_price - (float)$i->buying_price) * (float)$i->quantity; })
+                    'revenue' => (float) $hour->sum(function ($i) {
+                        return (float) $i->unit_price * (float) $i->quantity;
+                    }),
+                    'profit' => (float) $hour->sum(function ($i) {
+                        return ((float) $i->unit_price - (float) $i->buying_price) * (float) $i->quantity;
+                    }),
                 ];
             });
 
@@ -501,32 +846,46 @@ class ReportController extends Controller
             $dynamics = $hourSkeleton->merge($actualDynamics)->sortKeys();
         } else {
             // Group by Day for larger periods
-            $dynamics = $exports->groupBy(function($item) {
+            $dynamics = $exports->groupBy(function ($item) {
                 return Carbon::parse($item->created_at)->format('M d');
-            })->map(function($day) {
+            })->map(function ($day) {
                 return [
-                    'revenue' => (float)$day->sum(function($i) { return (float)$i->unit_price * (float)$i->quantity; }),
-                    'profit' => (float)$day->sum(function($i) { return ((float)$i->unit_price - (float)$i->buying_price) * (float)$i->quantity; })
+                    'revenue' => (float) $day->sum(function ($i) {
+                        return (float) $i->unit_price * (float) $i->quantity;
+                    }),
+                    'profit' => (float) $day->sum(function ($i) {
+                        return ((float) $i->unit_price - (float) $i->buying_price) * (float) $i->quantity;
+                    }),
                 ];
             })->sortKeys();
         }
 
         // 2. Density Analysis (Robust Category Fallback)
-        $density = $exports->groupBy(function($i) { return $i->category_name ?? 'Uncategorized'; })->map(function($cat) {
-            return (float)$cat->sum(function($i) { return (float)$i->unit_price * (float)$i->quantity; });
+        $density = $exports->groupBy(function ($i) {
+            return $i->category_name ?? 'Uncategorized';
+        })->map(function ($cat) {
+            return (float) $cat->sum(function ($i) {
+                return (float) $i->unit_price * (float) $i->quantity;
+            });
         })->take(8);
 
         // 3. Temporal Flux (Hourly Velocity)
         $hours = [];
-        for($i=0; $i<24; $i++) $hours[$i] = 0;
-        foreach($exports as $ex) {
-            $h = (int)Carbon::parse($ex->created_at)->format('H');
-            $hours[$h] += (float)((float)$ex->unit_price * (float)$ex->quantity);
+        for ($i = 0; $i < 24; $i++) {
+            $hours[$i] = 0;
+        }
+        foreach ($exports as $ex) {
+            $h = (int) Carbon::parse($ex->created_at)->format('H');
+            $hours[$h] += (float) ((float) $ex->unit_price * (float) $ex->quantity);
         }
 
         // 4. Modal Distribution (Robust Mode Fallback)
-        $modal = $exports->groupBy(function($i) { return $i->sale_mode ?? 'Other'; })->map(function($group) {
-            return (float)$group->sum(function($i) { return (float)$i->unit_price * (float)$i->quantity; });
+        $modal = $exports->groupBy(function ($i) {
+            return $i->sale_mode ?? 'Other';
+        })->map(function ($group) {
+            return (float) $group->sum(function ($i) {
+                return (float) $i->unit_price * (float) $i->quantity;
+            });
         });
 
         // 5. Seller Performance + Sales Target Achievement
@@ -609,49 +968,47 @@ class ReportController extends Controller
 
         // SKU Fallback
         foreach ($exports as $row) {
-            if (!$row->linked_sku) {
-                $fallback = \App\Models\ProductManagement::where('product_name', $row->product_name)->first();
+            if (! $row->linked_sku) {
+                $fallback = ProductManagement::where('product_name', $row->product_name)->first();
                 $row->product_sku = $fallback->sku ?? 'MANUAL';
             } else {
                 $row->product_sku = $row->linked_sku;
             }
         }
 
-        $categories = \App\Models\Category::orderBy('category_name')->get();
+        $categories = Category::orderBy('category_name')->get();
 
         $topSeller = $sellerPerformance->first();
         $metrics['top_seller_name'] = $topSeller['seller_name'] ?? null;
         $metrics['top_seller_revenue'] = (float) ($topSeller['revenue'] ?? 0);
         $metrics['target_attainment_pct'] = (float) ($targetSummary['avg_achievement_pct'] ?? 0);
 
-        return \Inertia\Inertia::render('Admin/Reports/Sales', compact(
-            'exports', 
-            'metrics', 
-            'dynamics', 
-            'density', 
+        return Inertia::render('Admin/Reports/Sales', compact(
+            'exports',
+            'metrics',
+            'dynamics',
+            'density',
             'hours',
             'modal',
             'sellerPerformance',
             'sellerDistribution',
             'targetSummary',
-            'filterType', 
-            'categories', 
-            'currentStart', 
+            'filterType',
+            'categories',
+            'currentStart',
             'currentEnd'
         ));
     }
 
     public function product_sales($id)
     {
-      $sales=DB::table('exports')
-     ->join('products', 'exports.product_id','=','products.id')
-     ->where('exports.product_id',$id)
-     ->get();   
+        $sales = DB::table('exports')
+            ->join('products', 'exports.product_id', '=', 'products.id')
+            ->where('exports.product_id', $id)
+            ->get();
 
-     return \Inertia\Inertia::render('Admin/Reports/ProductSales', compact('sales'));   
+        return Inertia::render('Admin/Reports/ProductSales', compact('sales'));
     }
-
-    
 
     public function expenses_index(Request $request)
     {
@@ -682,11 +1039,11 @@ class ReportController extends Controller
             DB::raw('DAYNAME(date) as day'),
             DB::raw('SUM(amount) as total')
         )
-        ->whereBetween('date', [$start, $end])
-        ->where('status', 'Approved')
-        ->groupBy('day')
-        ->get()
-        ->pluck('total', 'day');
+            ->whereBetween('date', [$start, $end])
+            ->where('status', 'Approved')
+            ->groupBy('day')
+            ->get()
+            ->pluck('total', 'day');
 
         // Arrange days: Monday to Sunday
         $daysOfWeek = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday'];
@@ -701,12 +1058,11 @@ class ReportController extends Controller
 
         // Recent expenses Based on filters
         $recentExpenses = $query->orderBy('date', 'desc')->limit(50)->get();
-        
-        $categories = Category::orderBy('category_name')->get();
-        
-        return \Inertia\Inertia::render('Admin/Reports/Expenses', compact('weeklyExpenses', 'totalExpenses', 'mostExpensive', 'recentExpenses', 'categories'));
-    }
 
+        $categories = Category::orderBy('category_name')->get();
+
+        return Inertia::render('Admin/Reports/Expenses', compact('weeklyExpenses', 'totalExpenses', 'mostExpensive', 'recentExpenses', 'categories'));
+    }
 
     public function general_index()
     {
@@ -714,10 +1070,10 @@ class ReportController extends Controller
         $exports = DB::table('exports')
             ->join('products', 'exports.product_id', '=', 'products.id')
             ->get();
-        
+
         $totalSales = 0;
         $totalBuyingPrice = 0;
-        foreach($exports as $row) {
+        foreach ($exports as $row) {
             $totalSales += ($row->product_price * $row->product_quantity);
             $totalBuyingPrice += ($row->buying_price * $row->product_quantity);
         }
@@ -731,9 +1087,9 @@ class ReportController extends Controller
         $inventory = DB::table('inventories')
             ->join('products', 'inventories.product_id', '=', 'products.id')
             ->get();
-        
+
         $inventoryValue = 0;
-        foreach($inventory as $row) {
+        foreach ($inventory as $row) {
             $inventoryValue += ($row->buying_price * $row->qty);
         }
 
@@ -741,73 +1097,94 @@ class ReportController extends Controller
         $netProfit = $grossProfit - $totalExpenses;
 
         // 5. Total Purchases (Orders) - Legacy view had this as 0, keeping it safe for now
-        $totalPurchases = 0; 
+        $totalPurchases = 0;
 
         // 6. Outstanding Loans
         $outstandingLoans = Loan::sum('total_amount');
 
         $categories = Category::orderBy('category_name')->get();
 
-        return \Inertia\Inertia::render('Admin/Reports/General', compact(
-            'totalSales', 
-            'totalExpenses', 
-            'grossProfit', 
-            'netProfit', 
-            'inventoryValue', 
-            'totalPurchases', 
-            'outstandingLoans', 
+        return Inertia::render('Admin/Reports/General', compact(
+            'totalSales',
+            'totalExpenses',
+            'grossProfit',
+            'netProfit',
+            'inventoryValue',
+            'totalPurchases',
+            'outstandingLoans',
             'categories'
         ));
     }
 
-
-
-
-
-
-
-
-
-
-
-
     /*** Private helper methods ***/
 
-    private function getInventoryProductsQuery()
+    private function getInventoryProductsQuery(?int $storeId = null)
     {
-        return DB::table('mzigos')
-            ->join('products', 'mzigos.product_id', '=', 'products.id')
-            ->leftJoin('exports', 'mzigos.product_id', '=', 'exports.product_id')
-            ->select(
-                'mzigos.*',
-                'products.product_name',
-                'products.product_price',
-                'products.product_id as PRDID',
-                'exports.product_quantity as exportQTY'
-            );
-    }
-
-    private function getInventoryProducts()
-    {
-        return $this->getInventoryProductsQuery()->get();
-    }
-
-    private function calculateInventoryProfit()
-    {
-        return DB::table('inventories')
+        $query = DB::table('inventories')
             ->join('products', 'inventories.product_id', '=', 'products.id')
-            ->selectRaw('SUM(inventories.qty * products.product_price) as total_profit')
-            ->value('total_profit');
+            ->join('product_managements', 'products.product_management_id', '=', 'product_managements.id')
+            ->leftJoin('stores', 'inventories.store_id', '=', 'stores.id')
+            ->selectRaw('
+                inventories.id,
+                inventories.qty as pro_quantity,
+                products.product_name,
+                COALESCE(NULLIF(products.product_price, 0), NULLIF(product_managements.product_price, 0), 0) as product_price,
+                COALESCE(NULLIF(products.buying_price, 0), NULLIF(product_managements.buying_price, 0), 0) as buying_price,
+                products.product_id as PRDID,
+                product_managements.unit_name,
+                product_managements.category_name,
+                stores.store_name
+            ');
+
+        if ($storeId) {
+            $query->where('inventories.store_id', $storeId);
+        }
+
+        return $query;
     }
 
-    private function getOutOfStockProducts()
+    private function getInventoryProducts(?int $storeId = null)
     {
-        return DB::table('product_managements')
+        return $this->getInventoryProductsQuery($storeId)->get();
+    }
+
+    private function calculateInventoryProfit(?int $storeId = null)
+    {
+        $query = DB::table('inventories')
+            ->join('products', 'inventories.product_id', '=', 'products.id')
+            ->leftJoin('product_managements', 'products.product_management_id', '=', 'product_managements.id')
+            ->selectRaw('SUM(inventories.qty * COALESCE(NULLIF(products.buying_price, 0), NULLIF(product_managements.buying_price, 0), 0)) as total_profit');
+
+        if ($storeId) {
+            $query->where('inventories.store_id', $storeId);
+        }
+
+        return $query->value('total_profit');
+    }
+
+    private function getOutOfStockProducts(?int $storeId = null)
+    {
+        $query = DB::table('product_managements')
             ->join('products', 'product_managements.id', '=', 'products.product_management_id')
             ->join('inventories', 'products.id', '=', 'inventories.product_id')
+            ->leftJoin('stores', 'inventories.store_id', '=', 'stores.id')
+            ->select(
+                'product_managements.category_name',
+                'product_managements.unit_name',
+                'product_managements.level',
+                'products.product_name',
+                'products.product_id as PRDID',
+                'inventories.qty as pro_quantity',
+                'stores.store_name'
+            )
             ->whereNotNull('product_managements.level')
-            ->whereColumn('inventories.qty', '<=', 'product_managements.level')
-            ->get();
+            ->whereColumn('inventories.qty', '<=', 'product_managements.level');
+
+        if ($storeId) {
+            $query->where('inventories.store_id', $storeId);
+        }
+
+        return $query->get();
     }
 
     public function balance_sheet()
@@ -830,28 +1207,153 @@ class ReportController extends Controller
         $totalAssets = $cashOnHand + $inventoryValue + $receivables;
 
         // 2. LIABILITIES
-        $liabilities = 0; 
-        
+        $liabilities = 0;
+
         // 3. EQUITY
         $equity = $totalAssets - $liabilities;
 
         $categories = Category::orderBy('category_name')->get();
 
-        return \Inertia\Inertia::render('Admin/Reports/BalanceSheet', [
+        return Inertia::render('Admin/Reports/BalanceSheet', [
             'assets' => [
-                'cash' => (float)$cashOnHand,
-                'inventory' => (float)$inventoryValue,
-                'receivables' => (float)$receivables,
-                'total' => (float)$totalAssets
+                'cash' => (float) $cashOnHand,
+                'inventory' => (float) $inventoryValue,
+                'receivables' => (float) $receivables,
+                'total' => (float) $totalAssets,
             ],
             'liabilities' => [
-                'total' => (float)$liabilities,
-                'items' => [] // Future extension
+                'total' => (float) $liabilities,
+                'items' => [], // Future extension
             ],
             'equity' => [
-                'net_worth' => (float)$equity
+                'net_worth' => (float) $equity,
             ],
-            'categories' => $categories
+            'categories' => $categories,
         ]);
+    }
+
+    public function product_movement(Request $request)
+    {
+        /** @var User $user */
+        $user = Auth::user();
+        $isGlobal = $user->isGlobal();
+        $branchId = $isGlobal ? $request->get('branch_id') : $user->branch_id;
+
+        $dateFrom = $request->get('date_from', Carbon::now()->startOfMonth()->toDateString());
+        $dateTo = $request->get('date_to', Carbon::now()->toDateString());
+        $productId = $request->get('product_id');
+        $category = $request->get('category');
+
+        $query = DB::table('sale_items')
+            ->join('sales', 'sale_items.sale_id', '=', 'sales.id')
+            ->join('products', 'sale_items.product_id', '=', 'products.id')
+            ->join('product_managements', 'products.product_management_id', '=', 'product_managements.id')
+            ->leftJoin('categories', 'product_managements.category_id', '=', 'categories.id')
+            ->whereBetween('sales.created_at', [
+                Carbon::parse($dateFrom)->startOfDay(),
+                Carbon::parse($dateTo)->endOfDay(),
+            ])
+            ->where('sales.is_return', false);
+
+        if ($branchId) {
+            $query->where('sales.branch_id', $branchId);
+        }
+        if ($productId) {
+            $query->where('sale_items.product_id', $productId);
+        }
+        if ($category) {
+            $query->where('categories.category_name', $category);
+        }
+
+        $movements = $query->select([
+            'products.id as product_id',
+            'product_managements.product_name',
+            'product_managements.sku',
+            DB::raw('COALESCE(categories.category_name, \'Uncategorized\') as category'),
+            'sale_items.unit_price',
+            DB::raw('SUM(sale_items.quantity) as total_qty_sold'),
+            DB::raw('SUM(sale_items.subtotal) as total_revenue'),
+            DB::raw('COUNT(DISTINCT sale_items.sale_id) as num_transactions'),
+        ])
+            ->groupBy('products.id', 'product_managements.product_name', 'product_managements.sku', 'categories.category_name', 'sale_items.unit_price')
+            ->orderByDesc('total_qty_sold')
+            ->get();
+
+        $products = DB::table('products')
+            ->join('product_managements', 'products.product_management_id', '=', 'product_managements.id')
+            ->orderBy('product_managements.product_name')
+            ->get(['products.id', 'product_managements.product_name', 'product_managements.sku']);
+        $categories = Category::orderBy('category_name')->get();
+        $branches = $isGlobal ? Branch::orderBy('name')->get() : collect();
+
+        return Inertia::render('Admin/Reports/ProductMovement', compact(
+            'movements', 'products', 'categories', 'branches',
+            'dateFrom', 'dateTo', 'productId', 'category', 'branchId'
+        ));
+    }
+
+    public function product_movement_print(Request $request)
+    {
+        /** @var User $user */
+        $user = Auth::user();
+        $isGlobal = $user->isGlobal();
+        $branchId = $isGlobal ? $request->get('branch_id') : $user->branch_id;
+
+        $dateFrom = $request->get('date_from', Carbon::now()->startOfMonth()->toDateString());
+        $dateTo = $request->get('date_to', Carbon::now()->toDateString());
+        $category = $request->get('category');
+        $productId = $request->get('product_id');
+
+        $query = DB::table('sale_items')
+            ->join('sales', 'sale_items.sale_id', '=', 'sales.id')
+            ->join('products', 'sale_items.product_id', '=', 'products.id')
+            ->join('product_managements', 'products.product_management_id', '=', 'product_managements.id')
+            ->leftJoin('categories', 'product_managements.category_id', '=', 'categories.id')
+            ->whereBetween('sales.created_at', [
+                Carbon::parse($dateFrom)->startOfDay(),
+                Carbon::parse($dateTo)->endOfDay(),
+            ])
+            ->where('sales.is_return', false);
+
+        if ($branchId) {
+            $query->where('sales.branch_id', $branchId);
+        }
+        if ($productId) {
+            $query->where('sale_items.product_id', $productId);
+        }
+        if ($category) {
+            $query->where('categories.category_name', $category);
+        }
+
+        $movements = $query->select([
+            'products.id as product_id',
+            'product_managements.product_name',
+            'product_managements.sku',
+            DB::raw("COALESCE(categories.category_name, 'Uncategorized') as category"),
+            'sale_items.unit_price',
+            DB::raw('SUM(sale_items.quantity) as total_qty_sold'),
+            DB::raw('SUM(sale_items.subtotal) as total_revenue'),
+            DB::raw('COUNT(DISTINCT sale_items.sale_id) as num_transactions'),
+        ])
+            ->groupBy('products.id', 'product_managements.product_name', 'product_managements.sku', 'categories.category_name', 'sale_items.unit_price')
+            ->orderByDesc('total_qty_sold')
+            ->get();
+
+        $companyName = Setting::getValue('business_name', 'Company Name');
+        $companyPhone = Setting::getValue('business_phone', '');
+        $companyEmail = Setting::getValue('business_email', '');
+        $companyAddress = Setting::getValue('business_address', '');
+
+        $branchName = 'All Branches';
+        if ($branchId) {
+            $branch = Branch::find($branchId);
+            $branchName = $branch?->name ?? 'All Branches';
+        }
+
+        return view('admin.reports.product-movement-print', compact(
+            'movements', 'dateFrom', 'dateTo', 'branchName',
+            'companyName', 'companyPhone', 'companyEmail', 'companyAddress',
+            'category', 'branchId'
+        ))->with('filterCategory', $category);
     }
 }

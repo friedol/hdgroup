@@ -1,47 +1,12 @@
 import { Head, Link, router } from '@inertiajs/react';
-import { 
-  Plus, 
-  Search, 
-  Truck, 
-  Phone, 
-  Mail, 
-  MapPin,
-  ChevronLeft, 
-  ChevronRight,
-  Eye,
-  Edit2,
-  Trash2,
-  MoreHorizontal,
-  Globe,
-  Building2,
-  ShieldCheck,
-  Tag
+import {
+  Plus, Search, Truck, Phone, Mail, MapPin,
+  ChevronLeft, ChevronRight, Edit2, Trash2,
+  Globe, Building2, ShieldCheck, Tag, Filter,
+  ArrowUpRight, Users,
 } from 'lucide-react';
 import React, { useState } from 'react';
-import { Badge } from '@/components/ui/badge';
-import { Button } from '@/components/ui/button';
-import { 
-  Card,
-  CardContent,
-  CardHeader,
-  CardTitle,
-} from "@/components/ui/card";
-import { Input } from '@/components/ui/input';
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from "@/components/ui/table";
 import AppLayout from '@/layouts/app-layout';
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu";
 
 interface Supplier {
   id: number;
@@ -54,22 +19,18 @@ interface Supplier {
   category: string | null;
   tax_id: string | null;
   status: boolean;
-  branch?: {
-    name: string;
-  };
+  branch?: { name: string };
 }
 
 interface SuppliersIndexProps {
-  suppliers: { 
-    data: Supplier[]; 
-    current_page: number; 
-    per_page: number; 
+  suppliers: {
+    data: Supplier[];
+    current_page: number;
+    per_page: number;
     total: number;
     last_page: number;
   };
-  filters: {
-    search?: string;
-  };
+  filters: { search?: string };
   metrics: {
     total_suppliers: number;
     active_suppliers: number;
@@ -83,7 +44,7 @@ export default function SuppliersIndex({ suppliers, filters, metrics }: Supplier
   const breadcrumbs = [
     { title: 'Dashboard', href: '/dashboard' },
     { title: 'Operations', href: '#' },
-    { title: 'Suppliers', href: '#' }
+    { title: 'Suppliers', href: '#' },
   ];
 
   const handleSearch = (e: React.FormEvent) => {
@@ -97,195 +58,228 @@ export default function SuppliersIndex({ suppliers, filters, metrics }: Supplier
     }
   };
 
+  const inactive = (metrics?.total_suppliers || 0) - (metrics?.active_suppliers || 0);
+
   return (
     <>
       <Head title="Suppliers" />
       <AppLayout breadcrumbs={breadcrumbs}>
-        <div className="space-y-8 animate-in fade-in duration-500">
-          
-          {/* Header */}
-          <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
+        <div className="max-w-[1700px] mx-auto space-y-6 pb-20">
+
+          {/* ── Header ── */}
+          <div className="flex flex-wrap items-center justify-between gap-4">
             <div>
-              <h1 className="text-2xl font-bold tracking-tight text-slate-900">Suppliers</h1>
-              <p className="text-sm text-slate-500 tracking-tight mt-0.5">Manage your procurement network and vendor relationships.</p>
+              <h1 className="text-2xl font-bold text-slate-800">Suppliers</h1>
+              <p className="text-sm text-slate-500 mt-0.5">Manage your procurement network and vendor relationships</p>
             </div>
             <Link href="/suppliers/create">
-              <Button className="bg-slate-900 hover:bg-slate-800 text-white font-bold rounded-sm px-6 shadow-lg shadow-slate-200">
-                <Plus className="h-4 w-4 mr-2" /> Register Supplier
-              </Button>
+              <button className="inline-flex items-center gap-2 px-4 py-2.5 rounded-xl bg-indigo-600 hover:bg-indigo-700 text-white text-sm font-semibold shadow-sm transition-colors">
+                <Plus className="w-4 h-4" />
+                Register Supplier
+              </button>
             </Link>
           </div>
 
-          {/* Metrics */}
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-            <Card className="border-slate-200 rounded-sm shadow-sm flex items-center gap-5 p-6">
-              <div className="bg-slate-50 p-3 rounded-sm"><Truck className="h-6 w-6 text-slate-400" /></div>
-              <div>
-                <p className="text-[10px] font-bold text-slate-400 tracking-widest uppercase">Total Vendors</p>
-                <p className="text-2xl font-black text-slate-800 tracking-tight">{metrics?.total_suppliers || 0}</p>
+          {/* ── KPI Cards ── */}
+          <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
+            {[
+              { icon: Users,       bg: 'bg-indigo-50',  iconCls: 'text-indigo-600',  label: 'Total Vendors',   value: metrics?.total_suppliers  || 0, sub: 'Registered' },
+              { icon: ShieldCheck, bg: 'bg-emerald-50', iconCls: 'text-emerald-600', label: 'Active',           value: metrics?.active_suppliers  || 0, sub: 'In service' },
+              { icon: Truck,       bg: 'bg-rose-50',    iconCls: 'text-rose-500',    label: 'Inactive',         value: inactive,                       sub: 'Off service' },
+              { icon: Tag,         bg: 'bg-amber-50',   iconCls: 'text-amber-600',   label: 'Categories',       value: metrics?.categories_count  || 0, sub: 'Unique types' },
+            ].map(({ icon: Icon, bg, iconCls, label, value, sub }) => (
+              <div key={label} className="rounded-xl bg-white border border-slate-200 shadow-sm px-3 py-2.5 flex items-center gap-3">
+                <div className={`w-8 h-8 rounded-lg ${bg} flex items-center justify-center flex-shrink-0`}>
+                  <Icon className={`w-4 h-4 ${iconCls}`} />
+                </div>
+                <div>
+                  <p className="text-[10px] font-semibold text-slate-400 uppercase tracking-wider">{label}</p>
+                  <p className="text-base font-bold text-slate-800 mt-0">{value}</p>
+                  <p className="text-[9px] text-slate-400">{sub}</p>
+                </div>
               </div>
-            </Card>
-            <Card className="border-slate-200 rounded-sm shadow-sm flex items-center gap-5 p-6">
-              <div className="bg-amber-50 p-3 rounded-sm"><ShieldCheck className="h-6 w-6 text-amber-600" /></div>
-              <div>
-                <p className="text-[10px] font-bold text-slate-400 tracking-widest uppercase">Active Status</p>
-                <p className="text-2xl font-black text-slate-800 tracking-tight">{metrics?.active_suppliers || 0}</p>
-              </div>
-            </Card>
-            <Card className="border-slate-200 rounded-sm shadow-sm flex items-center gap-5 p-6">
-              <div className="bg-slate-50 p-3 rounded-sm"><Tag className="h-6 w-6 text-slate-400" /></div>
-              <div>
-                <p className="text-[10px] font-bold text-slate-400 tracking-widest uppercase">Categories</p>
-                <p className="text-2xl font-black text-slate-800 tracking-tight">{metrics?.categories_count || 0}</p>
-              </div>
-            </Card>
+            ))}
           </div>
 
-          {/* Table */}
-          <div className="bg-white border border-slate-200 rounded-sm shadow-sm overflow-hidden min-h-[400px]">
-            <div className="p-4 border-b bg-slate-50/50 flex flex-col md:flex-row gap-4 justify-between">
-                <form onSubmit={handleSearch} className="relative w-full md:w-96">
-                   <Search className="absolute left-3 top-3 h-4 w-4 text-slate-400" />
-                   <Input 
-                     value={search}
-                     onChange={(e) => setSearch(e.target.value)}
-                     placeholder="Search suppliers..." 
-                     className="pl-10 h-10 border-slate-200 focus:ring-slate-400 rounded-sm text-xs"
-                   />
-                </form>
-                <div className="flex items-center gap-2">
-                   <Button variant="outline" size="sm" className="h-10 px-4 rounded-sm font-bold text-slate-600 border-slate-200">Export Registry</Button>
-                </div>
+          {/* ── Search / Toolbar ── */}
+          <div className="rounded-2xl bg-white border border-slate-200 shadow-sm p-4">
+            <div className="flex flex-wrap items-center gap-3">
+              <form onSubmit={handleSearch} className="relative flex-1 min-w-[220px]">
+                <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
+                <input
+                  type="text"
+                  value={search}
+                  onChange={(e) => setSearch(e.target.value)}
+                  placeholder="Search suppliers by name, email, city…"
+                  className="w-full pl-9 pr-4 py-2.5 text-sm rounded-xl bg-slate-50/50 border border-slate-200 focus:outline-none focus:ring-2 focus:ring-indigo-500/30 focus:border-indigo-400 focus:bg-white transition-all"
+                />
+              </form>
+              <button
+                type="button"
+                className="inline-flex items-center gap-2 px-4 py-2.5 rounded-xl border border-slate-200 bg-white hover:bg-slate-50 text-slate-600 text-sm font-medium transition-colors"
+              >
+                <Filter className="w-4 h-4" />
+                Filter
+              </button>
+              <button
+                type="button"
+                className="inline-flex items-center gap-2 px-4 py-2.5 rounded-xl border border-slate-200 bg-white hover:bg-slate-50 text-slate-600 text-sm font-medium transition-colors"
+              >
+                <ArrowUpRight className="w-4 h-4" />
+                Export
+              </button>
             </div>
+          </div>
 
-            <Table>
-              <TableHeader className="bg-slate-50/80">
-                <TableRow className="border-b-slate-200">
-                  <TableHead className="font-bold text-slate-800">Supplier Details</TableHead>
-                  <TableHead className="font-bold text-slate-800">Contact Info</TableHead>
-                  <TableHead className="font-bold text-slate-800">Location</TableHead>
-                  <TableHead className="font-bold text-slate-800">Category</TableHead>
-                  <TableHead className="font-bold text-slate-800 text-center">Status</TableHead>
-                  <TableHead className="font-bold text-slate-800 text-right">Actions</TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {suppliers.data.length > 0 ? (
-                  suppliers.data.map((supplier) => (
-                    <TableRow key={supplier.id} className="hover:bg-slate-50 border-b-slate-100 transition-colors">
-                      <TableCell>
-                        <div className="flex flex-col">
-                           <span className="font-bold text-slate-900">{supplier.supplier_name}</span>
-                           <span className="text-[10px] text-slate-400 font-bold uppercase">Branch: {supplier.branch?.name || 'All'}</span>
-                        </div>
-                      </TableCell>
-                      <TableCell>
-                         <div className="flex flex-col gap-1">
-                            {supplier.phone && (
-                              <div className="flex items-center gap-1.5 text-xs text-slate-600">
-                                <Phone className="h-3 w-3 text-slate-400" /> {supplier.phone}
-                              </div>
+          {/* ── Table ── */}
+          <div className="rounded-2xl bg-white border border-slate-200 shadow-sm overflow-hidden">
+            {suppliers.data.length === 0 ? (
+              <div className="flex flex-col items-center justify-center py-20 text-center">
+                <div className="w-16 h-16 rounded-2xl bg-slate-100 flex items-center justify-center mb-4">
+                  <Truck className="w-8 h-8 text-slate-300" />
+                </div>
+                <p className="text-slate-600 font-medium">No suppliers found</p>
+                <p className="text-slate-400 text-sm mt-1">
+                  {search ? `No results for "${search}"` : 'Start by registering your first supplier'}
+                </p>
+              </div>
+            ) : (
+              <div className="overflow-x-auto">
+                <table className="w-full text-sm">
+                  <thead>
+                    <tr className="border-b border-slate-100">
+                      {['Supplier', 'Contact', 'Location', 'Category', 'Status', 'Actions'].map((h) => (
+                        <th key={h} className="px-5 py-3 text-left text-[11px] font-semibold text-slate-400 tracking-wider bg-slate-50 whitespace-nowrap">
+                          {h}
+                        </th>
+                      ))}
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-slate-100">
+                    {suppliers.data.map((supplier) => (
+                      <tr key={supplier.id} className="hover:bg-slate-50/80 transition-colors group">
+
+                        {/* Supplier */}
+                        <td className="px-5 py-4">
+                          <div className="flex items-center gap-3">
+                            <div className="w-8 h-8 rounded-lg bg-indigo-50 flex items-center justify-center flex-shrink-0">
+                              <Building2 className="w-4 h-4 text-indigo-500" />
+                            </div>
+                            <div>
+                              <p className="font-semibold text-slate-800">{supplier.supplier_name}</p>
+                              <p className="text-[10px] font-semibold text-slate-400 uppercase tracking-wider mt-0.5">
+                                Branch: {supplier.branch?.name || 'All'}
+                              </p>
+                            </div>
+                          </div>
+                        </td>
+
+                        {/* Contact */}
+                        <td className="px-5 py-4">
+                          <div className="space-y-1">
+                            {supplier.phone ? (
+                              <a href={`tel:${supplier.phone}`} className="flex items-center gap-1.5 text-xs text-indigo-600 hover:underline">
+                                <Phone className="w-3 h-3 text-slate-400" />{supplier.phone}
+                              </a>
+                            ) : null}
+                            {supplier.email ? (
+                              <a href={`mailto:${supplier.email}`} className="flex items-center gap-1.5 text-xs text-slate-500 hover:text-indigo-600">
+                                <Mail className="w-3 h-3 text-slate-400" />{supplier.email}
+                              </a>
+                            ) : null}
+                            {!supplier.phone && !supplier.email && (
+                              <span className="text-slate-300 text-xs">—</span>
                             )}
-                            {supplier.email && (
-                              <div className="flex items-center gap-1.5 text-xs text-slate-600">
-                                <Mail className="h-3 w-3 text-slate-400" /> {supplier.email}
-                              </div>
-                            )}
-                         </div>
-                      </TableCell>
-                      <TableCell>
-                         <div className="flex flex-col gap-1 text-xs text-slate-600">
-                            <div className="flex items-center gap-1.5">
-                               <MapPin className="h-3 w-3 text-slate-400" /> {supplier.city || 'N/A'}
+                          </div>
+                        </td>
+
+                        {/* Location */}
+                        <td className="px-5 py-4">
+                          <div className="space-y-0.5">
+                            <div className="flex items-center gap-1.5 text-xs text-slate-700">
+                              <MapPin className="w-3 h-3 text-slate-400 flex-shrink-0" />
+                              {supplier.city || 'N/A'}
                             </div>
                             <div className="flex items-center gap-1.5 text-[10px] text-slate-400">
-                               <Globe className="h-3 w-3" /> {supplier.country}
+                              <Globe className="w-3 h-3 flex-shrink-0" />
+                              {supplier.country}
                             </div>
-                         </div>
-                      </TableCell>
-                      <TableCell>
-                         <Badge variant="secondary" className="bg-slate-100 text-slate-600 border-none rounded-xs font-bold text-[9px] px-2 uppercase">
-                           {supplier.category || 'Standard'}
-                         </Badge>
-                      </TableCell>
-                      <TableCell className="text-center">
-                         <Badge 
-                           className={`border-none rounded-full px-2 py-0.5 font-bold text-[8px] uppercase ${
-                             supplier.status 
-                             ? 'bg-emerald-100 text-emerald-700' 
-                             : 'bg-rose-100 text-rose-700'
-                           }`}
-                         >
-                           {supplier.status ? 'Active' : 'Inactive'}
-                         </Badge>
-                      </TableCell>
-                      <TableCell className="text-right">
-                         <DropdownMenu>
-                            <DropdownMenuTrigger asChild>
-                               <Button variant="ghost" size="icon" className="h-8 w-8 rounded-sm">
-                                  <MoreHorizontal className="h-4 w-4" />
-                                </Button>
-                            </DropdownMenuTrigger>
-                            <DropdownMenuContent align="end" className="w-40 rounded-sm">
-                               <Link href={`/suppliers/${supplier.id}/edit`}>
-                                  <DropdownMenuItem className="text-xs cursor-pointer">
-                                     <Edit2 className="h-3 w-3 mr-2 text-slate-400" /> Edit Details
-                                  </DropdownMenuItem>
-                               </Link>
-                               <DropdownMenuItem 
-                                 className="text-xs cursor-pointer text-rose-600 focus:text-rose-700 focus:bg-rose-50"
-                                 onClick={() => handleDelete(supplier.id)}
-                               >
-                                  <Trash2 className="h-3 w-3 mr-2" /> Remove Supplier
-                               </DropdownMenuItem>
-                            </DropdownMenuContent>
-                         </DropdownMenu>
-                      </TableCell>
-                    </TableRow>
-                  ))
-                ) : (
-                  <TableRow>
-                     <TableCell colSpan={6} className="h-64 text-center">
-                        <div className="flex flex-col items-center justify-center opacity-30 grayscale">
-                           <Truck className="h-10 w-10 mb-2" />
-                           <p className="text-sm font-bold">No suppliers registered yet</p>
-                        </div>
-                     </TableCell>
-                  </TableRow>
-                )}
-              </TableBody>
-            </Table>
+                          </div>
+                        </td>
 
-            {/* Pagination */}
-            {suppliers.last_page > 1 && (
-              <div className="p-4 border-t bg-slate-50/30 flex items-center justify-between">
-                 <p className="text-[10px] font-medium text-slate-500">Page {suppliers.current_page} of {suppliers.last_page}</p>
-                 <div className="flex gap-1">
-                    <Link href={`/suppliers?page=${suppliers.current_page - 1}${search ? `&search=${search}` : ''}`}>
-                       <Button 
-                         variant="outline" 
-                         size="icon" 
-                         className="h-8 w-8 rounded-sm border-slate-200" 
-                         disabled={suppliers.current_page === 1}
-                       >
-                          <ChevronLeft className="h-4 w-4" />
-                       </Button>
-                    </Link>
-                    <Link href={`/suppliers?page=${suppliers.current_page + 1}${search ? `&search=${search}` : ''}`}>
-                       <Button 
-                         variant="outline" 
-                         size="icon" 
-                         className="h-8 w-8 rounded-sm border-slate-200" 
-                         disabled={suppliers.current_page === suppliers.last_page}
-                       >
-                          <ChevronRight className="h-4 w-4" />
-                       </Button>
-                    </Link>
-                 </div>
+                        {/* Category */}
+                        <td className="px-5 py-4">
+                          <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-[10px] font-semibold bg-slate-100 text-slate-600 uppercase tracking-wider">
+                            {supplier.category || 'Standard'}
+                          </span>
+                        </td>
+
+                        {/* Status */}
+                        <td className="px-5 py-4">
+                          <span className={`inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-[10px] font-semibold ${
+                            supplier.status
+                              ? 'bg-emerald-100 text-emerald-700'
+                              : 'bg-rose-100 text-rose-600'
+                          }`}>
+                            <span className={`w-1.5 h-1.5 rounded-full ${supplier.status ? 'bg-emerald-500' : 'bg-rose-400'}`} />
+                            {supplier.status ? 'Active' : 'Inactive'}
+                          </span>
+                        </td>
+
+                        {/* Actions */}
+                        <td className="px-5 py-4">
+                          <div className="flex items-center gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
+                            <Link
+                              href={`/suppliers/${supplier.id}/edit`}
+                              className="inline-flex items-center gap-1 px-2.5 py-1.5 text-xs font-medium rounded-lg bg-amber-50 text-amber-700 hover:bg-amber-100 transition-colors"
+                            >
+                              <Edit2 className="w-3 h-3" />Edit
+                            </Link>
+                            <button
+                              onClick={() => handleDelete(supplier.id)}
+                              className="inline-flex items-center gap-1 px-2.5 py-1.5 text-xs font-medium rounded-lg bg-rose-50 text-rose-600 hover:bg-rose-100 transition-colors"
+                            >
+                              <Trash2 className="w-3 h-3" />Delete
+                            </button>
+                          </div>
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+
+                {/* ── Pagination / Footer ── */}
+                <div className="px-5 py-3 bg-slate-50 border-t border-slate-100 flex items-center justify-between text-xs text-slate-500">
+                  <span>
+                    Showing <span className="font-semibold text-slate-700">{suppliers.data.length}</span> of{' '}
+                    <span className="font-semibold text-slate-700">{suppliers.total}</span> suppliers
+                    {search && <> for "<span className="italic">{search}</span>"</>}
+                  </span>
+
+                  {suppliers.last_page > 1 && (
+                    <div className="flex items-center gap-1">
+                      <Link
+                        href={`/suppliers?page=${suppliers.current_page - 1}${search ? `&search=${search}` : ''}`}
+                        className={`inline-flex items-center justify-center w-8 h-8 rounded-lg border border-slate-200 text-slate-500 hover:bg-white transition-colors ${suppliers.current_page === 1 ? 'pointer-events-none opacity-40' : ''}`}
+                      >
+                        <ChevronLeft className="w-4 h-4" />
+                      </Link>
+                      <span className="px-3 py-1 rounded-lg bg-indigo-600 text-white font-semibold text-xs">
+                        {suppliers.current_page}
+                      </span>
+                      <span className="text-slate-400 text-xs px-1">of {suppliers.last_page}</span>
+                      <Link
+                        href={`/suppliers?page=${suppliers.current_page + 1}${search ? `&search=${search}` : ''}`}
+                        className={`inline-flex items-center justify-center w-8 h-8 rounded-lg border border-slate-200 text-slate-500 hover:bg-white transition-colors ${suppliers.current_page === suppliers.last_page ? 'pointer-events-none opacity-40' : ''}`}
+                      >
+                        <ChevronRight className="w-4 h-4" />
+                      </Link>
+                    </div>
+                  )}
+                </div>
               </div>
             )}
           </div>
-
         </div>
       </AppLayout>
     </>

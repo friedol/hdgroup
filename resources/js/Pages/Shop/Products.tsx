@@ -25,6 +25,8 @@ interface Product {
             category_name: string;
         };
     };
+    product_management?: any;
+    variants?: any;
 }
 
 interface Props {
@@ -41,30 +43,30 @@ export default function Products({ products, categories, searchQuery = '' }: Pro
             <Head title="Our Products" />
 
             <div className="min-h-screen bg-slate-50">
-                {/* Centered Hero Section */}
-                <section className="bg-amber-400 py-8 text-slate-900 relative overflow-hidden">
-                    <div className="absolute top-0 right-0 w-64 h-64 bg-amber-300/50 rounded-full blur-3xl opacity-50 -translate-y-1/2 translate-x-1/2"></div>
-                    <div className="absolute bottom-0 left-0 w-64 h-64 bg-amber-300/50 rounded-full blur-3xl opacity-50 translate-y-1/2 -translate-x-1/2"></div>
-                    
-                    <div className="w-[99%] max-w-[1920px] mx-auto px-2 sm:px-4 relative z-10 text-center">
-                        <p className="text-[10px] font-bold uppercase tracking-[0.2em] text-slate-800 mb-2">Product Gallery</p>
-                        <h1 className="text-2xl md:text-3xl font-extrabold mb-2 tracking-tight">Explore our Products</h1>
-                        <p className="text-xs text-slate-800 max-w-2xl mx-auto font-normal">
+                {/* Hero Section */}
+                <section className="bg-blue-600 py-12 text-white relative overflow-hidden">
+                    <div className="absolute top-0 right-0 w-72 h-72 bg-white/10 rounded-full blur-3xl -translate-y-1/2 translate-x-1/2"></div>
+                    <div className="absolute bottom-0 left-0 w-72 h-72 bg-white/10 rounded-full blur-3xl translate-y-1/2 -translate-x-1/2"></div>
+
+                    <div className="w-[98%] md:w-[88%] max-w-[1600px] mx-auto px-2 sm:px-4 md:px-8 relative z-10 text-center">
+                        <span className="inline-block bg-white/20 text-white text-xl font-dancing font-bold px-5 py-1.5 rounded-full mb-4 backdrop-blur-sm border border-white/30">Product Gallery</span>
+                        <h1 className="text-2xl md:text-3xl font-extrabold mb-3 tracking-tight">Explore our Products</h1>
+                        <p className="text-sm text-white/85 max-w-2xl mx-auto font-normal leading-relaxed">
                             Discover high-quality industrial solutions and consumer goods curated for excellence and reliability.
                         </p>
                     </div>
                 </section>
 
-                <div className="w-[99%] max-w-[1920px] mx-auto px-2 sm:px-4 py-12">
+                <div className="w-[98%] md:w-[88%] max-w-[1600px] mx-auto px-2 sm:px-4 md:px-8 py-12">
                     <div className="flex flex-col lg:flex-row gap-8">
                         {/* Sidebar Filters */}
                         <aside className="hidden lg:block w-64 space-y-8 flex-shrink-0">
                             <div>
                                 <h3 className="text-sm font-black uppercase tracking-widest text-slate-900 mb-4">Categories</h3>
                                 <div className="space-y-1">
-                                    <Link 
-                                        href="/shop/products" 
-                                        className="flex items-center justify-between px-3 py-2 rounded-lg text-sm font-bold bg-slate-900 text-amber-400"
+                                    <Link
+                                        href="/shop/products"
+                                        className="flex items-center justify-between px-3 py-2 rounded-lg text-sm font-bold bg-blue-600 text-white"
                                     >
                                         All Products
                                     </Link>

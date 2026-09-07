@@ -2,17 +2,17 @@
 
 namespace App\Http\Controllers;
 
-use App\Models\Delivery;
-use App\Models\DeliveryPerson;
-use App\Models\DeliveryItem;
-use App\Models\DeliveryTracking;
-use App\Models\Loan;
-use App\Models\Export;
 use App\Models\Cart;
+use App\Models\Delivery;
+use App\Models\DeliveryItem;
+use App\Models\DeliveryPerson;
+use App\Models\DeliveryTracking;
+use App\Models\Export;
+use App\Models\Loan;
 use App\Models\Sale;
 use App\Models\User;
-use Illuminate\Support\Collection;
 use Illuminate\Http\Request;
+use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\Schema;
 use Inertia\Inertia;
 
@@ -32,8 +32,8 @@ class DeliveryController extends Controller
         if ($search !== '') {
             $query->where(function ($q) use ($search) {
                 $q->where('delivery_number', 'like', "%{$search}%")
-                  ->orWhere('customer_name', 'like', "%{$search}%")
-                  ->orWhere('phone', 'like', "%{$search}%");
+                    ->orWhere('customer_name', 'like', "%{$search}%")
+                    ->orWhere('phone', 'like', "%{$search}%");
             });
         }
 
@@ -75,7 +75,7 @@ class DeliveryController extends Controller
 
         $virtualRows = collect();
 
-        $includeVirtualRows = !$driverId;
+        $includeVirtualRows = ! $driverId;
         if ($includeVirtualRows) {
             $onlineOrdersQuery = Cart::query()
                 ->whereNotNull('unique_id')
@@ -85,8 +85,8 @@ class DeliveryController extends Controller
             if ($search !== '') {
                 $onlineOrdersQuery->where(function ($q) use ($search) {
                     $q->where('unique_id', 'like', "%{$search}%")
-                      ->orWhere('name', 'like', "%{$search}%")
-                      ->orWhere('phone_number', 'like', "%{$search}%");
+                        ->orWhere('name', 'like', "%{$search}%")
+                        ->orWhere('phone_number', 'like', "%{$search}%");
                 });
             }
 
@@ -101,11 +101,12 @@ class DeliveryController extends Controller
                         $price = (float) ($row->price ?? 0);
                         $qty = (float) ($row->quantity ?? 0);
                         $discount = (float) ($row->discount ?? 0);
+
                         return ($price * $qty) - $discount;
                     });
 
                     return [
-                        'id' => 'cart-' . $orderNumber,
+                        'id' => 'cart-'.$orderNumber,
                         'delivery_number' => $orderNumber,
                         'customer_name' => $first?->name ?? 'Guest Customer',
                         'phone' => $first?->phone_number ?? '-',
@@ -125,7 +126,7 @@ class DeliveryController extends Controller
                 })
                 ->reject(fn ($row) => in_array((string) ($row['delivery_number'] ?? ''), $existingDeliveryNumbers, true))
                 ->filter(function ($row) use ($statusFilter) {
-                    if (!$statusFilter) {
+                    if (! $statusFilter) {
                         return true;
                     }
 
@@ -140,7 +141,7 @@ class DeliveryController extends Controller
             if ($search !== '') {
                 $salesQuery->where(function ($q) use ($search) {
                     $q->where('invoice_number', 'like', "%{$search}%")
-                      ->orWhereHas('posCustomer', fn ($c) => $c->where('customer_name', 'like', "%{$search}%"));
+                        ->orWhereHas('posCustomer', fn ($c) => $c->where('customer_name', 'like', "%{$search}%"));
                 });
             }
 
@@ -149,7 +150,7 @@ class DeliveryController extends Controller
                 ->get()
                 ->map(function ($sale) {
                     return [
-                        'id' => 'sale-' . $sale->invoice_number,
+                        'id' => 'sale-'.$sale->invoice_number,
                         'delivery_number' => $sale->invoice_number,
                         'customer_name' => $sale->posCustomer?->customer_name ?? 'Walking Customer',
                         'phone' => $sale->posCustomer?->customer_phone ?? '-',
@@ -169,7 +170,7 @@ class DeliveryController extends Controller
                     ];
                 })
                 ->filter(function ($row) use ($statusFilter) {
-                    if (!$statusFilter) {
+                    if (! $statusFilter) {
                         return true;
                     }
 
@@ -177,7 +178,7 @@ class DeliveryController extends Controller
                 })
                 ->values();
 
-            $virtualRows = $onlineOrders->merge($salesOrders)->values();
+            $virtualRows = collect($onlineOrders->all())->merge($salesOrders)->values();
         }
 
         if ($virtualRows->isNotEmpty()) {
@@ -185,6 +186,7 @@ class DeliveryController extends Controller
                 collect($deliveries->items())
                     ->map(function ($delivery) {
                         $delivery->source = 'delivery';
+
                         return $delivery;
                     })
                     ->merge($virtualRows)
@@ -198,7 +200,7 @@ class DeliveryController extends Controller
             ->whereNotNull('staff_name')
             ->where(function ($q) {
                 $q->whereHas('role', fn ($r) => $r->whereRaw('LOWER(role_name) like ?', ['%delivery%']))
-                  ->orWhereHas('roles', fn ($r) => $r->whereRaw('LOWER(role_name) like ?', ['%delivery%']));
+                    ->orWhereHas('roles', fn ($r) => $r->whereRaw('LOWER(role_name) like ?', ['%delivery%']));
             })
             ->orderBy('staff_name')
             ->get(['id', 'staff_name']);
@@ -207,7 +209,7 @@ class DeliveryController extends Controller
             ->whereNotNull('staff_name')
             ->where(function ($q) {
                 $q->whereHas('role', fn ($r) => $r->whereRaw('LOWER(role_name) like ? or LOWER(role_name) like ?', ['%seller%', '%sale%']))
-                  ->orWhereHas('roles', fn ($r) => $r->whereRaw('LOWER(role_name) like ? or LOWER(role_name) like ?', ['%seller%', '%sale%']));
+                    ->orWhereHas('roles', fn ($r) => $r->whereRaw('LOWER(role_name) like ? or LOWER(role_name) like ?', ['%seller%', '%sale%']));
             })
             ->orderBy('staff_name')
             ->get(['id', 'staff_name']);
@@ -215,6 +217,7 @@ class DeliveryController extends Controller
         $virtualPendingCount = $virtualRows->where('status', 'pending')->count();
         $virtualTransitCount = $virtualRows->filter(function ($row) {
             $status = (string) ($row['status'] ?? '');
+
             return in_array($status, ['in-transit', 'in_transit'], true);
         })->count();
 
@@ -237,7 +240,7 @@ class DeliveryController extends Controller
                 'search' => $request->input('search'),
                 'status' => $request->input('status'),
                 'driver_id' => $request->input('driver_id'),
-            ]
+            ],
         ]);
     }
 
@@ -269,9 +272,9 @@ class DeliveryController extends Controller
 
         $delivery = Delivery::where('delivery_number', $orderNumber)->first();
 
-        if (!$delivery) {
+        if (! $delivery) {
             $seed = $this->resolveSourceOrderSeed($sourceType, $orderNumber);
-            if (!$seed) {
+            if (! $seed) {
                 return back()->with('error', 'Order not found for delivery assignment.');
             }
 
@@ -551,7 +554,7 @@ class DeliveryController extends Controller
             ]);
         }
 
-        return back()->with('success', 'Delivery status updated to ' . $validated['status']);
+        return back()->with('success', 'Delivery status updated to '.$validated['status']);
     }
 
     /**
@@ -583,6 +586,7 @@ class DeliveryController extends Controller
         }
 
         $delivery->delete();
+
         return redirect('/deliveries')->with('success', 'Delivery deleted successfully!');
     }
 
@@ -646,6 +650,7 @@ class DeliveryController extends Controller
                 $price = (float) ($row->price ?? 0);
                 $qty = (float) ($row->quantity ?? 0);
                 $discount = (float) ($row->discount ?? 0);
+
                 return ($price * $qty) - $discount;
             });
 
@@ -665,7 +670,7 @@ class DeliveryController extends Controller
                 ->where('invoice_number', $orderNumber)
                 ->first();
 
-            if (!$sale) {
+            if (! $sale) {
                 return null;
             }
 

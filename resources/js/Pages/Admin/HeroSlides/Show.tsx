@@ -39,7 +39,7 @@ export default function Show({ heroSlide }: { heroSlide: HeroSlide }) {
     <>
       <Head title={heroSlide.title} />
       <AppLayout breadcrumbs={breadcrumbs}>
-        <div className="max-w-[1000px] mx-auto pb-10">
+        <div className="w-full pb-10">
           <Link href="/settings/hero-slides">
             <Button variant="ghost" className="mb-6 gap-2">
               <ArrowLeft className="w-4 h-4" />

@@ -1,6 +1,7 @@
 import { Head, router } from '@inertiajs/react';
-import { AlertCircle, Plus, Trash2, Camera, RefreshCw, Barcode, Lock, ShieldCheck, ArrowLeft } from 'lucide-react';
-import React, { useState, useRef } from 'react';
+import { AlertCircle, Plus, Trash2, Camera, RefreshCw, Barcode, Lock, ShieldCheck, ArrowLeft, ChevronDown, ChevronUp, Scan, X } from 'lucide-react';
+import React, { useState, useRef, useEffect, useCallback } from 'react';
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { toast } from 'sonner';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
@@ -13,7 +14,7 @@ import AppLayout from '@/layouts/app-layout';
 interface CreateProductProps {
   categories: Array<{ id: number; name: string }>;
   units: Array<{ id: number; name: string }>;
-  stores: Array<{ id: number; name: string; branch_id: number | null }>;
+  stores: Array<{ id: number; name: string; branch_id?: number | null }>;
   branches: Array<{ id: number; name: string }>;
   activeBranchId?: number | null;
   errors?: Record<string, string>;
@@ -22,7 +23,7 @@ interface CreateProductProps {
 interface PricingNode {
   unit_name: string;
   factor: number;
-  market_price: number;
+  market_price: number | string;
 }
 
 interface TechSpec {
@@ -39,14 +40,13 @@ export default function CreateProduct({
   errors = {},
 }: CreateProductProps) {
   const [loading, setLoading] = useState(false);
-  const [selectedBranchId, setSelectedBranchId] = useState<number | string>(activeBranchId ?? '');
-  const isGlobalAdmin = !activeBranchId;
+  const [showMore, setShowMore] = useState(false);
   const [images, setImages] = useState<(File | null)[]>([null, null, null, null, null]);
   const [pricingNodes, setPricingNodes] = useState<PricingNode[]>([{ unit_name: '', factor: 1, market_price: 0 }]);
   const [techSpecs, setTechSpecs] = useState<TechSpec[]>([]);
   const [convRatio, setConvRatio] = useState(1);
   const [buyingUnit, setBuyingUnit] = useState('');
-  const [totalBuyingCost, setTotalBuyingCost] = useState(0);
+  const [totalBuyingCost, setTotalBuyingCost] = useState<number | string>(0);
 
   const [form, setForm] = useState({
     product_name: '',
@@ -61,8 +61,6 @@ export default function CreateProduct({
     description: '',
     // Costing
     buying_price: 0,
-    plain_selling_price: '',
-    printed_selling_price: '',
     // Inventory
     opening_qty: 0,
     reorder_level: '',
@@ -79,12 +77,74 @@ export default function CreateProduct({
     box_h: '',
     box_unit: 'cm',
     // Visibility
-    is_enabled: false,
+    is_enabled: true,
     is_featured: false,
     is_public: false,
+    // Type
+    product_type: 'trading' as 'trading' | 'manufactured',
   });
 
   const fileRefs = useRef<(HTMLInputElement | null)[]>([null, null, null, null, null]);
+
+  /* Barcode scanner modal */
+  const [barcodeModalOpen, setBarcodeModalOpen] = useState(false);
+  const [barcodeScanTab, setBarcodeScanTab] = useState<'usb' | 'camera'>('usb');
+  const [barcodeManualInput, setBarcodeManualInput] = useState('');
+  const [cameraError, setCameraError] = useState('');
+  const barcodeModalInputRef = useRef<HTMLInputElement>(null);
+  const videoRef = useRef<HTMLVideoElement>(null);
+  const streamRef = useRef<MediaStream | null>(null);
+  const detectorRef = useRef<any>(null);
+  const scanIntervalRef = useRef<ReturnType<typeof setInterval> | undefined>(undefined);
+
+  const stopCamera = useCallback(() => {
+    if (scanIntervalRef.current) clearInterval(scanIntervalRef.current);
+    if (streamRef.current) { streamRef.current.getTracks().forEach(t => t.stop()); streamRef.current = null; }
+  }, []);
+
+  const captureBarcode = useCallback((code: string) => {
+    stopCamera();
+    set('barcode', code);
+    setBarcodeModalOpen(false);
+    setBarcodeManualInput('');
+    setCameraError('');
+  }, [stopCamera]);
+
+  const startCamera = useCallback(async () => {
+    setCameraError('');
+    try {
+      const stream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: 'environment' } });
+      streamRef.current = stream;
+      if (videoRef.current) { videoRef.current.srcObject = stream; videoRef.current.play(); }
+      if (!('BarcodeDetector' in window)) {
+        setCameraError('Camera barcode detection is not supported in this browser. Use Chrome or Edge, or use USB scanner mode.');
+        return;
+      }
+      const detector = new (window as any).BarcodeDetector({
+        formats: ['ean_13', 'ean_8', 'upc_a', 'upc_e', 'code_128', 'code_39', 'code_93', 'qr_code', 'data_matrix'],
+      });
+      detectorRef.current = detector;
+      scanIntervalRef.current = setInterval(async () => {
+        if (!videoRef.current || !detectorRef.current) return;
+        try {
+          const barcodes = await detectorRef.current.detect(videoRef.current);
+          if (barcodes.length > 0) captureBarcode(barcodes[0].rawValue);
+        } catch { /* ignore */ }
+      }, 300);
+    } catch {
+      setCameraError('Camera access denied. Please allow camera permission and try again.');
+    }
+  }, [captureBarcode]);
+
+  useEffect(() => {
+    if (barcodeModalOpen && barcodeScanTab === 'usb') {
+      setTimeout(() => barcodeModalInputRef.current?.focus(), 100);
+    }
+    if (barcodeModalOpen && barcodeScanTab === 'camera') startCamera();
+    if (!barcodeModalOpen) stopCamera();
+  }, [barcodeModalOpen, barcodeScanTab, startCamera, stopCamera]);
+
+  useEffect(() => () => stopCamera(), [stopCamera]);
 
   const breadcrumbs = [
     { title: 'Dashboard', href: '/dashboard' },
@@ -94,18 +154,7 @@ export default function CreateProduct({
 
   const set = (field: string, value: any) => setForm(prev => ({ ...prev, [field]: value }));
 
-  // Filter stores by selected branch (for global admins choosing a branch)
-  const filteredStores = selectedBranchId
-    ? stores.filter(s => s.branch_id === Number(selectedBranchId))
-    : stores;
-
-  const handleBranchChange = (branchId: string) => {
-    setSelectedBranchId(branchId);
-    set('branch_id', branchId);
-    set('store_id', ''); // reset store when branch changes
-  };
-
-  const costPerBase = convRatio > 0 ? (totalBuyingCost / convRatio).toFixed(2) : '0.00';
+  const costPerBase = convRatio > 0 ? ((Number(totalBuyingCost) || 0) / convRatio).toFixed(2) : '0.00';
 
   const handleImagePick = (index: number) => fileRefs.current[index]?.click();
   const handleImageChange = (index: number, e: React.ChangeEvent<HTMLInputElement>) => {
@@ -116,7 +165,6 @@ export default function CreateProduct({
  return next; 
 });
   };
-
   const addPricingNode = () => setPricingNodes(prev => [...prev, { unit_name: '', factor: 1, market_price: 0 }]);
   const removePricingNode = (i: number) => setPricingNodes(prev => prev.filter((_, idx) => idx !== i));
   const updatePricingNode = (i: number, field: keyof PricingNode, value: any) => {
@@ -128,7 +176,6 @@ export default function CreateProduct({
     setTechSpecs(prev => prev.map((s, idx) => idx === i ? { ...s, [field]: value } : s));
   };
   const removeTechSpec = (i: number) => setTechSpecs(prev => prev.filter((_, idx) => idx !== i));
-
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     setLoading(true);
@@ -146,8 +193,8 @@ data.append(`images[${i}]`, img);
     data.append('tech_specs', JSON.stringify(techSpecs));
 
     router.post('/products-new', data as any, {
-      onSuccess: () => toast.success('Product published successfully'),
-      onError: () => toast.error('Please fix the errors and try again'),
+      onSuccess: () => { toast.success('Product published successfully'); router.visit('/products-new'); },
+      onError: () => toast.error('Please fill in all required fields before saving'),
       onFinish: () => setLoading(false),
     });
   };
@@ -171,17 +218,91 @@ data.append(`images[${i}]`, img);
   return (
     <>
       <Head title="Create Product" />
+
+      {/* Barcode Scanner Modal */}
+      <Dialog open={barcodeModalOpen} onOpenChange={(open) => { if (!open) { stopCamera(); setCameraError(''); } setBarcodeModalOpen(open); }}>
+        <DialogContent className="sm:max-w-md bg-white" onOpenAutoFocus={e => e.preventDefault()}>
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2 text-base font-bold">
+              <Barcode className="h-4 w-4 text-emerald-600" />
+              Scan Barcode
+            </DialogTitle>
+          </DialogHeader>
+          {/* Tabs */}
+          <div className="flex gap-1 p-1 bg-slate-100 rounded-xl mb-4">
+            {(['usb', 'camera'] as const).map(tab => (
+              <button key={tab} type="button"
+                onClick={() => { stopCamera(); setCameraError(''); setBarcodeScanTab(tab); }}
+                className={`flex-1 py-1.5 rounded-lg text-xs font-bold transition-all ${barcodeScanTab === tab ? 'bg-white text-slate-800 shadow-sm' : 'text-slate-500 hover:text-slate-700'}`}>
+                {tab === 'usb' ? '⌨ USB / Bluetooth Scanner' : '📷 Camera'}
+              </button>
+            ))}
+          </div>
+
+          {barcodeScanTab === 'usb' && (
+            <div className="space-y-4">
+              <div className="relative">
+                <Scan className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-emerald-500" />
+                <input
+                  ref={barcodeModalInputRef}
+                  value={barcodeManualInput}
+                  onChange={e => setBarcodeManualInput(e.target.value)}
+                  onKeyDown={e => { if (e.key === 'Enter') { e.preventDefault(); if (barcodeManualInput.trim()) captureBarcode(barcodeManualInput.trim()); } }}
+                  placeholder="Scan barcode here or type and press Enter..."
+                  autoComplete="off"
+                  className="w-full pl-9 pr-4 py-3 text-sm border-2 border-emerald-200 rounded-xl bg-emerald-50/30 outline-none focus:border-emerald-400 focus:ring-2 focus:ring-emerald-100 transition-all"
+                />
+              </div>
+              <p className="text-xs text-slate-500 text-center">Point your USB or Bluetooth scanner at the barcode.<br/>It will auto-fill the field. Press <kbd className="px-1.5 py-0.5 bg-slate-100 border border-slate-200 rounded text-[10px] font-mono">Enter</kbd> to confirm.</p>
+              {barcodeManualInput.trim() && (
+                <button type="button" onClick={() => captureBarcode(barcodeManualInput.trim())}
+                  className="w-full h-10 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white text-sm font-black transition-colors">
+                  Use "{barcodeManualInput.trim()}"
+                </button>
+              )}
+            </div>
+          )}
+
+          {barcodeScanTab === 'camera' && (
+            <div className="space-y-3">
+              {cameraError ? (
+                <div className="bg-amber-50 border border-amber-200 rounded-xl p-4 text-sm text-amber-700">{cameraError}</div>
+              ) : (
+                <div className="relative rounded-xl overflow-hidden bg-black aspect-video">
+                  <video ref={videoRef} className="w-full h-full object-cover" muted playsInline />
+                  <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
+                    <div className="w-48 h-28 border-2 border-emerald-400 rounded-lg opacity-70" />
+                  </div>
+                </div>
+              )}
+              <p className="text-xs text-slate-500 text-center">Align the barcode within the green frame. It will be captured automatically.</p>
+              {cameraError && (
+                <button type="button" onClick={startCamera}
+                  className="w-full h-10 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white text-sm font-black transition-colors">
+                  Retry Camera
+                </button>
+              )}
+            </div>
+          )}
+
+          <button type="button" onClick={() => { stopCamera(); setBarcodeModalOpen(false); setCameraError(''); }}
+            className="mt-2 w-full h-9 rounded-xl border border-slate-200 text-slate-600 text-sm font-bold hover:bg-slate-50 transition-colors">
+            Cancel
+          </button>
+        </DialogContent>
+      </Dialog>
+
       <AppLayout breadcrumbs={breadcrumbs}>
         <form onSubmit={handleSubmit}>
-          <div className="grid grid-cols-1 xl:grid-cols-[1fr_320px] gap-6 max-w-[1400px] mx-auto space-y-8">
-            <div className="col-span-full border-b border-slate-100 pb-6 mb-2">
+          <div className="grid grid-cols-1 xl:grid-cols-[1fr_320px] gap-4 max-w-[1400px] mx-auto">
+            <div className="col-span-full border-b border-slate-100 pb-3">
               <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
                 <div className="flex items-center gap-4">
                   <Button variant="ghost" size="icon" onClick={() => router.visit('/products-new')} type="button" className="rounded-xl border border-slate-200 h-11 w-11 shadow-sm hover:bg-slate-50 transition-all">
                     <ArrowLeft className="h-5 w-5" />
                   </Button>
                   <div>
-                    <h1 className="text-1xl font-bold text-slate-900 tracking-tight">Create Product</h1>
+                    <h1 className="text-1xl font-bold text-slate-900 tracking-tight">Add Product</h1>
                   </div>
                 </div>
               </div>
@@ -217,8 +338,9 @@ data.append(`images[${i}]`, img);
                     {fieldLabel('Barcode')}
                     <div className="flex gap-2">
                       <Input className={inputCls + ' flex-1'} placeholder="UPC/EAN" value={form.barcode} onChange={e => set('barcode', e.target.value)} />
-                      <button type="button" className="h-9 w-9 border border-slate-200 rounded-lg flex items-center justify-center text-slate-500 hover:bg-slate-50 transition-colors">
-                        <Barcode className="h-3.5 w-3.5" />
+                      <button type="button" onClick={() => { setBarcodeModalOpen(true); setBarcodeScanTab('usb'); setBarcodeManualInput(''); }} className="h-9 px-2.5 border border-emerald-200 bg-emerald-50 rounded-lg flex items-center gap-1.5 text-emerald-700 hover:bg-emerald-100 transition-colors text-xs font-bold">
+                        <Scan className="h-3.5 w-3.5" />
+                        Scan
                       </button>
                     </div>
                   </div>
@@ -231,32 +353,18 @@ data.append(`images[${i}]`, img);
                     </select>
                   </div>
                   <div>
-                    {fieldLabel('Store / Branch', true)}
-                    {isGlobalAdmin && (
-                      <div className="mb-2">
-                        <select
-                          className={selectCls}
-                          value={selectedBranchId}
-                          onChange={e => handleBranchChange(e.target.value)}
-                        >
-                          <option value="">-- Select branch first --</option>
-                          {branches.map(b => <option key={b.id} value={b.id}>{b.name}</option>)}
-                        </select>
-                      </div>
-                    )}
-                    <select className={selectCls} value={form.store_id} onChange={e => set('store_id', e.target.value)}>
-                      <option value="">{selectedBranchId || !isGlobalAdmin ? '-- Select store --' : '-- Select branch above --'}</option>
-                      {filteredStores.map(s => <option key={s.id} value={s.id}>{s.name}</option>)}
+                    {fieldLabel('Branch', true)}
+                    <select className={selectCls} value={form.branch_id} onChange={e => { set('branch_id', e.target.value); set('store_id', ''); }}>
+                      <option value="">-- Select branch --</option>
+                      {branches.map(b => <option key={b.id} value={b.id}>{b.name}</option>)}
                     </select>
                   </div>
                   <div>
-                    {fieldLabel('Brand')}
-                    <Input className={inputCls} placeholder="e.g. HD" value={form.brand} onChange={e => set('brand', e.target.value)} />
-                  </div>
-
-                  <div>
-                    {fieldLabel('Material aspect/type')}
-                    <Input className={inputCls} placeholder="e.g. Non-Woven" value={form.material_type} onChange={e => set('material_type', e.target.value)} />
+                    {fieldLabel('Store', true)}
+                    <select className={selectCls} value={form.store_id} onChange={e => set('store_id', e.target.value)} disabled={!form.branch_id}>
+                      <option value="">{form.branch_id ? '-- Select store --' : '-- Select branch first --'}</option>
+                      {stores.filter(s => !form.branch_id || String(s.branch_id ?? '') === String(form.branch_id)).map(s => <option key={s.id} value={s.id}>{s.name}</option>)}
+                    </select>
                   </div>
                   <div>
                     {fieldLabel('Base unit', true)}
@@ -266,6 +374,32 @@ data.append(`images[${i}]`, img);
                     </select>
                   </div>
                   <div />
+                  <div />
+
+                  {/* Show More Details toggle */}
+                  <div className="col-span-full">
+                    <button
+                      type="button"
+                      onClick={() => setShowMore(v => !v)}
+                      className="flex items-center gap-2 text-xs font-bold text-blue-600 hover:text-blue-700 transition-colors"
+                    >
+                      {showMore ? <ChevronUp className="h-3.5 w-3.5" /> : <ChevronDown className="h-3.5 w-3.5" />}
+                      {showMore ? 'Hide extra details' : 'Show more details'}
+                    </button>
+                  </div>
+
+                  {showMore && (
+                    <>
+                      <div>
+                        {fieldLabel('Brand')}
+                        <Input className={inputCls} placeholder="e.g. HD" value={form.brand} onChange={e => set('brand', e.target.value)} />
+                      </div>
+                      <div>
+                        {fieldLabel('Material aspect / type')}
+                        <Input className={inputCls} placeholder="e.g. Non-Woven" value={form.material_type} onChange={e => set('material_type', e.target.value)} />
+                      </div>
+                    </>
+                  )}
 
                   <div className="col-span-full">
                     {fieldLabel('Description')}
@@ -284,7 +418,7 @@ data.append(`images[${i}]`, img);
                       {fieldLabel('Total buying cost', true)}
                       <div className="flex">
                         <span className="h-9 inline-flex items-center px-4 bg-slate-50 border border-r-0 border-slate-200 rounded-l-lg text-xs font-bold text-slate-500">TZS</span>
-                        <Input type="number" className={inputCls + ' rounded-l-none flex-1'} value={totalBuyingCost} onChange={e => setTotalBuyingCost(parseFloat(e.target.value) || 0)} />
+                        <Input type="number" className={inputCls + ' rounded-l-none flex-1'} value={totalBuyingCost} onChange={e => { const v = e.target.value; setTotalBuyingCost(v === '' ? '' : parseFloat(v)); }} />
                       </div>
                     </div>
                     <div className="grid grid-cols-2 gap-4">
@@ -296,7 +430,7 @@ data.append(`images[${i}]`, img);
                         </select>
                       </div>
                       <div>
-                        {fieldLabel('Conv ratio')}
+                        {fieldLabel(`Pieces inside (${buyingUnit || 'selected buying unit'})`)}
                         <Input type="number" className={inputCls} value={convRatio} onChange={e => setConvRatio(parseFloat(e.target.value) || 1)} />
                       </div>
                     </div>
@@ -333,56 +467,58 @@ data.append(`images[${i}]`, img);
                 </div>
               </div>
 
-              {/* Physical Specifications */}
-              <div className="bg-white rounded-xl border border-slate-200 p-8 shadow-sm">
-                {sectionTitle('🟠', 'Physical specifications', 'text-amber-600')}
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-                  <div>
-                    {fieldLabel('Material weight (GSM)')}
-                    <Input className={inputCls} placeholder="e.g. 70" value={form.gsm} onChange={e => set('gsm', e.target.value)} />
-                  </div>
-                  <div>
-                    {fieldLabel('Material color')}
-                    <Input className={inputCls} placeholder="e.g. Blue" value={form.color} onChange={e => set('color', e.target.value)} />
-                  </div>
-                  <div>
-                    {fieldLabel('Weight')}
-                    <div className="flex gap-2">
-                      <Input className={inputCls + ' flex-1'} value={form.weight} onChange={e => set('weight', e.target.value)} />
-                      <select className="h-9 border border-slate-200 rounded-lg text-xs px-2 bg-white" value={form.weight_unit} onChange={e => set('weight_unit', e.target.value)}>
-                        <option>kg</option><option>g</option><option>lb</option>
-                      </select>
+              {/* Physical Specifications — hidden unless showMore */}
+              {showMore && (
+                <div className="bg-white rounded-xl border border-slate-200 p-8 shadow-sm">
+                  {sectionTitle('🟠', 'Physical specifications', 'text-amber-600')}
+                  <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                    <div>
+                      {fieldLabel('Material weight (GSM)')}
+                      <Input className={inputCls} placeholder="e.g. 70" value={form.gsm} onChange={e => set('gsm', e.target.value)} />
                     </div>
-                  </div>
-                  <div>
-                    {fieldLabel('Width (CM/MM)')}
-                    <div className="flex gap-2">
-                      <Input className={inputCls + ' flex-1'} placeholder="Width" value={form.width} onChange={e => set('width', e.target.value)} />
-                      <button type="button" className="h-9 px-3 border border-slate-200 rounded-lg text-[10px] font-bold text-slate-500 bg-slate-50">SPEC</button>
+                    <div>
+                      {fieldLabel('Material color')}
+                      <Input className={inputCls} placeholder="e.g. Blue" value={form.color} onChange={e => set('color', e.target.value)} />
                     </div>
-                  </div>
-                  <div>
-                    {fieldLabel('Length (M/CM)')}
-                    <div className="flex gap-2">
-                      <Input className={inputCls + ' flex-1'} placeholder="Length" value={form.length} onChange={e => set('length', e.target.value)} />
-                      <button type="button" className="h-9 px-3 border border-slate-200 rounded-lg text-[10px] font-bold text-slate-500 bg-slate-50">SPEC</button>
+                    <div>
+                      {fieldLabel('Weight')}
+                      <div className="flex gap-2">
+                        <Input className={inputCls + ' flex-1'} value={form.weight} onChange={e => set('weight', e.target.value)} />
+                        <select className="h-9 border border-slate-200 rounded-lg text-xs px-2 bg-white" value={form.weight_unit} onChange={e => set('weight_unit', e.target.value)}>
+                          <option>kg</option><option>g</option><option>lb</option>
+                        </select>
+                      </div>
                     </div>
-                  </div>
-                  <div>
-                    {fieldLabel('Box dimensions (L×W×H)')}
-                    <div className="flex gap-1.5 items-center">
-                      <Input className={inputCls + ' w-full'} placeholder="L" value={form.box_l} onChange={e => set('box_l', e.target.value)} />
-                      <span className="text-slate-400 text-xs">×</span>
-                      <Input className={inputCls + ' w-full'} placeholder="W" value={form.box_w} onChange={e => set('box_w', e.target.value)} />
-                      <span className="text-slate-400 text-xs">×</span>
-                      <Input className={inputCls + ' w-full'} placeholder="H" value={form.box_h} onChange={e => set('box_h', e.target.value)} />
-                      <select className="h-9 border border-slate-200 rounded-lg text-xs px-1.5 bg-white" value={form.box_unit} onChange={e => set('box_unit', e.target.value)}>
-                        <option>cm</option><option>mm</option><option>m</option>
-                      </select>
+                    <div>
+                      {fieldLabel('Width (CM/MM)')}
+                      <div className="flex gap-2">
+                        <Input className={inputCls + ' flex-1'} placeholder="Width" value={form.width} onChange={e => set('width', e.target.value)} />
+                        <button type="button" className="h-9 px-3 border border-slate-200 rounded-lg text-[10px] font-bold text-slate-500 bg-slate-50">SPEC</button>
+                      </div>
+                    </div>
+                    <div>
+                      {fieldLabel('Length (M/CM)')}
+                      <div className="flex gap-2">
+                        <Input className={inputCls + ' flex-1'} placeholder="Length" value={form.length} onChange={e => set('length', e.target.value)} />
+                        <button type="button" className="h-9 px-3 border border-slate-200 rounded-lg text-[10px] font-bold text-slate-500 bg-slate-50">SPEC</button>
+                      </div>
+                    </div>
+                    <div>
+                      {fieldLabel('Box dimensions (L×W×H)')}
+                      <div className="flex gap-1.5 items-center">
+                        <Input className={inputCls + ' w-full'} placeholder="L" value={form.box_l} onChange={e => set('box_l', e.target.value)} />
+                        <span className="text-slate-400 text-xs">×</span>
+                        <Input className={inputCls + ' w-full'} placeholder="W" value={form.box_w} onChange={e => set('box_w', e.target.value)} />
+                        <span className="text-slate-400 text-xs">×</span>
+                        <Input className={inputCls + ' w-full'} placeholder="H" value={form.box_h} onChange={e => set('box_h', e.target.value)} />
+                        <select className="h-9 border border-slate-200 rounded-lg text-xs px-1.5 bg-white" value={form.box_unit} onChange={e => set('box_unit', e.target.value)}>
+                          <option>cm</option><option>mm</option><option>m</option>
+                        </select>
+                      </div>
                     </div>
                   </div>
                 </div>
-              </div>
+              )}
 
               {/* Sale Units & Market Pricing */}
               <div className="bg-white rounded-xl border border-slate-200 p-8 shadow-sm">
@@ -394,44 +530,14 @@ data.append(`images[${i}]`, img);
                   <Button type="button" variant="outline" size="sm" onClick={addPricingNode} className="h-9 px-4 border-slate-200 rounded-lg text-xs font-bold text-slate-600 gap-2 hover:bg-slate-50 transition-all">
                     <Plus className="h-3.5 w-3.5" /> Add pricing node
                   </Button>
-                </div>
-
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6 p-4 rounded-xl border border-blue-100 bg-blue-50/60">
-                  <div>
-                    {fieldLabel('Plain bag price (default)')}
-                    <div className="relative">
-                      <Input
-                        type="number"
-                        className="h-9 border-slate-200 rounded-lg pl-8 text-sm font-bold"
-                        value={form.plain_selling_price}
-                        onChange={e => set('plain_selling_price', e.target.value)}
-                        placeholder="Fallback: first pricing node"
-                      />
-                      <span className="absolute left-2.5 top-1/2 -translate-y-1/2 text-[10px] text-slate-400 font-bold">TZS</span>
-                    </div>
-                  </div>
-                  <div>
-                    {fieldLabel('Printed bag price')}
-                    <div className="relative">
-                      <Input
-                        type="number"
-                        className="h-9 border-slate-200 rounded-lg pl-8 text-sm font-bold"
-                        value={form.printed_selling_price}
-                        onChange={e => set('printed_selling_price', e.target.value)}
-                        placeholder="Fallback: plain bag price"
-                      />
-                      <span className="absolute left-2.5 top-1/2 -translate-y-1/2 text-[10px] text-slate-400 font-bold">TZS</span>
-                    </div>
-                  </div>
-                </div>
-                
+                </div>  
                 <div className="overflow-x-auto">
                   <table className="w-full text-sm border-collapse">
                     <thead>
                       <tr className="border-b border-slate-100">
                         <th className="text-left text-[11px] font-bold text-slate-400 tracking-tight py-3 px-2">Unit name</th>
-                        <th className="text-left text-[11px] font-bold text-slate-400 tracking-tight py-3 px-2">Factor</th>
-                        <th className="text-left text-[11px] font-bold text-slate-400 tracking-tight py-3 px-2">Market price</th>
+                        <th className="text-left text-[11px] font-bold text-slate-400 tracking-tight py-3 px-2">Pieces inside</th>
+                        <th className="text-left text-[11px] font-bold text-slate-400 tracking-tight py-3 px-2">{form.product_type === 'trading' ? 'Selling price' : 'Market price'}</th>
                         <th className="text-left text-[11px] font-bold text-slate-400 tracking-tight py-3 px-2">Profit</th>
                         <th className="text-left text-[11px] font-bold text-slate-400 tracking-tight py-3 px-2">Margin</th>
                         <th className="py-3 px-2 text-right">Actions</th>
@@ -439,8 +545,9 @@ data.append(`images[${i}]`, img);
                     </thead>
                     <tbody>
                       {pricingNodes.map((node, i) => {
-                        const profit = node.market_price - (parseFloat(costPerBase) * node.factor);
-                        const margin = node.market_price > 0 ? ((profit / node.market_price) * 100).toFixed(1) : '0.0';
+                        const marketPrice = Number(node.market_price) || 0;
+                        const profit = marketPrice - (parseFloat(costPerBase) * node.factor);
+                        const margin = marketPrice > 0 ? ((profit / marketPrice) * 100).toFixed(1) : '0.0';
 
                         return (
                           <tr key={i} className="border-b border-slate-50 group hover:bg-slate-50/50 transition-colors">
@@ -451,11 +558,14 @@ data.append(`images[${i}]`, img);
                               </select>
                             </td>
                             <td className="py-3 px-2">
-                              <Input type="number" className="h-9 w-24 border-slate-200 rounded-lg text-sm" value={node.factor} onChange={e => updatePricingNode(i, 'factor', parseFloat(e.target.value) || 1)} />
+                              <div className="flex flex-col gap-0.5">
+                                <Input type="number" className="h-9 w-24 border-slate-200 rounded-lg text-sm" value={node.factor} onChange={e => updatePricingNode(i, 'factor', parseFloat(e.target.value) || 1)} />
+                                {node.unit_name && <span className="text-[10px] text-slate-400 font-medium px-1">inside {node.unit_name}</span>}
+                              </div>
                             </td>
                             <td className="py-3 px-2">
                               <div className="relative">
-                                <Input type="number" className="h-9 w-32 border-slate-200 rounded-lg pl-8 text-sm font-bold" value={node.market_price} onChange={e => updatePricingNode(i, 'market_price', parseFloat(e.target.value) || 0)} />
+                                <Input type="number" className="h-9 w-32 border-slate-200 rounded-lg pl-8 text-sm font-bold" value={node.market_price} onChange={e => { const v = e.target.value; updatePricingNode(i, 'market_price', v === '' ? '' : parseFloat(v)); }} />
                                 <span className="absolute left-2.5 top-1/2 -translate-y-1/2 text-[10px] text-slate-400 font-bold">TZS</span>
                               </div>
                             </td>

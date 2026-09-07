@@ -1,1 +1,0 @@
-import{t as e}from"./jsx-runtime-DtjNCdJ5.js";import{t}from"./app-sidebar-layout-DQDlzLuc.js";var n=e(),r=({children:e,breadcrumbs:r,...i})=>(0,n.jsx)(t,{breadcrumbs:r,...i,children:e});export{r as t};

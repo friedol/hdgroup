@@ -1,5 +1,6 @@
 import { Link, usePage } from "@inertiajs/react";
-import { Bell, Search, ChevronDown, User, LogOut, Settings, Heart, Package, ShoppingBag } from "lucide-react";
+import { Bell, Search, ChevronDown, User, LogOut, Settings, Heart, Package, ShoppingBag, Sun, Moon, Monitor } from "lucide-react";
+import { useAppearance } from "@/hooks/use-appearance";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
 import { 
@@ -14,6 +15,7 @@ import {
 export function AppHeader({ breadcrumbs = [] }: { breadcrumbs?: any[] }) {
     const { auth } = usePage().props as any;
     const user = auth?.user;
+    const { appearance, resolvedAppearance, updateAppearance } = useAppearance();
 
     return (
         <header className="h-16 border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60 sticky top-0 z-40 w-full transition-all duration-200">
@@ -56,6 +58,48 @@ export function AppHeader({ breadcrumbs = [] }: { breadcrumbs?: any[] }) {
 
                     {/* Actions */}
                     <div className="flex items-center gap-2">
+                        {/* Theme Switcher */}
+                        <DropdownMenu>
+                            <DropdownMenuTrigger asChild>
+                                <Button variant="ghost" size="icon" className="h-8 w-8 text-zinc-500 hover:text-blue-600" title="Switch Theme">
+                                    {resolvedAppearance === 'dark' ? (
+                                        <Moon className="h-4 w-4 text-amber-400" />
+                                    ) : (
+                                        <Sun className="h-4 w-4 text-amber-500" />
+                                    )}
+                                </Button>
+                            </DropdownMenuTrigger>
+                            <DropdownMenuContent align="end" className="w-36 p-1.5 rounded-xl shadow-xl border-slate-200 dark:border-slate-800 mt-1">
+                                <div className="px-2 py-1 mb-1 text-[10px] font-bold text-slate-400 uppercase tracking-widest">
+                                    Theme
+                                </div>
+                                <DropdownMenuItem
+                                    className={`rounded-lg cursor-pointer text-xs font-medium gap-2 ${appearance === 'light' ? 'bg-blue-50 dark:bg-blue-900/30 text-blue-700 dark:text-blue-400 font-semibold' : ''}`}
+                                    onClick={() => updateAppearance('light')}
+                                >
+                                    <Sun className="h-3.5 w-3.5" />
+                                    <span>Light</span>
+                                    {appearance === 'light' && <span className="ml-auto">✓</span>}
+                                </DropdownMenuItem>
+                                <DropdownMenuItem
+                                    className={`rounded-lg cursor-pointer text-xs font-medium gap-2 ${appearance === 'dark' ? 'bg-blue-50 dark:bg-blue-900/30 text-blue-700 dark:text-blue-400 font-semibold' : ''}`}
+                                    onClick={() => updateAppearance('dark')}
+                                >
+                                    <Moon className="h-3.5 w-3.5" />
+                                    <span>Dark</span>
+                                    {appearance === 'dark' && <span className="ml-auto">✓</span>}
+                                </DropdownMenuItem>
+                                <DropdownMenuItem
+                                    className={`rounded-lg cursor-pointer text-xs font-medium gap-2 ${appearance === 'system' ? 'bg-blue-50 dark:bg-blue-900/30 text-blue-700 dark:text-blue-400 font-semibold' : ''}`}
+                                    onClick={() => updateAppearance('system')}
+                                >
+                                    <Monitor className="h-3.5 w-3.5" />
+                                    <span>System</span>
+                                    {appearance === 'system' && <span className="ml-auto">✓</span>}
+                                </DropdownMenuItem>
+                            </DropdownMenuContent>
+                        </DropdownMenu>
+
                         <Button variant="ghost" size="icon" className="h-8 w-8 text-zinc-500 hover:text-blue-600">
                             <Bell className="h-4 w-4" />
                         </Button>

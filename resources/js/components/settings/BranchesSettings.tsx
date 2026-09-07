@@ -1,4 +1,5 @@
 import React, { useState } from "react";
+import { router } from "@inertiajs/react";
 import { Plus, Building2, ImageIcon, Trash2, X, Upload, Smartphone } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle, CardFooter } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -43,40 +44,61 @@ export default function BranchesSettings({ initialBranches }: BranchesSettingsPr
     setIsBranchModalOpen(true);
   };
 
-  const handleSaveBranch = async () => {
+  const handleSaveBranch = () => {
+    const formData = new FormData();
+    formData.append("name", branchForm.name);
+    formData.append("system_name", branchForm.system_name);
+    formData.append("address", branchForm.address);
+    formData.append("phone", branchForm.phone);
+    formData.append("email", branchForm.email);
+    formData.append("is_active", branchForm.is_active ? "1" : "0");
+
+    if (branchForm.logo) {
+      formData.append("logo", branchForm.logo);
+    }
+
+    if (branchForm.favicon) {
+      formData.append("favicon", branchForm.favicon);
+    }
+
+    if (editingBranch?.id) {
+      formData.append("_method", "PUT");
+      router.post(`/branches/${editingBranch.id}`, formData, {
+        onSuccess: () => {
+          toast.success(`${branchForm.system_name || branchForm.name} identity synchronized`);
+          setIsBranchModalOpen(false);
+        },
+        onError: (errors) => {
+          console.error(errors);
+          toast.error("Institutional identity synchronization failure");
+        }
+      });
+    } else {
+      router.post(`/branches`, formData, {
+        onSuccess: () => {
+          toast.success(`${branchForm.system_name || branchForm.name} identity created`);
+          setIsBranchModalOpen(false);
+        },
+        onError: (errors) => {
+          console.error(errors);
+          toast.error("Failure to create branch");
+        }
+      });
+    }
+  };
+
+  const handleDeleteBranch = async (id: number, name: string) => {
+    if (!window.confirm(`Are you sure you want to delete ${name}? This action cannot be undone.`)) {
+      return;
+    }
+
     try {
-      const formData = new FormData();
-      formData.append("name", branchForm.name);
-      formData.append("system_name", branchForm.system_name);
-      formData.append("address", branchForm.address);
-      formData.append("phone", branchForm.phone);
-      formData.append("email", branchForm.email);
-      formData.append("is_active", branchForm.is_active ? "1" : "0");
-
-      if (branchForm.logo) {
-        formData.append("logo", branchForm.logo);
-      }
-
-      if (branchForm.favicon) {
-        formData.append("favicon", branchForm.favicon);
-      }
-
-      if (editingBranch?.id) {
-        formData.append("_method", "PUT");
-        await axios.post(`/branches/${editingBranch.id}`, formData, {
-          headers: { "Content-Type": "multipart/form-data" }
-        });
-        toast.success(`${branchForm.system_name || branchForm.name} identity synchronized`);
-      } else {
-        await axios.post(`/branches`, formData, {
-          headers: { "Content-Type": "multipart/form-data" }
-        });
-        toast.success(`${branchForm.system_name || branchForm.name} identity created`);
-      }
-      
+      const response = await axios.post(`/branches/${id}/delete`);
+      toast.success(response.data.message || `${name} has been decommissioned`);
       window.location.reload();
     } catch (error: any) {
-      toast.error(error.response?.data?.message || "Institutional identity synchronization failure");
+      console.error("Deletion error:", error);
+      toast.error(error.response?.data?.message || "Failure to decommission branch");
     }
   };
 
@@ -131,7 +153,15 @@ export default function BranchesSettings({ initialBranches }: BranchesSettingsPr
               </div>
               <div className="flex gap-2">
                 <Button variant="outline" size="sm" className="flex-1 text-[10px] font-bold uppercase" onClick={() => handleEditBranch(b)}>Edit Identity</Button>
-                <Button variant="ghost" size="sm" className="text-rose-500 hover:text-rose-600 hover:bg-rose-50"><Trash2 size={16} /></Button>
+                <Button 
+                  type="button"
+                  variant="ghost" 
+                  size="sm" 
+                  className="text-rose-500 hover:text-rose-600 hover:bg-rose-50"
+                  onClick={() => handleDeleteBranch(b.id, b.system_name || b.name)}
+                >
+                  <Trash2 size={16} />
+                </Button>
               </div>
             </CardContent>
           </Card>

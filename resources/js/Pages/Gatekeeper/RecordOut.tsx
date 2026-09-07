@@ -1,10 +1,10 @@
 import { Head, Link, useForm } from "@inertiajs/react";
-import { ArrowLeft, Plus, ArrowRight } from "lucide-react";
+import { ArrowLeft, ArrowRight, Factory, Package, PenLine } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import AppLayout from "@/layouts/app-layout";
-import { FormEventHandler } from "react";
+import { useState } from "react";
 
 interface Product {
   id: number;
@@ -13,19 +13,27 @@ interface Product {
   unit_price: number;
 }
 
-interface Customer {
+interface RawMaterial {
   id: number;
-  staff_name: string;
+  name: string;
+  category: string;
+  base_unit: string;
+  cost_per_unit: number;
 }
 
 interface RecordOutProps {
   products: Product[];
-  customers: Customer[];
+  rawMaterials: RawMaterial[];
 }
 
-export default function RecordOut({ products, customers }: RecordOutProps) {
+export default function RecordOut({ products, rawMaterials }: RecordOutProps) {
+  const [productMode, setProductMode] = useState<"catalog" | "custom">("catalog");
+  const [itemType, setItemType] = useState<"product" | "raw_material">("product");
+
   const { data, setData, post, processing, errors } = useForm({
+    item_type: "product" as "product" | "raw_material",
     product_id: "",
+    raw_material_id: "",
     product_name: "",
     quantity: "",
     unit_price: "",
@@ -35,7 +43,6 @@ export default function RecordOut({ products, customers }: RecordOutProps) {
     destination: "",
     reference_number: "",
     contact_info: "",
-    verification_code: "",
     notes: "",
   });
 
@@ -45,27 +52,65 @@ export default function RecordOut({ products, customers }: RecordOutProps) {
     { title: "Record OUT", href: "#" },
   ];
 
-  const handleProductSelect: FormEventHandler = (e: any) => {
-    const productId = e.target.value;
-    const selected = products.find((p) => p.id === parseInt(productId));
+  const switchItemType = (type: "product" | "raw_material") => {
+    setItemType(type);
+    setData((prev) => ({
+      ...prev,
+      item_type: type,
+      product_id: "",
+      raw_material_id: "",
+      product_name: "",
+      unit_price: "",
+      unit: "pcs",
+    }));
+  };
+
+  const handleProductSelect = (e: React.ChangeEvent<HTMLSelectElement>) => {
+    const id = e.target.value;
+    if (!id) {
+      setData((prev) => ({ ...prev, product_id: "", product_name: "", unit_price: "" }));
+      return;
+    }
+    const selected = products.find((p) => p.id === parseInt(id));
     if (selected) {
       setData((prev) => ({
         ...prev,
-        product_id: productId,
+        product_id: id,
         product_name: selected.product_name,
-        unit_price: selected.unit_price.toString(),
+        unit_price: (selected.unit_price || selected.product_price || 0).toString(),
       }));
     }
   };
 
-  const handleSubmit: FormEventHandler = (e) => {
-    e.preventDefault();
-    post("/gatekeeper/record-out", {
-      onSuccess: () => {
-        // Form will be reset after navigation
-      },
-    });
+  const handleRawMaterialSelect = (e: React.ChangeEvent<HTMLSelectElement>) => {
+    const id = e.target.value;
+    if (!id) {
+      setData((prev) => ({ ...prev, raw_material_id: "", product_name: "", unit_price: "", unit: "pcs" }));
+      return;
+    }
+    const selected = rawMaterials.find((m) => m.id === parseInt(id));
+    if (selected) {
+      setData((prev) => ({
+        ...prev,
+        raw_material_id: id,
+        product_name: selected.name,
+        unit_price: (selected.cost_per_unit || 0).toString(),
+        unit: selected.base_unit || "pcs",
+      }));
+    }
   };
+
+  const switchMode = (mode: "catalog" | "custom") => {
+    setProductMode(mode);
+    setData((prev) => ({ ...prev, product_id: "", raw_material_id: "", product_name: "", unit_price: "" }));
+  };
+
+  const handleSubmit = (e: { preventDefault(): void }) => {
+    e.preventDefault();
+    post("/gatekeeper/record-out");
+  };
+
+  const rawMaterialCategories = Array.from(new Set(rawMaterials.map((m) => m.category || "Uncategorized")));
 
   return (
     <>
@@ -76,235 +121,294 @@ export default function RecordOut({ products, customers }: RecordOutProps) {
             <Link href="/gatekeeper">
               <ArrowLeft className="w-5 h-5 hover:text-blue-600" />
             </Link>
-            <div>
-              <h1 className="text-[18px] font-bold text-orange-600">
-                <ArrowRight className="inline-block mr-2 w-6 h-6" />
-                Outgoing Product
-              </h1>
-            </div>
+            <h1 className="text-[18px] font-bold text-orange-600">
+              <ArrowRight className="inline-block mr-2 w-6 h-6" />
+              Outgoing Product
+            </h1>
           </div>
 
           <form onSubmit={handleSubmit} className="space-y-6">
-            {/* Two Column Layout */}
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-              {/* Product Information */}
+              {/* Product / Item Information */}
               <Card>
                 <CardHeader>
-                  <CardTitle className="text-sm">Product Information</CardTitle>
+                  <CardTitle className="text-sm">Product / Item Information</CardTitle>
                 </CardHeader>
                 <CardContent className="space-y-4">
-                  <div>
-                    <label className="block text-sm font-medium mb-2">
-                      Select Product *
-                    </label>
-                  <select
-                    value={data.product_id}
-                    onChange={handleProductSelect}
-                    className="w-full px-3 py-2 border rounded-md"
-                    required
-                  >
-                    <option value="">Choose a product...</option>
-                    {products.map((p) => (
-                      <option key={p.id} value={p.id}>
-                        {p.product_name} - TZS {p.product_price.toLocaleString()}
-                      </option>
-                    ))}
-                  </select>
-                  {errors.product_id && (
-                    <p className="text-red-600 text-xs mt-1">{errors.product_id}</p>
-                  )}
-                </div>
 
-                <div className="grid grid-cols-2 gap-4">
+                  {/* Item Type Toggle */}
                   <div>
-                    <label className="block text-sm font-medium mb-2">
-                      Quantity *
-                    </label>
+                    <label className="block text-xs font-medium text-slate-500 mb-1">Item Type *</label>
+                    <div className="flex rounded-md border overflow-hidden text-sm font-medium">
+                      <button
+                        type="button"
+                        onClick={() => switchItemType("product")}
+                        className={`flex-1 flex items-center justify-center gap-2 py-2 transition-colors ${
+                          itemType === "product"
+                            ? "bg-orange-600 text-white"
+                            : "bg-white dark:bg-slate-900 text-slate-600 dark:text-slate-400 hover:bg-slate-50 dark:hover:bg-slate-800"
+                        }`}
+                      >
+                        <Package className="w-4 h-4" />
+                        Finished Product
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => switchItemType("raw_material")}
+                        className={`flex-1 flex items-center justify-center gap-2 py-2 transition-colors ${
+                          itemType === "raw_material"
+                            ? "bg-orange-600 text-white"
+                            : "bg-white dark:bg-slate-900 text-slate-600 dark:text-slate-400 hover:bg-slate-50 dark:hover:bg-slate-800"
+                        }`}
+                      >
+                        <Factory className="w-4 h-4" />
+                        Raw Material
+                      </button>
+                    </div>
+                  </div>
+
+                  {/* Catalog / Custom toggle */}
+                  <div className="flex rounded-md border overflow-hidden text-sm font-medium">
+                    <button
+                      type="button"
+                      onClick={() => switchMode("catalog")}
+                      className={`flex-1 flex items-center justify-center gap-2 py-2 transition-colors ${
+                        productMode === "catalog"
+                          ? "bg-orange-600 text-white"
+                          : "bg-white dark:bg-slate-900 text-slate-600 dark:text-slate-400 hover:bg-slate-50 dark:hover:bg-slate-800"
+                      }`}
+                    >
+                      <Package className="w-4 h-4" />
+                      Select from Catalog
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => switchMode("custom")}
+                      className={`flex-1 flex items-center justify-center gap-2 py-2 transition-colors ${
+                        productMode === "custom"
+                          ? "bg-orange-600 text-white"
+                          : "bg-white dark:bg-slate-900 text-slate-600 dark:text-slate-400 hover:bg-slate-50 dark:hover:bg-slate-800"
+                      }`}
+                    >
+                      <PenLine className="w-4 h-4" />
+                      Type Custom Item
+                    </button>
+                  </div>
+
+                  {/* Catalog — Finished Products */}
+                  {productMode === "catalog" && itemType === "product" && (
+                    <div>
+                      <label className="block text-sm font-medium mb-2">Select Product *</label>
+                      <select
+                        value={data.product_id}
+                        onChange={handleProductSelect}
+                        className="w-full px-3 py-2 border rounded-md dark:bg-slate-900 dark:border-slate-700"
+                        required
+                      >
+                        <option value="">Choose a product...</option>
+                        {products.map((p) => (
+                          <option key={p.id} value={p.id}>
+                            {p.product_name} — TZS {(p.unit_price || p.product_price || 0).toLocaleString()}
+                          </option>
+                        ))}
+                      </select>
+                      {errors.product_id && <p className="text-red-600 text-xs mt-1">{errors.product_id}</p>}
+                      {data.product_name && (
+                        <p className="text-xs text-slate-500 mt-1">
+                          Selected: <span className="font-medium text-slate-700 dark:text-slate-300">{data.product_name}</span>
+                        </p>
+                      )}
+                    </div>
+                  )}
+
+                  {/* Catalog — Raw Materials */}
+                  {productMode === "catalog" && itemType === "raw_material" && (
+                    <div>
+                      <label className="block text-sm font-medium mb-2">Select Raw Material *</label>
+                      <select
+                        value={data.raw_material_id}
+                        onChange={handleRawMaterialSelect}
+                        className="w-full px-3 py-2 border rounded-md dark:bg-slate-900 dark:border-slate-700"
+                        required
+                      >
+                        <option value="">Choose a raw material...</option>
+                        {rawMaterialCategories.map((cat) => (
+                          <optgroup key={cat} label={cat}>
+                            {rawMaterials
+                              .filter((m) => (m.category || "Uncategorized") === cat)
+                              .map((m) => (
+                                <option key={m.id} value={m.id}>
+                                  {m.name} — TZS {(m.cost_per_unit || 0).toLocaleString()} / {m.base_unit}
+                                </option>
+                              ))}
+                          </optgroup>
+                        ))}
+                      </select>
+                      {errors.raw_material_id && <p className="text-red-600 text-xs mt-1">{errors.raw_material_id}</p>}
+                      {data.product_name && (
+                        <p className="text-xs text-slate-500 mt-1">
+                          Selected: <span className="font-medium text-slate-700 dark:text-slate-300">{data.product_name}</span>
+                        </p>
+                      )}
+                    </div>
+                  )}
+
+                  {/* Custom Mode */}
+                  {productMode === "custom" && (
+                    <div>
+                      <label className="block text-sm font-medium mb-2">
+                        {itemType === "raw_material" ? "Raw Material Name *" : "Item / Product Name *"}
+                      </label>
+                      <Input
+                        type="text"
+                        value={data.product_name}
+                        onChange={(e) => setData("product_name", e.target.value)}
+                        placeholder={
+                          itemType === "raw_material"
+                            ? "e.g., Cotton Fabric, Steel Rod..."
+                            : "e.g., Office Chair, Equipment, Package..."
+                        }
+                        required={productMode === "custom"}
+                        autoFocus
+                      />
+                      {errors.product_name && <p className="text-red-600 text-xs mt-1">{errors.product_name}</p>}
+                    </div>
+                  )}
+
+                  <div className="grid grid-cols-2 gap-4">
+                    <div>
+                      <label className="block text-sm font-medium mb-2">Quantity *</label>
+                      <Input
+                        type="number"
+                        step="0.01"
+                        value={data.quantity}
+                        onChange={(e) => setData("quantity", e.target.value)}
+                        placeholder="Enter quantity"
+                        required
+                      />
+                      {errors.quantity && <p className="text-red-600 text-xs mt-1">{errors.quantity}</p>}
+                    </div>
+                    <div>
+                      <label className="block text-sm font-medium mb-2">Unit *</label>
+                      <Input
+                        type="text"
+                        value={data.unit}
+                        onChange={(e) => setData("unit", e.target.value)}
+                        placeholder="pcs, kg, m, etc"
+                        required
+                      />
+                    </div>
+                  </div>
+
+                  <div>
+                    <label className="block text-sm font-medium mb-2">Unit Price (TZS) *</label>
                     <Input
                       type="number"
                       step="0.01"
-                      value={data.quantity}
-                      onChange={(e) => setData("quantity", e.target.value)}
-                      placeholder="Enter quantity"
-                      required
-                    />
-                    {errors.quantity && (
-                      <p className="text-red-600 text-xs mt-1">{errors.quantity}</p>
-                    )}
-                  </div>
-
-                  <div>
-                    <label className="block text-sm font-medium mb-2">
-                      Unit *
-                    </label>
-                    <Input
-                      type="text"
-                      value={data.unit}
-                      onChange={(e) => setData("unit", e.target.value)}
-                      placeholder="pcs, kg, etc"
+                      value={data.unit_price}
+                      onChange={(e) => setData("unit_price", e.target.value)}
+                      placeholder="0.00"
                       required
                     />
                   </div>
-                </div>
+                </CardContent>
+              </Card>
 
-                <div>
-                  <label className="block text-sm font-medium mb-2">
-                    Unit Price (TZS) *
-                  </label>
-                  <Input
-                    type="number"
-                    step="0.01"
-                    value={data.unit_price}
-                    onChange={(e) => setData("unit_price", e.target.value)}
-                    placeholder="0.00"
-                    required
-                  />
-                </div>
-              </CardContent>
-            </Card>
-
-            {/* Destination Information */}
-            <Card>
-              <CardHeader>
-                <CardTitle className="text-sm">Destination Information</CardTitle>
-              </CardHeader>
-              <CardContent className="space-y-4">
-                <div>
-                  <label className="block text-sm font-medium mb-2">
-                    Handler Type *
-                  </label>
-                  <select
-                    value={data.handler_type}
-                    onChange={(e) => setData("handler_type", e.target.value)}
-                    className="w-full px-3 py-2 border rounded-md"
-                  >
-                    <option value="Customer">Customer</option>
-                    <option value="Staff">Staff</option>
-                    <option value="Delivery">Delivery Person</option>
-                    <option value="Registered">Registered Person</option>
-                    <option value="Supplier">Supplier (Return)</option>
-                  </select>
-                </div>
-
-                <div>
-                  <label className="block text-sm font-medium mb-2">
-                    Handler Name *
-                  </label>
-                  <Input
-                    type="text"
-                    value={data.handler_name}
-                    onChange={(e) => setData("handler_name", e.target.value)}
-                    placeholder="Name of person/company receiving"
-                    required
-                  />
-                  {errors.handler_name && (
-                    <p className="text-red-600 text-xs mt-1">{errors.handler_name}</p>
-                  )}
-                </div>
-
-                <div>
-                  <label className="block text-sm font-medium mb-2">
-                    Destination *
-                  </label>
-                  <Input
-                    type="text"
-                    value={data.destination}
-                    onChange={(e) => setData("destination", e.target.value)}
-                    placeholder="e.g., Customer: ABC Store or Location: Branch 2"
-                    required
-                  />
-                  {errors.destination && (
-                    <p className="text-red-600 text-xs mt-1">{errors.destination}</p>
-                  )}
-                </div>
-
-                <div className="grid grid-cols-2 gap-4">
+              {/* Destination Information */}
+              <Card>
+                <CardHeader>
+                  <CardTitle className="text-sm">Destination Information</CardTitle>
+                </CardHeader>
+                <CardContent className="space-y-4">
                   <div>
-                    <label className="block text-sm font-medium mb-2">
-                      Contact Info (Optional)
-                    </label>
-                    <Input
-                      type="text"
-                      value={data.contact_info}
-                      onChange={(e) => setData("contact_info", e.target.value)}
-                      placeholder="Phone or email"
-                    />
+                    <label className="block text-sm font-medium mb-2">Handler Type *</label>
+                    <select
+                      value={data.handler_type}
+                      onChange={(e) => setData("handler_type", e.target.value)}
+                      className="w-full px-3 py-2 border rounded-md dark:bg-slate-900 dark:border-slate-700"
+                    >
+                      <option value="Customer">Customer</option>
+                      <option value="Staff">Staff</option>
+                      <option value="Transporter">Transporter</option>
+                      <option value="Delivery">Delivery Person</option>
+                      <option value="Registered">Registered Person</option>
+                      <option value="Supplier">Supplier (Return)</option>
+                    </select>
                   </div>
 
                   <div>
-                    <label className="block text-sm font-medium mb-2">
-                      Reference Number (Optional)
-                    </label>
+                    <label className="block text-sm font-medium mb-2">Handler Name *</label>
                     <Input
                       type="text"
-                      value={data.reference_number}
-                      onChange={(e) => setData("reference_number", e.target.value)}
-                      placeholder="Order/Delivery number"
+                      value={data.handler_name}
+                      onChange={(e) => setData("handler_name", e.target.value)}
+                      placeholder="Name of person/company receiving"
+                      required
                     />
+                    {errors.handler_name && <p className="text-red-600 text-xs mt-1">{errors.handler_name}</p>}
                   </div>
-                </div>
-              </CardContent>
-            </Card>
+
+                  <div>
+                    <label className="block text-sm font-medium mb-2">Destination *</label>
+                    <Input
+                      type="text"
+                      value={data.destination}
+                      onChange={(e) => setData("destination", e.target.value)}
+                      placeholder="e.g., Customer: ABC Store or Location: Branch 2"
+                      required
+                    />
+                    {errors.destination && <p className="text-red-600 text-xs mt-1">{errors.destination}</p>}
+                  </div>
+
+                  <div className="grid grid-cols-2 gap-4">
+                    <div>
+                      <label className="block text-sm font-medium mb-2">Contact Info (Optional)</label>
+                      <Input
+                        type="text"
+                        value={data.contact_info}
+                        onChange={(e) => setData("contact_info", e.target.value)}
+                        placeholder="Phone or email"
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-sm font-medium mb-2">Reference Number (Optional)</label>
+                      <Input
+                        type="text"
+                        value={data.reference_number}
+                        onChange={(e) => setData("reference_number", e.target.value)}
+                        placeholder="Order/Delivery number"
+                      />
+                    </div>
+                  </div>
+                </CardContent>
+              </Card>
             </div>
 
-            {/* Security Verification */}
+            {/* Additional Information */}
             <Card>
               <CardHeader>
-                <CardTitle className="text-sm">Security Verification</CardTitle>
+                <CardTitle className="text-sm">Additional Information</CardTitle>
               </CardHeader>
-              <CardContent className="space-y-4">
-                <div>
-                  <label className="block text-sm font-medium mb-2">
-                    Verification Code (4 digits) *
-                  </label>
-                  <Input
-                    type="password"
-                    maxLength={4}
-                    value={data.verification_code}
-                    onChange={(e) => setData("verification_code", e.target.value)}
-                    placeholder="Enter 4-digit code"
-                    required
-                    className="text-center text-lg tracking-widest"
-                  />
-                  {errors.verification_code && (
-                    <p className="text-red-600 text-xs mt-1">
-                      {errors.verification_code}
-                    </p>
-                  )}
-                  <p className="text-xs text-slate-500 mt-2">
-                    Enter the 4-digit verification code for security
-                  </p>
-                </div>
-
-                <div>
-                  <label className="block text-sm font-medium mb-2">
-                    Additional Notes (Optional)
-                  </label>
-                  <textarea
-                    value={data.notes}
-                    onChange={(e) => setData("notes", e.target.value)}
-                    placeholder="Any additional information..."
-                    className="w-full px-3 py-2 border rounded-md"
-                    rows={3}
-                  />
-                </div>
+              <CardContent>
+                <label className="block text-sm font-medium mb-2">Additional Notes (Optional)</label>
+                <textarea
+                  value={data.notes}
+                  onChange={(e) => setData("notes", e.target.value)}
+                  placeholder="Any additional information..."
+                  className="w-full px-3 py-2 border rounded-md dark:bg-slate-900 dark:border-slate-700"
+                  rows={3}
+                />
               </CardContent>
             </Card>
 
             {/* Action Buttons */}
             <div className="flex gap-3 pt-4">
-              <Button
-                type="submit"
-                disabled={processing}
-                className="flex-1 bg-orange-600 hover:bg-orange-700"
-              >
+              <Button type="submit" disabled={processing} className="flex-1 bg-orange-600 hover:bg-orange-700">
                 <ArrowRight className="w-4 h-4 mr-2" />
                 Record as OUTGOING
               </Button>
               <Link href="/gatekeeper" className="flex-1">
-                <Button variant="outline" className="w-full">
-                  Cancel
-                </Button>
+                <Button variant="outline" className="w-full">Cancel</Button>
               </Link>
             </div>
           </form>

@@ -1,29 +1,10 @@
 import { Head, Link } from "@inertiajs/react";
-import AppSidebarLayout from "@/layouts/app/app-sidebar-layout";
-import { 
-  Package, 
-  Search, 
-  ArrowLeft,
-  AlertCircle,
-  PackageCheck,
-  PackageX,
-  Eye,
-  ArrowUpRight
-} from "lucide-react";
+import { Package, Search, Eye, Edit, Image, ChevronLeft, ChevronRight, AlertTriangle, CheckCircle2 } from "lucide-react";
 import { useState } from "react";
-import { Card, CardContent } from "@/components/ui/card";
-import { Input } from "@/components/ui/input";
-import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from "@/components/ui/table";
+import AppLayout from "@/layouts/app-layout";
 
+/* ─── Types ────────────────────────────────────── */
 interface Product {
   id: number;
   product_id: string; // SKU
@@ -32,6 +13,13 @@ interface Product {
   total_qty: number;
   level: number; // Low stock threshold
   buying_price: number;
+  product_management?: {
+    category_name?: string;
+    image_url?: string | null;
+    product_price?: number;
+    plain_selling_price?: number;
+    printed_selling_price?: number;
+  };
 }
 
 interface Props {
@@ -40,155 +28,245 @@ interface Props {
   addTrue: boolean;
 }
 
-export default function InstockOutstockProducts({ products, title, addTrue }: Props) {
-  const [search, setSearch] = useState("");
+/* ─── Helpers ──────────────────────────────────── */
+const typeBadge = (type: string) => {
+  const map: Record<string, string> = {
+    trading: 'bg-blue-50 text-blue-700',
+    manufactured: 'bg-violet-50 text-violet-700',
+    raw_material: 'bg-amber-50 text-amber-700',
+  };
 
-  const filteredProducts = products.filter(p => 
-    p.product_name.toLowerCase().includes(search.toLowerCase()) ||
-    p.product_id.toLowerCase().includes(search.toLowerCase())
+  return map[type] ?? 'bg-slate-100 text-slate-600';
+};
+
+const typeLabel = (type: string) => {
+  const map: Record<string, string> = {
+    trading: 'Trading',
+    manufactured: 'Manufactured',
+    raw_material: 'Raw material',
+  };
+
+  return map[type] ?? type;
+};
+
+/* ─── Component ────────────────────────────────── */
+export default function InstockOutstockProducts({ products, title, addTrue }: Props) {
+  const [searchQuery, setSearchQuery] = useState("");
+
+  const filteredProducts = products.filter(p =>
+    p.product_name.toLowerCase().includes(searchQuery.toLowerCase()) ||
+    p.product_id.toLowerCase().includes(searchQuery.toLowerCase())
   );
 
+  const breadcrumbs = [
+    { title: 'Dashboard', href: '/dashboard' },
+    { title: 'Products', href: '/products-new' },
+    { title: title, href: '#' }
+  ];
+
+  const totalQuantity = filteredProducts.reduce((sum, p) => sum + (p.total_qty ?? 0), 0);
   const isOutofStock = title.toLowerCase().includes('outstock');
+  const isLowStock = title.toLowerCase().includes('low') || title.toLowerCase().includes('less');
 
   return (
-    <AppSidebarLayout>
+    <>
       <Head title={title} />
-      
-      <div className="max-w-[1400px] mx-auto space-y-6 animate-in fade-in slide-in-from-bottom-4 duration-700">
-        {/* Header Section */}
-        <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
-          <div className="flex items-center gap-4">
-          
+      <AppLayout breadcrumbs={breadcrumbs}>
+        <div className="max-w-[1700px] mx-auto space-y-6 pb-20">
+
+          {/* ── Header ── */}
+          <div className="flex items-center justify-between">
             <div>
-              <h1 className="text-[14px] sm:text-[16px] md:text-[18px] font-medium text-slate-900 tracking-tight leading-none flex items-center gap-2">
-              
-                {title}
-              </h1>
-              <p className="text-sm text-slate-500 font-medium">
-                {filteredProducts.length} Items Found 
-              </p>
+              <h1 className="text-[18px] font-bold text-slate-900 tracking-tight leading-none">{title}</h1>
             </div>
           </div>
 
-          <div className="relative w-full md:w-[320px]">
-            <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400" size={18} />
-            <Input
-              placeholder="Search by name or SKU..."
-              className="pl-11 h-11 border-slate-200 focus:ring-emerald-500 focus:border-emerald-500 rounded-xl"
-              value={search}
-              onChange={(e) => setSearch(e.target.value)}
-            />
+          {/* ── Stats bar ── */}
+          <div className="grid grid-cols-2 gap-4">
+            {[
+              { 
+                label: 'Products listed', 
+                value: filteredProducts.length, 
+                valueColor: 'text-slate-900', 
+                border: 'border-slate-200', 
+                bg: 'bg-white', 
+                chip: 'bg-slate-50/80', 
+                chipText: 'Count', 
+                icon: <Package className="h-4 w-4 md:h-5 md:w-5" /> 
+              },
+              { 
+                label: 'Total units in stock', 
+                value: totalQuantity.toLocaleString(), 
+                valueColor: isOutofStock ? 'text-rose-700' : isLowStock ? 'text-amber-700' : 'text-emerald-700', 
+                border: isOutofStock ? 'border-rose-200' : isLowStock ? 'border-amber-200' : 'border-emerald-200', 
+                bg: isOutofStock ? 'bg-rose-50/30' : isLowStock ? 'bg-amber-50/30' : 'bg-emerald-50/30', 
+                chip: isOutofStock ? 'bg-rose-50/80' : isLowStock ? 'bg-amber-50/80' : 'bg-emerald-50/80', 
+                chipText: 'Inventory', 
+                icon: isOutofStock ? <AlertTriangle className="h-4 w-4 md:h-5 md:w-5" /> : <CheckCircle2 className="h-4 w-4 md:h-5 md:w-5" /> 
+              },
+            ].map(s => (
+              <div key={s.label} className={`rounded-xl border ${s.border} p-3 md:p-4 shadow-sm hover:shadow-md transition-shadow ${s.bg}`}>
+                <div className="flex items-center justify-between mb-2 md:mb-3">
+                  <div className="bg-white p-1.5 md:p-2 rounded-lg shadow-sm text-slate-500">{s.icon}</div>
+                  <span className={`text-[8px] md:text-[10px] font-medium px-1.5 md:px-2 py-0.5 rounded-full ${s.chip} text-slate-600`}>
+                    {s.chipText}
+                  </span>
+                </div>
+                <p className={`text-lg md:text-2xl font-semibold tabular-nums leading-none ${s.valueColor}`}>{s.value}</p>
+                <p className="text-[10px] md:text-xs font-medium text-slate-500 mt-1">{s.label}</p>
+              </div>
+            ))}
+          </div>
+
+          {/* ── Table card ── */}
+          <div className="bg-white border border-slate-200 rounded-2xl shadow-sm overflow-hidden">
+
+            {/* Toolbar */}
+            <div className="p-4 border-b border-slate-100 flex flex-wrap items-center justify-between gap-3">
+              <div className="relative flex-1 min-w-[200px] max-w-sm">
+                <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400" />
+                <input
+                  id="stock-search"
+                  value={searchQuery}
+                  onChange={e => setSearchQuery(e.target.value)}
+                  placeholder="Search by name or SKU..."
+                  className="w-full pl-10 pr-4 py-2.5 text-sm border border-slate-200 rounded-xl outline-none focus:border-blue-400 focus:ring-2 focus:ring-blue-100 bg-slate-50 focus:bg-white transition-all"
+                />
+              </div>
+            </div>
+
+            {/* Table */}
+            <div className="overflow-x-auto">
+              <table className="w-full text-sm">
+                <thead>
+                  <tr className="bg-slate-50 border-b border-slate-100 uppercase tracking-wider text-[11px] font-semibold text-slate-400">
+                    <th className="px-5 py-3 text-left w-[80px]">Photo</th>
+                    <th className="px-5 py-3 text-left">Product Name</th>
+                    <th className="px-5 py-3 text-left">SKU</th>
+                    <th className="px-5 py-3 text-left">Category</th>
+                    <th className="px-5 py-3 text-right">Stock</th>
+                    <th className="px-5 py-3 text-right">Selling Price</th>
+                    <th className="px-5 py-3 text-right">Cost</th>
+                    <th className="px-5 py-3 text-right">Actions</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {filteredProducts.length === 0 ? (
+                    <tr>
+                      <td colSpan={8} className="px-5 py-16 text-center">
+                        <Package className="h-12 w-12 mx-auto text-slate-200 mb-3" />
+                        <p className="text-sm font-semibold text-slate-400">No products found</p>
+                        <p className="text-[11px] text-slate-300 mt-1">Try a different search query</p>
+                      </td>
+                    </tr>
+                  ) : filteredProducts.map(row => {
+                    const pm = row.product_management;
+                    const categoryName = pm?.category_name || 'General';
+                    const imageUrl = pm?.image_url;
+                    
+                    const sellingPrice = pm?.product_price ?? 0;
+                    const plainPrice = pm?.plain_selling_price ?? pm?.product_price ?? 0;
+                    const printedPrice = pm?.printed_selling_price ?? pm?.plain_selling_price ?? pm?.product_price ?? 0;
+
+                    return (
+                      <tr key={row.id} className="border-b border-slate-50 hover:bg-slate-50/50 transition-colors">
+                        
+                        {/* Image */}
+                        <td className="px-5 py-3">
+                          <div className="h-10 w-10 rounded-xl overflow-hidden bg-slate-100 border border-slate-200 flex items-center justify-center shrink-0">
+                            {imageUrl ? (
+                              <img
+                                src={imageUrl}
+                                alt={row.product_name}
+                                className="h-full w-full object-cover"
+                                onError={e => {
+                                  (e.target as HTMLImageElement).style.display = 'none';
+                                }}
+                              />
+                            ) : (
+                              <Image className="h-4 w-4 text-slate-300" />
+                            )}
+                          </div>
+                        </td>
+
+                        {/* Product info */}
+                        <td className="px-5 py-3">
+                          <Link href={`/products-new/${row.id}`} className="group/link">
+                            <p className="font-semibold text-slate-900 group-hover/link:text-blue-600 transition-colors leading-tight">
+                              {row.product_name}
+                            </p>
+                            <span className={`inline-block mt-1 text-[10px] font-semibold px-1.5 py-0.5 rounded ${typeBadge(row.product_type)}`}>
+                              {typeLabel(row.product_type)}
+                            </span>
+                          </Link>
+                        </td>
+
+                        {/* SKU */}
+                        <td className="px-5 py-3 font-mono text-xs text-blue-600 font-semibold">{row.product_id}</td>
+
+                        {/* Category */}
+                        <td className="px-5 py-3 text-xs text-slate-600 font-bold">{categoryName}</td>
+
+                        {/* Stock */}
+                        <td className="px-5 py-3 text-right tabular-nums">
+                          <span className={`font-semibold text-sm ${row.total_qty <= 0 ? 'text-rose-600' : row.total_qty <= (row.level ?? 5) ? 'text-amber-600' : 'text-emerald-600'}`}>
+                            {row.total_qty.toLocaleString()}
+                          </span>
+                        </td>
+
+                        {/* Selling Price */}
+                        <td className="px-5 py-3 text-right tabular-nums">
+                          {row.product_type === 'manufactured' ? (
+                            <span className="text-xs leading-tight">
+                              <span className="font-semibold text-slate-900">{plainPrice.toLocaleString()}</span>
+                              <span className="text-slate-400 mx-0.5">/</span>
+                              <span className="font-medium text-slate-600">{printedPrice.toLocaleString()}</span>
+                              <span className="block text-[9px] text-slate-400 font-medium mt-0.5">plain / printed</span>
+                            </span>
+                          ) : row.product_type === 'raw_material' ? (
+                            <span className="font-medium text-slate-400 text-xs">—</span>
+                          ) : (
+                            <span className="font-semibold text-slate-900">{sellingPrice.toLocaleString()}</span>
+                          )}
+                        </td>
+
+                        {/* Cost */}
+                        <td className="px-5 py-3 text-right text-slate-500 font-bold tabular-nums">
+                          {(row.buying_price ?? 0).toLocaleString()}
+                        </td>
+
+                        {/* Actions */}
+                        <td className="px-5 py-3">
+                          <div className="flex items-center justify-end gap-1.5">
+                            <Link href={`/products-new/${row.id}`} id={`view-product-${row.id}`}>
+                              <button
+                                title="View product"
+                                className="h-8 w-8 rounded-xl flex items-center justify-center text-slate-400 hover:text-blue-600 hover:bg-blue-50 border border-transparent hover:border-blue-100 transition-all"
+                              >
+                                <Eye className="h-4 w-4" />
+                              </button>
+                            </Link>
+                            <Link href={`/products-new/${row.id}/edit`} id={`edit-product-${row.id}`}>
+                              <button
+                                title="Edit product"
+                                className="h-8 w-8 rounded-xl flex items-center justify-center text-slate-400 hover:text-amber-600 hover:bg-amber-50 border border-transparent hover:border-amber-100 transition-all"
+                              >
+                                <Edit className="h-4 w-4" />
+                              </button>
+                            </Link>
+                          </div>
+                        </td>
+
+                      </tr>
+                    );
+                  })}
+                </tbody>
+              </table>
+            </div>
+
           </div>
         </div>
-
-        {/* Desktop View Table */}
-        <div className="hidden md:block">
-          <Card className="border-emerald-100 shadow-xl shadow-emerald-900/5 overflow-hidden rounded-2xl">
-            <Table>
-              <TableHeader className="bg-emerald-50/50">
-                <TableRow className="hover:bg-transparent border-emerald-100">
-                  <TableHead className="w-[120px] text-[10px] font-black uppercase text-emerald-700 tracking-widest pl-8">SKU/ID</TableHead>
-                  <TableHead className="text-[10px] font-black uppercase text-emerald-700 tracking-widest">Product Information</TableHead>
-                  <TableHead className="text-[10px] font-black uppercase text-emerald-700 tracking-widest">Type</TableHead>
-                  <TableHead className="text-[10px] font-black uppercase text-emerald-700 tracking-widest text-center">Current Stock</TableHead>
-                  <TableHead className="text-[10px] font-black uppercase text-emerald-700 tracking-widest text-right pr-8">Actions</TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {filteredProducts.length > 0 ? (
-                  filteredProducts.map((p) => (
-                    <TableRow key={p.id} className="group border-emerald-50 hover:bg-emerald-50/20 transition-colors">
-                      <TableCell className="pl-8">
-                        <span className="text-[11px] font-bold text-slate-400 group-hover:text-emerald-600 transition-colors">#{p.product_id}</span>
-                      </TableCell>
-                      <TableCell>
-                        <div className="flex items-center gap-3 py-1">
-                          <div className={`h-10 w-10 md:h-12 md:w-12 rounded-xl flex items-center justify-center shrink-0 border ${isOutofStock ? 'bg-rose-50 border-rose-100' : 'bg-emerald-50 border-emerald-100'}`}>
-                            <Package className={`h-5 w-5 ${isOutofStock ? 'text-rose-500' : 'text-emerald-500'}`} />
-                          </div>
-                          <div className="flex flex-col">
-                            <span className="font-bold text-slate-900 group-hover:text-emerald-700 transition-colors">{p.product_name}</span>
-                            <span className="text-[10px] text-slate-400 capitalize">{p.product_type.replace('_', ' ')}</span>
-                          </div>
-                        </div>
-                      </TableCell>
-                      <TableCell>
-                         <Badge variant="outline" className="rounded-md border-emerald-100 bg-emerald-50/50 text-emerald-700 text-[10px] font-bold px-2 py-0">
-                            {p.product_type}
-                         </Badge>
-                      </TableCell>
-                      <TableCell className="text-center">
-                        <div className="inline-flex flex-col items-center">
-                          <span className={`text-lg font-black tracking-tight ${isOutofStock ? 'text-rose-600' : 'text-emerald-600'}`}>
-                            {p.total_qty ?? 0}
-                          </span>
-                          <span className="text-[10px] text-slate-400 font-bold uppercase tracking-tighter">Units Available</span>
-                        </div>
-                      </TableCell>
-                      <TableCell className="text-right pr-8">
-                        <Link href={`/products-new/${p.id}`}>
-                           <Button size="sm" variant="ghost" className="h-9 w-9 rounded-xl hover:bg-emerald-100 hover:text-emerald-700 text-slate-400 transition-all">
-                             <Eye size={18} />
-                           </Button>
-                        </Link>
-                        <Link href={`/products-new/${p.id}/edit`}>
-                           <Button size="sm" variant="ghost" className="h-9 w-9 rounded-xl hover:bg-emerald-100 hover:text-emerald-700 text-slate-400 transition-all ml-1">
-                             <ArrowUpRight size={18} />
-                           </Button>
-                        </Link>
-                      </TableCell>
-                    </TableRow>
-                  ))
-                ) : (
-                  <TableRow>
-                    <TableCell colSpan={5} className="h-48 text-center bg-slate-50/50">
-                       <div className="flex flex-col items-center justify-center gap-2 opacity-40">
-                          <AlertCircle size={40} className="text-slate-400" />
-                          <p className="font-bold text-slate-900">No products found matching your search</p>
-                       </div>
-                    </TableCell>
-                  </TableRow>
-                )}
-              </TableBody>
-            </Table>
-          </Card>
-        </div>
-
-        {/* Mobile View Cards */}
-        <div className="grid grid-cols-1 gap-4 md:hidden">
-            {filteredProducts.map((p) => (
-              <Card key={p.id} className="border-emerald-100 shadow-sm overflow-hidden">
-                <CardContent className="p-4">
-                   <div className="flex items-start justify-between mb-4">
-                      <div className="flex items-center gap-3">
-                        <div className={`h-12 w-12 rounded-xl flex items-center justify-center border ${isOutofStock ? 'bg-rose-50 border-rose-100' : 'bg-emerald-50 border-emerald-100'}`}>
-                           <Package className={isOutofStock ? 'text-rose-500' : 'text-emerald-500'} size={24} />
-                        </div>
-                        <div>
-                           <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">#{p.product_id}</p>
-                           <h3 className="font-black text-slate-900 leading-tight">{p.product_name}</h3>
-                        </div>
-                      </div>
-                      <Badge className={isOutofStock ? 'bg-rose-100 text-rose-700' : 'bg-emerald-100 text-emerald-700'}>
-                         {p.total_qty} units
-                      </Badge>
-                   </div>
-                   
-                   <div className="flex items-center justify-between border-t border-slate-50 pt-3">
-                      <span className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">{p.product_type}</span>
-                      <div className="flex gap-2">
-                        <Link href={`/products-new/${p.id}`}>
-                           <Button size="sm" variant="secondary" className="h-8 rounded-lg bg-emerald-50 text-emerald-700 border-none">
-                              Details
-                           </Button>
-                        </Link>
-                      </div>
-                   </div>
-                </CardContent>
-              </Card>
-            ))}
-        </div>
-      </div>
-    </AppSidebarLayout>
+      </AppLayout>
+    </>
   );
 }

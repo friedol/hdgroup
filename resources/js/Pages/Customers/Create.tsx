@@ -22,6 +22,8 @@ import AppLayout from '@/layouts/app-layout';
 interface CreateCustomerProps {
   errors?: Record<string, string>;
   salespeople?: Array<{ id: number; staff_name: string }>;
+  branches?: Array<{ id: number; name: string }>;
+  activeBranchId?: number | null;
 }
 
 const DEFAULT_COUNTRY_ISO = 'TZ';
@@ -57,7 +59,7 @@ function isoToFlag(iso2: string): string {
   return iso2.toUpperCase().replace(/./g, (c) => String.fromCodePoint(127397 + c.charCodeAt(0)));
 }
 
-export default function CreateCustomer({ errors = {}, salespeople = [] }: CreateCustomerProps) {
+export default function CreateCustomer({ errors = {}, salespeople = [], branches = [], activeBranchId = null }: CreateCustomerProps) {
   const [loading, setLoading] = useState(false);
   const [formData, setFormData] = useState({
     customer_name: '',
@@ -71,11 +73,11 @@ export default function CreateCustomer({ errors = {}, salespeople = [] }: Create
     company_name: '',
     business_address: '',
     brought_by: '',
-    is_walking_customer: false,
     customer_address: '',
     credit_limit: '0',
     contact_person: '',
     password: '',
+    branch_id: activeBranchId ? activeBranchId.toString() : '',
   });
 
   const breadcrumbs = [
@@ -108,7 +110,6 @@ export default function CreateCustomer({ errors = {}, salespeople = [] }: Create
 
     router.post('/customers', {
       ...formData,
-      customer_name: formData.is_walking_customer ? 'Walking Customer' : formData.customer_name,
       customer_phone: customerPhone,
       whatsapp_no: whatsAppPhone || null,
     } as any, {
@@ -120,7 +121,7 @@ export default function CreateCustomer({ errors = {}, salespeople = [] }: Create
     <>
       <Head title="Onboard new customer" />
       <AppLayout breadcrumbs={breadcrumbs}>
-        <div className="max-w-[1400px] mx-auto space-y-6 pb-10 px-6">
+        <div className="max-w-[1650px] mx-auto space-y-6 pb-10 px-0">
           
           {/* Action Header */}
           <div className="flex items-center gap-4 pt-4">
@@ -169,14 +170,14 @@ export default function CreateCustomer({ errors = {}, salespeople = [] }: Create
                             <User className="h-4 w-4" />
                         </div>
                         <div>
-                            <CardTitle className="text-[14px] font-bold text-slate-900">Core identification</CardTitle>
-                            <CardDescription className="text-[12px] font-medium text-slate-400">Primary legal and contact data</CardDescription>
+                            <CardTitle className="text-[14px] font-bold text-slate-900">Identification</CardTitle>
+                            <CardDescription className="text-[12px] font-medium text-slate-400">Legal and contact information</CardDescription>
                         </div>
                     </CardHeader>
                     <CardContent className="p-6 space-y-6">
-                        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                            <div className="space-y-2 md:col-span-2">
-                                <Label htmlFor="name" className="text-[14px] font-bold opacity-80 ml-1">Company / customer full name *</Label>
+                        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                            <div className="space-y-2">
+                                <Label htmlFor="name" className="text-[13px] font-semibold text-slate-700 ml-1">Full name *</Label>
                                 <Input
                                     id="name"
                                     placeholder="Enter complete legal name"
@@ -188,7 +189,7 @@ export default function CreateCustomer({ errors = {}, salespeople = [] }: Create
                             </div>
 
                             <div className="space-y-2">
-                              <Label htmlFor="email" className="text-[14px] font-bold opacity-80 ml-1">Billing email</Label>
+                              <Label htmlFor="email" className="text-[13px] font-semibold text-slate-700 ml-1">Email</Label>
                                 <Input
                                     id="email"
                                     type="email"
@@ -201,7 +202,7 @@ export default function CreateCustomer({ errors = {}, salespeople = [] }: Create
                             </div>
 
                             <div className="space-y-2">
-                                <Label htmlFor="phone" className="text-[14px] font-bold opacity-80 ml-1">Primary phone *</Label>
+                                <Label htmlFor="phone" className="text-[13px] font-semibold text-slate-700 ml-1">Phone *</Label>
                               <div className="h-10 rounded-md border border-slate-200 bg-white flex items-stretch overflow-hidden focus-within:ring-1 focus-within:ring-blue-500">
                                 <select
                                   value={formData.country_code}
@@ -223,11 +224,11 @@ export default function CreateCustomer({ errors = {}, salespeople = [] }: Create
                                   className="w-full px-3 text-[14px] outline-none"
                                 />
                               </div>
-                              <p className="text-[11px] text-slate-400">No leading 0. Example: +{formData.country_code} 784419707</p>
+                              <p className="text-[11px] text-slate-400">No leading 0 (e.g. 784419707)</p>
                             </div>
 
                             <div className="space-y-2">
-                              <Label htmlFor="whatsapp" className="text-[14px] font-bold opacity-80 ml-1">WhatsApp (optional)</Label>
+                              <Label htmlFor="whatsapp" className="text-[13px] font-semibold text-slate-700 ml-1">WhatsApp</Label>
                               <div className="h-10 rounded-md border border-slate-200 bg-white flex items-stretch overflow-hidden focus-within:ring-1 focus-within:ring-blue-500">
                                 <select
                                   value={formData.whatsapp_country_code}
@@ -252,7 +253,7 @@ export default function CreateCustomer({ errors = {}, salespeople = [] }: Create
                             </div>
 
                             <div className="space-y-2">
-                              <Label htmlFor="company_name" className="text-[14px] font-bold opacity-80 ml-1">Company name (optional)</Label>
+                              <Label htmlFor="company_name" className="text-[13px] font-semibold text-slate-700 ml-1">Company</Label>
                               <Input
                                 id="company_name"
                                 placeholder="Business / company name"
@@ -264,7 +265,7 @@ export default function CreateCustomer({ errors = {}, salespeople = [] }: Create
                             </div>
 
                             <div className="space-y-2">
-                              <Label htmlFor="brought_by" className="text-[14px] font-bold opacity-80 ml-1">Brought by (salesperson)</Label>
+                              <Label htmlFor="brought_by" className="text-[13px] font-semibold text-slate-700 ml-1">Salesperson</Label>
                               <select
                                 id="brought_by"
                                 value={formData.brought_by}
@@ -278,10 +279,28 @@ export default function CreateCustomer({ errors = {}, salespeople = [] }: Create
                                 ))}
                               </select>
                             </div>
+
+                            <div className="space-y-2">
+                              <Label htmlFor="branch_id" className="text-[13px] font-semibold text-slate-700 ml-1">Registration Branch *</Label>
+                              <select
+                                id="branch_id"
+                                value={formData.branch_id}
+                                onChange={(e) => handleChange('branch_id', e.target.value)}
+                                disabled={loading}
+                                required
+                                className="h-10 w-full px-3 text-[14px] bg-white border border-slate-200 rounded-md focus:outline-none focus:ring-1 focus:ring-blue-500 font-medium"
+                              >
+                                <option value="">— Select branch —</option>
+                                {branches.map((b) => (
+                                  <option key={b.id} value={b.id}>{b.name}</option>
+                                ))}
+                              </select>
+                              <p className="text-[11px] text-slate-400">The branch this customer primarily belongs to.</p>
+                            </div>
                         </div>
 
                         <div className="space-y-2">
-                            <Label htmlFor="address" className="text-[14px] font-bold opacity-80 ml-1">Physical distribution address</Label>
+                            <Label htmlFor="address" className="text-[13px] font-semibold text-slate-700 ml-1">Delivery address</Label>
                             <div className="relative">
                                 <MapPin className="absolute left-3 top-3 h-4 w-4 text-slate-300" />
                                 <Textarea
@@ -296,7 +315,7 @@ export default function CreateCustomer({ errors = {}, salespeople = [] }: Create
                         </div>
 
                           <div className="space-y-2">
-                            <Label htmlFor="business_address" className="text-[14px] font-bold opacity-80 ml-1">Business address (optional)</Label>
+                            <Label htmlFor="business_address" className="text-[13px] font-semibold text-slate-700 ml-1">Business address</Label>
                             <Textarea
                               id="business_address"
                               className="min-h-[90px] text-[14px] bg-white border-slate-200 focus:ring-1 focus:ring-blue-500"
@@ -306,16 +325,6 @@ export default function CreateCustomer({ errors = {}, salespeople = [] }: Create
                               disabled={loading}
                             />
                           </div>
-
-                          <label className="flex items-center gap-3 p-3 rounded-md border border-slate-200 bg-slate-50">
-                            <input
-                              type="checkbox"
-                              checked={formData.is_walking_customer}
-                              onChange={(e) => handleChange('is_walking_customer', e.target.checked)}
-                              disabled={loading}
-                            />
-                            <span className="text-[13px] font-semibold text-slate-700">Mark as walking customer</span>
-                          </label>
                     </CardContent>
                     </Card>
                 </div>
@@ -328,13 +337,13 @@ export default function CreateCustomer({ errors = {}, salespeople = [] }: Create
                                 <CreditCard className="h-4 w-4" />
                             </div>
                             <div>
-                                <CardTitle className="text-[14px] font-bold text-slate-900">Risk guardrails</CardTitle>
-                                <CardDescription className="text-[12px] font-medium text-slate-400">Credit exposure settings</CardDescription>
+                                <CardTitle className="text-[14px] font-bold text-slate-900">Finance</CardTitle>
+                                <CardDescription className="text-[12px] font-medium text-slate-400">Credit and risk settings</CardDescription>
                             </div>
                         </CardHeader>
                         <CardContent className="p-6 space-y-4">
                             <div className="space-y-3">
-                                <Label htmlFor="credit_limit" className="text-[14px] font-bold opacity-80 ml-1">Credit limit (TZS)</Label>
+                                <Label htmlFor="credit_limit" className="text-[13px] font-semibold text-slate-700 ml-1">Credit limit (TZS)</Label>
                                 <div className="relative">
                                     <span className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 font-bold text-sm">#</span>
                                     <Input
@@ -347,11 +356,11 @@ export default function CreateCustomer({ errors = {}, salespeople = [] }: Create
                                         className="h-12 pl-8 font-mono text-[16px] font-black text-slate-900 border-2 border-slate-100"
                                     />
                                 </div>
-                                <p className="text-[12px] text-slate-400 leading-relaxed font-medium">Set the maximum permissible outstanding balance for this profile.</p>
+                                <p className="text-[11px] text-slate-400 leading-relaxed font-medium">Max permissible outstanding balance.</p>
                             </div>
 
                             <div className="space-y-2">
-                                <Label htmlFor="password" className="text-[14px] font-bold opacity-80 ml-1">Initial portal password</Label>
+                                <Label htmlFor="password" className="text-[13px] font-semibold text-slate-700 ml-1">Portal password</Label>
                                 <div className="relative">
                                     <ShieldCheck className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400" />
                                     <Input
@@ -365,13 +374,13 @@ export default function CreateCustomer({ errors = {}, salespeople = [] }: Create
                                     />
                                 </div>
                                 {errors.password && <p className="text-xs text-red-500 mt-1">{errors.password}</p>}
-                                <p className="text-[12px] text-slate-400 leading-relaxed font-medium">Optional: customer can change this later.</p>
+                                <p className="text-[11px] text-slate-400 leading-relaxed font-medium">Customer can change this later.</p>
                             </div>
 
                             <div className="pt-4 border-t border-slate-50">
                                 <div className="flex items-center gap-2 text-slate-500 mb-2">
                                     <ShieldPlus className="h-4 w-4" />
-                                    <span className="text-[12px] font-bold tracking-wider">Account security</span>
+                                    <span className="text-[12px] font-bold">Security</span>
                                 </div>
                                 <p className="text-[12px] text-slate-400 font-medium">Profiles are initialized in 'Operational' status by default.</p>
                             </div>

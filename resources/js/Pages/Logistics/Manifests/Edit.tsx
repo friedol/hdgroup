@@ -1,9 +1,8 @@
 import { Head, Link } from "@inertiajs/react";
-import { Plus, Trash2, ArrowLeft } from "lucide-react";
+import { Plus, Trash2, ArrowLeft, FileText } from "lucide-react";
 import { useState } from "react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
-import { Button } from "@/components/ui/button";
 import AppLayout from "@/layouts/app-layout";
 
 interface ManifestItem {
@@ -130,43 +129,50 @@ export default function ManifestEdit({
     }, 0);
   };
 
+  const labelClass = "text-xs font-semibold text-slate-500 uppercase tracking-wider mb-2 block";
+  const inputClass = "w-full px-3.5 py-2 text-sm border border-slate-200 rounded-xl outline-none focus:border-blue-400 focus:ring-2 focus:ring-blue-100 bg-slate-50/50 focus:bg-white transition-all h-10 shadow-none";
+  const selectClass = "w-full px-3.5 py-2 text-sm border border-slate-200 rounded-xl outline-none focus:border-blue-400 focus:ring-2 focus:ring-blue-100 bg-slate-50/50 focus:bg-white transition-all h-10 shadow-none cursor-pointer";
+
   return (
     <>
       <Head title={`Edit ${manifest.manifest_name}`} />
       <AppLayout breadcrumbs={breadcrumbs}>
-        <div className="space-y-6">
+        <div className="max-w-[1700px] mx-auto space-y-6 pb-20">
+          
           {/* Header */}
           <div className="flex items-center gap-3">
-            <Link href={`/parking_orders/${manifest.unique_id}`}>
-              <ArrowLeft className="w-5 h-5 text-muted-foreground hover:text-foreground" />
+            <Link href={`/parking_orders/${manifest.unique_id}`} className="h-9 w-9 bg-white border border-slate-200 rounded-xl flex items-center justify-center text-slate-400 hover:text-slate-700 hover:border-slate-300 shadow-sm transition-all">
+              <ArrowLeft className="w-4 h-4" />
             </Link>
             <div>
-              <h1 className="text-3xl font-bold">Edit Manifest</h1>
-              <p className="text-sm text-slate-600 mt-1">{manifest.manifest_name}</p>
+              <h1 className="text-[18px] font-bold text-slate-900 tracking-tight leading-none">Edit Manifest</h1>
+              <p className="text-xs font-medium text-slate-500 mt-1.5">{manifest.manifest_name}</p>
             </div>
           </div>
 
           <form onSubmit={handleSubmit} className="space-y-6">
+            
             {/* Manifest Header */}
-            <Card>
-              <CardHeader>
-                <CardTitle>Manifest Information</CardTitle>
-                <CardDescription>Update manifest details</CardDescription>
+            <Card className="rounded-2xl border border-slate-200 shadow-sm bg-white overflow-hidden">
+              <CardHeader className="border-b border-slate-50 pb-4">
+                <CardTitle className="text-sm font-bold text-slate-800">Manifest Information</CardTitle>
+                <CardDescription className="text-xs text-slate-400">Update manifest details</CardDescription>
               </CardHeader>
-              <CardContent className="space-y-4">
+              <CardContent className="pt-5 space-y-4">
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   <div>
-                    <label className="block text-sm font-medium mb-2">Manifest Name *</label>
+                    <label className={labelClass}>Manifest Name *</label>
                     <Input
                       placeholder="e.g., Nairobi Shipment 001"
                       value={formData.order_name}
                       onChange={(e) => setFormData({ ...formData, order_name: e.target.value })}
+                      className={inputClass}
                     />
                   </div>
                   <div>
-                    <label className="block text-sm font-medium mb-2">Container *</label>
+                    <label className={labelClass}>Container *</label>
                     <select
-                      className="w-full px-3 py-2 border rounded-lg"
+                      className={selectClass}
                       value={formData.container_id}
                       onChange={(e) => setFormData({ ...formData, container_id: e.target.value })}
                     >
@@ -183,28 +189,31 @@ export default function ManifestEdit({
             </Card>
 
             {/* Items */}
-            <Card>
-              <CardHeader className="flex flex-row items-center justify-between space-y-0">
+            <Card className="rounded-2xl border border-slate-200 shadow-sm bg-white overflow-hidden">
+              <CardHeader className="flex flex-row items-center justify-between border-b border-slate-50 pb-4">
                 <div>
-                  <CardTitle>Cargo Items</CardTitle>
-                  <CardDescription>Update products in the manifest</CardDescription>
+                  <CardTitle className="text-sm font-bold text-slate-800">Cargo Items</CardTitle>
+                  <CardDescription className="text-xs text-slate-400">Update products in the manifest</CardDescription>
                 </div>
-                <Button type="button" onClick={addItem} size="sm" className="gap-2">
-                  <Plus className="h-4 w-4" />
-                  Add Item
-                </Button>
+                <button 
+                  type="button" 
+                  onClick={addItem}
+                  className="rounded-xl gap-2 text-xs font-semibold h-9 px-4 bg-blue-600 hover:bg-blue-700 text-white shadow-sm flex items-center transition-all"
+                >
+                  <Plus className="h-3.5 w-3.5" /> Add Item
+                </button>
               </CardHeader>
-              <CardContent className="space-y-4">
+              <CardContent className="pt-5 space-y-4">
                 {items.length > 0 ? (
                   items.map((item, index) => {
                     const selectedProduct = products.find((p) => p.product_id === item.product_id);
                     return (
-                      <div key={index} className="border rounded-lg p-4 space-y-3">
+                      <div key={index} className="border border-slate-150 rounded-xl p-4 space-y-4 bg-slate-50/20">
                         <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                           <div>
-                            <label className="block text-sm font-medium mb-2">Product *</label>
+                            <label className={labelClass}>Product *</label>
                             <select
-                              className="w-full px-3 py-2 border rounded-lg text-sm"
+                              className={selectClass}
                               value={item.product_id}
                               onChange={(e) => updateItem(index, "product_id", e.target.value)}
                             >
@@ -217,40 +226,41 @@ export default function ManifestEdit({
                             </select>
                           </div>
                           <div>
-                            <label className="block text-sm font-medium mb-2">Quantity *</label>
+                            <label className={labelClass}>Quantity *</label>
                             <Input
                               type="number"
                               min="1"
                               placeholder="1"
                               value={item.quantity}
                               onChange={(e) => updateItem(index, "quantity", e.target.value)}
+                              className={inputClass}
                             />
                           </div>
                           <div className="flex items-end">
-                            <Button
+                            <button
                               type="button"
-                              variant="ghost"
-                              size="sm"
-                              className="w-full text-red-600 hover:text-red-700"
+                              className="h-10 px-4 rounded-xl text-xs font-semibold border border-rose-100 text-rose-650 hover:bg-rose-50 hover:text-rose-700 transition-all flex items-center justify-center gap-1.5 w-full bg-white"
                               onClick={() => removeItem(index)}
                             >
-                              <Trash2 className="h-4 w-4 mr-2" />
-                              Remove
-                            </Button>
+                              <Trash2 className="h-4 w-4" /> Remove
+                            </button>
                           </div>
                         </div>
                         {selectedProduct && (
-                          <div className="text-xs text-muted-foreground space-y-1">
-                            <p>× Weight: {(selectedProduct.weight * item.quantity / 1000).toFixed(2)} MT</p>
-                            <p>× Volume: {(selectedProduct.cbm * item.quantity).toFixed(2)} CBM</p>
+                          <div className="text-[11px] font-semibold text-slate-500 space-y-1 bg-slate-100/50 p-2.5 rounded-lg border border-slate-100 max-w-fit">
+                            <p>⚖️ Weight: {(selectedProduct.weight * item.quantity / 1000).toFixed(2)} MT</p>
+                            <p>📦 Volume: {(selectedProduct.cbm * item.quantity).toFixed(2)} CBM</p>
                           </div>
                         )}
                       </div>
                     );
                   })
                 ) : (
-                  <div className="text-center py-8 text-muted-foreground">
-                    <p>No items added yet. Click "Add Item" to get started.</p>
+                  <div className="text-center py-10">
+                    <div className="h-12 w-12 rounded-2xl bg-slate-50 border border-slate-100 flex items-center justify-center text-slate-400 mx-auto mb-4">
+                      <FileText className="w-6 h-6" />
+                    </div>
+                    <p className="text-xs font-bold text-slate-400">No items added yet. Click "Add Item" to get started.</p>
                   </div>
                 )}
               </CardContent>
@@ -258,23 +268,23 @@ export default function ManifestEdit({
 
             {/* Summary */}
             {items.length > 0 && (
-              <Card className="bg-slate-50">
-                <CardHeader>
-                  <CardTitle className="text-base">Manifest Summary</CardTitle>
+              <Card className="rounded-2xl border border-slate-200 shadow-sm bg-slate-50 overflow-hidden">
+                <CardHeader className="border-b border-slate-150 pb-4">
+                  <CardTitle className="text-sm font-bold text-slate-800">Manifest Summary</CardTitle>
                 </CardHeader>
-                <CardContent>
-                  <div className="grid grid-cols-3 gap-4">
+                <CardContent className="pt-5">
+                  <div className="grid grid-cols-3 gap-4 text-xs font-semibold">
                     <div>
-                      <p className="text-sm text-muted-foreground mb-1">Total Items</p>
-                      <p className="text-2xl font-bold">{items.length}</p>
+                      <p className="text-slate-450 uppercase tracking-wider mb-1">Total Items</p>
+                      <p className="text-xl font-bold text-slate-900 tabular-nums">{items.length}</p>
                     </div>
                     <div>
-                      <p className="text-sm text-muted-foreground mb-1">Total Weight</p>
-                      <p className="text-2xl font-bold">{(getTotalWeight() / 1000).toFixed(1)} MT</p>
+                      <p className="text-slate-450 uppercase tracking-wider mb-1">Total Weight</p>
+                      <p className="text-xl font-bold text-slate-900 tabular-nums">{(getTotalWeight() / 1000).toFixed(1)} MT</p>
                     </div>
                     <div>
-                      <p className="text-sm text-muted-foreground mb-1">Total Volume</p>
-                      <p className="text-2xl font-bold">{getTotalCBM().toFixed(2)} CBM</p>
+                      <p className="text-slate-450 uppercase tracking-wider mb-1">Total Volume</p>
+                      <p className="text-xl font-bold text-slate-900 tabular-nums">{getTotalCBM().toFixed(2)} CBM</p>
                     </div>
                   </div>
                 </CardContent>
@@ -282,13 +292,19 @@ export default function ManifestEdit({
             )}
 
             {/* Actions */}
-            <div className="flex gap-2 justify-end">
+            <div className="flex gap-3 justify-end">
               <Link href={`/parking_orders/${manifest.unique_id}`}>
-                <Button variant="outline">Cancel</Button>
+                <button type="button" className="h-9 px-4 rounded-xl text-xs font-semibold border border-slate-200 hover:bg-slate-50 text-slate-650 transition-all">
+                  Cancel
+                </button>
               </Link>
-              <Button type="submit" disabled={processing || items.length === 0}>
+              <button 
+                type="submit" 
+                disabled={processing || items.length === 0}
+                className="rounded-xl h-9 px-4 text-xs font-semibold bg-blue-600 hover:bg-blue-700 text-white shadow-sm shadow-blue-500/30 transition-all flex items-center justify-center disabled:opacity-50 disabled:cursor-not-allowed"
+              >
                 {processing ? "Saving..." : "Save Changes"}
-              </Button>
+              </button>
             </div>
           </form>
         </div>

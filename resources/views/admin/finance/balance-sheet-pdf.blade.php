@@ -342,7 +342,7 @@
         @endif
 
         <div class="notes">
-            End of financial statement | HD Group ERP automated report
+            End of financial statement | Jopo Juniours Co. Ltd ERP automated report
         </div>
     </div>
 

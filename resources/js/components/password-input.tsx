@@ -4,7 +4,11 @@ import { useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 
-export default function PasswordInput({ className = '', ...props }: InputHTMLAttributes<HTMLInputElement>) {
+interface PasswordInputProps extends InputHTMLAttributes<HTMLInputElement> {
+    icon?: React.ReactNode;
+}
+
+export default function PasswordInput({ className = '', ...props }: PasswordInputProps) {
     const [show, setShow] = useState(false);
 
     return (

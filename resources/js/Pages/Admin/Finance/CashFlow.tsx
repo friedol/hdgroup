@@ -116,7 +116,7 @@ export default function CashFlow({
     <AppLayout breadcrumbs={breadcrumbs}>
       <Head title="Cash Flow" />
       
-      <div className="max-w-[1600px] mx-auto space-y-4 pb-10 px-2 sm:px-6">
+      <div className="w-full space-y-4 pb-10">
         {/* Header with Integrated Filter */}
         <div className="flex flex-row items-center justify-between gap-2 border-b pb-3 pt-4 px-1">
           <div className="flex-shrink-0">

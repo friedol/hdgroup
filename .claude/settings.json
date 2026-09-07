@@ -1,0 +1,11 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(php -r ' *)",
+      "Bash(php -l /Users/gotlaptopparts.com/Sites/LaravelProject/jopo/app/Http/Controllers/ProductController.php)",
+      "Bash(php -l /Users/gotlaptopparts.com/Sites/LaravelProject/jopo/app/Http/Controllers/TransferController.php)",
+      "Bash(php -l /Users/gotlaptopparts.com/Sites/LaravelProject/jopo/app/Http/Controllers/PosController.php)",
+      "Bash(grep -n 'product_image\\\\|getImage\\\\|image_url\\\\|$fillable' /Users/gotlaptopparts.com/Sites/LaravelProject/jopo/app/Models/Product.php)"
+    ]
+  }
+}

@@ -209,7 +209,7 @@ export default function SalesTargetsIndex({ achievements, branchSummaries, branc
   return (
     <AppLayout breadcrumbs={breadcrumbs}>
       <Head title="Sales Targets" />
-      <div className="max-w-[1400px] mx-auto space-y-6 pb-10">
+      <div className="w-full space-y-6 pb-10">
 
         {/* Header */}
         <div className="flex items-start justify-between gap-3 sm:gap-4">

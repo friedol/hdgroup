@@ -1,4 +1,5 @@
 import { useSyncExternalStore } from 'react';
+import { router } from '@inertiajs/react';
 
 export type ResolvedAppearance = 'light' | 'dark';
 export type Appearance = ResolvedAppearance | 'system';
@@ -10,7 +11,7 @@ export type UseAppearanceReturn = {
 };
 
 const listeners = new Set<() => void>();
-let currentAppearance: Appearance = 'light';
+let currentAppearance: Appearance = 'system';
 
 const prefersDark = (): boolean => {
     if (typeof window === 'undefined') {
@@ -31,14 +32,24 @@ const setCookie = (name: string, value: string, days = 365): void => {
 
 const getStoredAppearance = (): Appearance => {
     if (typeof window === 'undefined') {
-        return 'light';
+        return 'system';
     }
 
-    return (localStorage.getItem('appearance') as Appearance) || 'light';
+    return (localStorage.getItem('appearance') as Appearance) || 'system';
 };
 
 const isDarkMode = (appearance: Appearance): boolean => {
-    return false;
+    if (appearance === 'system') {
+        return prefersDark();
+    }
+    return appearance === 'dark';
+};
+
+const isLandingPage = (): boolean => {
+    if (typeof window === 'undefined') {
+        return false;
+    }
+    return window.location.pathname === '/' || window.location.pathname === '';
 };
 
 const applyTheme = (appearance: Appearance): void => {
@@ -46,8 +57,15 @@ const applyTheme = (appearance: Appearance): void => {
         return;
     }
 
-    document.documentElement.classList.remove('dark');
-    document.documentElement.style.colorScheme = 'light';
+    if (isLandingPage()) {
+        document.documentElement.classList.remove('dark');
+        document.documentElement.style.colorScheme = 'light';
+        return;
+    }
+
+    const isDark = isDarkMode(appearance);
+    document.documentElement.classList.toggle('dark', isDark);
+    document.documentElement.style.colorScheme = isDark ? 'dark' : 'light';
 };
 
 const subscribe = (callback: () => void) => {
@@ -68,26 +86,44 @@ const mediaQuery = (): MediaQueryList | null => {
 
 const handleSystemThemeChange = (): void => applyTheme(currentAppearance);
 
+let isInitialized = false;
+
 export function initializeTheme(): void {
     if (typeof window === 'undefined') {
         return;
     }
 
-    localStorage.setItem('appearance', 'light');
-    setCookie('appearance', 'light');
+    currentAppearance = getStoredAppearance();
+    applyTheme(currentAppearance);
 
-    currentAppearance = 'light';
-    applyTheme('light');
+    if (!isInitialized) {
+        isInitialized = true;
+        // Set up system theme change listener
+        mediaQuery()?.addEventListener('change', handleSystemThemeChange);
 
-    // Set up system theme change listener
-    mediaQuery()?.addEventListener('change', handleSystemThemeChange);
+        // Listen for Inertia page transitions to handle landing page vs other pages
+        router.on('navigate', (event) => {
+            const pageComponent = event.detail.page?.component;
+            const pathname = window.location.pathname;
+            const isLanding = pageComponent === 'Shop/Index' || pathname === '/' || pathname === '';
+
+            if (isLanding) {
+                document.documentElement.classList.remove('dark');
+                document.documentElement.style.colorScheme = 'light';
+            } else {
+                const isDark = isDarkMode(currentAppearance);
+                document.documentElement.classList.toggle('dark', isDark);
+                document.documentElement.style.colorScheme = isDark ? 'dark' : 'light';
+            }
+        });
+    }
 }
 
 export function useAppearance(): UseAppearanceReturn {
     const appearance: Appearance = useSyncExternalStore(
         subscribe,
         () => currentAppearance,
-        () => 'light',
+        () => 'system',
     );
 
     const resolvedAppearance: ResolvedAppearance = isDarkMode(appearance)
@@ -109,3 +145,4 @@ export function useAppearance(): UseAppearanceReturn {
 
     return { appearance, resolvedAppearance, updateAppearance } as const;
 }
+

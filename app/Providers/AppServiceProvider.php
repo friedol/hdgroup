@@ -2,9 +2,16 @@
 
 namespace App\Providers;
 
+use App\Models\InventoryTransaction;
+use App\Models\Product;
+use App\Models\Sale;
+use App\Models\Setting;
+use App\Models\Transfer;
 use Carbon\CarbonImmutable;
+use Illuminate\Database\Eloquent\Relations\Relation;
 use Illuminate\Support\Facades\Date;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Schema;
 use Illuminate\Support\ServiceProvider;
 use Illuminate\Validation\Rules\Password;
 
@@ -25,13 +32,11 @@ class AppServiceProvider extends ServiceProvider
     {
         $this->configureDefaults();
 
-        \Illuminate\Database\Eloquent\Relations\Relation::morphMap([
-            'finished_product' => \App\Models\Product::class,
-            'raw_material' => \App\Models\RawMaterial::class,
-            'Sale' => \App\Models\Sale::class,
-            'ProductionOrder' => \App\Models\ProductionOrder::class,
-            'Transfer' => \App\Models\Transfer::class,
-            'adjustment' => \App\Models\InventoryTransaction::class,
+        Relation::morphMap([
+            'finished_product' => Product::class,
+            'Sale' => Sale::class,
+            'Transfer' => Transfer::class,
+            'adjustment' => InventoryTransaction::class,
         ]);
 
         $this->loadMailSettings();
@@ -43,12 +48,12 @@ class AppServiceProvider extends ServiceProvider
     protected function loadMailSettings(): void
     {
         try {
-            if (!\Illuminate\Support\Facades\Schema::hasTable('settings')) {
+            if (! Schema::hasTable('settings')) {
                 return;
             }
 
-            $mailSettings = \App\Models\Setting::where('group', 'email')->pluck('value', 'key');
-            
+            $mailSettings = Setting::where('group', 'email')->pluck('value', 'key');
+
             if ($mailSettings->isEmpty()) {
                 return;
             }
@@ -66,7 +71,7 @@ class AppServiceProvider extends ServiceProvider
                 'mail.from.name' => $mailSettings->get('mail_from_name'),
             ]);
         } catch (\Exception $e) {
-            \Log::error('Failed to load mail settings: ' . $e->getMessage());
+            \Log::error('Failed to load mail settings: '.$e->getMessage());
         }
     }
 

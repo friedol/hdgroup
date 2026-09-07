@@ -77,7 +77,7 @@ export default function RoleCreate({ permissions }: Props) {
         <AppLayout>
             <Head title="Create New Role" />
             
-            <div className="max-w-[1400px] mx-auto space-y-6">
+            <div className="w-full space-y-6">
                 <div className="flex items-center gap-4">
                     <Link href="/roles-permissions">
                         <Button variant="ghost" size="icon" className="rounded-full">

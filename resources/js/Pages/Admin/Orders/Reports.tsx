@@ -61,7 +61,7 @@ export default function OrderReports({ transfers, totalQuantity }: Props) {
     <>
       <Head title="Order Reports" />
       <AppLayout breadcrumbs={breadcrumbs}>
-        <div className="max-w-[1700px] mx-auto space-y-8 pb-20">
+        <div className="w-full space-y-8 pb-20">
 
           {/* Header */}
           <div className="flex flex-col md:flex-row md:items-center justify-between gap-6">

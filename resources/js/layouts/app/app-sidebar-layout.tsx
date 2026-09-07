@@ -44,7 +44,7 @@ export default function AppSidebarLayout({
     }, []);
 
     return (
-        <div className="flex min-h-screen bg-slate-50 relative">
+        <div className="flex min-h-screen bg-slate-50 dark:bg-[#0b1329] text-slate-900 dark:text-slate-100 relative">
             {/* Navigation Sidebar */}
             <AppSidebar
                 collapsed={collapsed}
@@ -56,13 +56,13 @@ export default function AppSidebarLayout({
 
             {/* Main Page Area */}
             <div
-                className={`flex flex-1 flex-col min-w-0 transition-all duration-300 ease-in-out ${collapsed ? 'lg:ml-[64px]' : 'lg:ml-[240px]'}`}
+                className={`flex flex-1 flex-col min-w-0 transition-all duration-300 ease-in-out bg-slate-50 dark:bg-[#0b1329] ${collapsed ? 'lg:ml-[64px]' : 'lg:ml-[240px]'}`}
             >
                 {/* Header with mobile toggle */}
                 <AppSidebarHeader onOpenMobile={() => setMobileOpen(true)} />
 
                 {/* Main scrollable content */}
-                <main className="flex-1 p-4 md:p-6 overflow-x-hidden">
+                <main className="flex-1 p-2 md:p-3 overflow-x-hidden bg-slate-50 dark:bg-[#0b1329]">
                     {children}
                 </main>
             </div>

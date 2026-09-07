@@ -155,7 +155,7 @@ export default function FollowUpIndex({ customers, stats, statusFilter }: Props)
     <AppLayout breadcrumbs={breadcrumbs}>
       <Head title="Follow-up Center" />
       
-      <div className="max-w-[1600px] mx-auto space-y-6 pb-10">
+      <div className="w-full space-y-6 pb-10">
         {/* Header Section */}
         <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
           <div>

@@ -1,7 +1,7 @@
 import { Head, Link, router } from '@inertiajs/react';
 import {
   AlertCircle,
-  Trash2,
+  Trash,
   ArrowLeft,
   Save,
   User,
@@ -27,16 +27,21 @@ interface Customer {
   customer_email: string;
   customer_phone: string;
   customer_address: string;
+  company_name?: string;
+  business_address?: string;
+  brought_by?: number;
   credit_limit: number;
+  branch_id?: number | null;
   is_active: boolean;
 }
 
 interface EditCustomerProps {
   customer: Customer;
+  branches?: Array<{ id: number; name: string }>;
   errors?: Record<string, string>;
 }
 
-export default function EditCustomer({ customer, errors = {} }: EditCustomerProps) {
+export default function EditCustomer({ customer, branches = [], errors = {} }: EditCustomerProps) {
   const [loading, setLoading] = useState(false);
   const [deleting, setDeleting] = useState(false);
   const [formData, setFormData] = useState({
@@ -46,6 +51,7 @@ export default function EditCustomer({ customer, errors = {} }: EditCustomerProp
     customer_address: customer.customer_address || '',
     credit_limit: customer.credit_limit.toString(),
     is_active: customer.is_active,
+    branch_id: customer.branch_id ? customer.branch_id.toString() : '',
     password: '',
   });
 
@@ -85,35 +91,32 @@ export default function EditCustomer({ customer, errors = {} }: EditCustomerProp
     <>
       <Head title={`Modify ${customer.customer_name}`} />
       <AppLayout breadcrumbs={breadcrumbs}>
-        <div className="max-w-[1400px] mx-auto space-y-6 pb-10 px-6">
+        <div className="max-w-[1650px] mx-auto space-y-6 pb-10 px-0">
 
           {/* Action Header */}
           <div className="flex items-center justify-between pt-4">
-             <Link
-              href={`/customers/${customer.id}`}
-              className="group flex items-center text-slate-500 hover:text-slate-900 transition-colors"
-            >
-              <div className="h-8 w-8 rounded-full border border-slate-200 flex items-center justify-center mr-3 group-hover:bg-slate-50 shadow-sm transition-all active:scale-95">
-                <ArrowLeft className="h-4 w-4" />
-              </div>
-              <span className="text-[14px] font-semibold tracking-tight">Discard and profile view</span>
-            </Link>
+             <div className="flex items-center gap-2">
+                <Link
+                  href={`/customers/${customer.id}`}
+                  className="group flex items-center text-slate-500 hover:text-slate-900 transition-colors"
+                >
+                  <div className="h-8 w-8 rounded-full border border-slate-200 flex items-center justify-center group-hover:bg-slate-50 shadow-sm transition-all active:scale-95">
+                    <ArrowLeft className="h-4 w-4" />
+                  </div>
+                </Link>
+                <h1 className="text-[18px] font-bold text-slate-900 tracking-tight ml-2">Modify profile</h1>
+             </div>
 
             <Button
                 variant="destructive"
-                size="sm"
-                className="h-10 px-6 active:scale-95 transition-all shadow-md text-[13px] font-bold tracking-widest text-white flex items-center justify-center"
+                size="icon"
+                className="h-9 w-9 rounded-full shadow-sm active:scale-95 transition-all"
                 onClick={handleDelete}
                 disabled={deleting || loading}
+                title="Delete Customer"
             >
-                <Trash2 className="h-4 w-4 mr-2" />
-                Terminate account
+                <Trash className="h-4 w-4" />
             </Button>
-          </div>
-
-          <div className="flex flex-col gap-1">
-              <h1 className="text-[18px] font-bold text-slate-900 leading-none">Security center</h1>
-              <p className="text-[14px] text-slate-500 font-medium mt-1">Updating profile artifact: <span className="text-blue-600 font-bold">HD-{customer.id}</span></p>
           </div>
 
           {/* Error Alert */}
@@ -123,7 +126,7 @@ export default function EditCustomer({ customer, errors = {} }: EditCustomerProp
                   <AlertCircle className="h-5 w-5" />
               </div>
               <div className="flex-1">
-                <h3 className="font-bold text-red-900 text-[14px]">Profile identification failure</h3>
+                <h3 className="font-bold text-red-900 text-[14px]">Update validation failure</h3>
                 <ul className="text-[14px] text-red-800 mt-1 space-y-0.5 font-medium">
                   {Object.entries(errors).map(([field, message]) => (
                     <li key={field}>• {message}</li>
@@ -143,13 +146,12 @@ export default function EditCustomer({ customer, errors = {} }: EditCustomerProp
                             <Power className="h-5 w-5" />
                         </div>
                         <div>
-                            <h3 className="text-[14px] font-bold text-slate-900 leading-none tracking-tight">Account operational status</h3>
-                            <p className="text-[14px] text-slate-400 font-medium mt-1 uppercase">Determine if this client can place new orders</p>
+                            <h3 className="text-[14px] font-bold text-slate-900 leading-none tracking-tight">Status</h3>
                         </div>
                     </div>
                     <div className="flex items-center gap-4">
-                        <span className={`text-[12px] font-bold tracking-widest ${formData.is_active ? 'text-green-600' : 'text-slate-400'}`}>
-                            {formData.is_active ? 'Operational' : 'Restricted'}
+                        <span className={`text-[12px] font-bold ${formData.is_active ? 'text-green-600' : 'text-slate-400'}`}>
+                            {formData.is_active ? 'Active' : 'Inactive'}
                         </span>
                         <Switch
                             checked={formData.is_active}
@@ -169,14 +171,14 @@ export default function EditCustomer({ customer, errors = {} }: EditCustomerProp
                                 <User className="h-4 w-4" />
                             </div>
                             <div>
-                                <CardTitle className="text-[14px] font-bold text-slate-900">Core identification</CardTitle>
-                                <CardDescription className="text-[12px] font-medium text-slate-400">Primary legal and contact data</CardDescription>
+                                <CardTitle className="text-[14px] font-bold text-slate-900">Identification</CardTitle>
+                                <CardDescription className="text-[12px] font-medium text-slate-400">Legal and contact information</CardDescription>
                             </div>
                         </CardHeader>
                         <CardContent className="p-6 space-y-6">
                             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                                 <div className="space-y-2 md:col-span-2">
-                                    <Label htmlFor="name" className="text-[14px] font-bold opacity-80 ml-1">Company / customer full name *</Label>
+                                    <Label htmlFor="name" className="text-[13px] font-semibold text-slate-700 ml-1">Full name *</Label>
                                     <Input
                                         id="name"
                                         placeholder="Full legal name"
@@ -187,7 +189,7 @@ export default function EditCustomer({ customer, errors = {} }: EditCustomerProp
                                     />
                                 </div>
                                 <div className="space-y-2">
-                                    <Label htmlFor="email" className="text-[14px] font-bold opacity-80 ml-1">Billing email *</Label>
+                                    <Label htmlFor="email" className="text-[13px] font-semibold text-slate-700 ml-1">Email *</Label>
                                     <Input
                                         id="email"
                                         type="email"
@@ -199,7 +201,7 @@ export default function EditCustomer({ customer, errors = {} }: EditCustomerProp
                                     />
                                 </div>
                                 <div className="space-y-2">
-                                    <Label htmlFor="phone" className="text-[14px] font-bold opacity-80 ml-1">Primary phone *</Label>
+                                    <Label htmlFor="phone" className="text-[13px] font-semibold text-slate-700 ml-1">Phone *</Label>
                                     <Input
                                         id="phone"
                                         placeholder="+255 XXX XXX XXX"
@@ -210,8 +212,9 @@ export default function EditCustomer({ customer, errors = {} }: EditCustomerProp
                                     />
                                 </div>
                             </div>
+
                             <div className="space-y-2">
-                                <Label htmlFor="address" className="text-[14px] font-bold opacity-80 ml-1">Physical distribution address</Label>
+                                <Label htmlFor="address" className="text-[13px] font-semibold text-slate-700 ml-1">Delivery address</Label>
                                 <div className="relative">
                                     <MapPin className="absolute left-3 top-3 h-4 w-4 text-slate-300" />
                                     <Textarea
@@ -223,6 +226,24 @@ export default function EditCustomer({ customer, errors = {} }: EditCustomerProp
                                         disabled={loading}
                                     />
                                 </div>
+                            </div>
+
+                            <div className="space-y-2">
+                                <Label htmlFor="branch_id" className="text-[13px] font-semibold text-slate-700 ml-1">Assigned Branch *</Label>
+                                <select
+                                    id="branch_id"
+                                    value={formData.branch_id}
+                                    onChange={(e) => handleChange('branch_id', e.target.value)}
+                                    disabled={loading}
+                                    required
+                                    className="h-10 w-full px-3 text-[14px] bg-white border border-slate-200 rounded-md focus:outline-none focus:ring-1 focus:ring-blue-500 font-medium"
+                                >
+                                    <option value="">— Select branch —</option>
+                                    {branches.map((b) => (
+                                        <option key={b.id} value={b.id}>{b.name}</option>
+                                    ))}
+                                </select>
+                                <p className="text-[11px] text-slate-400">Primary branch for this customer profile.</p>
                             </div>
                         </CardContent>
                     </Card>
@@ -236,13 +257,13 @@ export default function EditCustomer({ customer, errors = {} }: EditCustomerProp
                                 <CreditCard className="h-4 w-4" />
                             </div>
                             <div>
-                                <CardTitle className="text-[14px] font-bold text-slate-900">Risk guardrails</CardTitle>
-                                <CardDescription className="text-[12px] font-medium text-slate-400">Credit exposure settings</CardDescription>
+                                <CardTitle className="text-[14px] font-bold text-slate-900">Finance</CardTitle>
+                                <CardDescription className="text-[12px] font-medium text-slate-400">Credit and risk settings</CardDescription>
                             </div>
                         </CardHeader>
                         <CardContent className="p-6 space-y-4">
                             <div className="space-y-3">
-                                <Label htmlFor="credit_limit" className="text-[14px] font-bold opacity-80 ml-1">Credit limit (TZS)</Label>
+                                <Label htmlFor="credit_limit" className="text-[13px] font-semibold text-slate-700 ml-1">Credit limit (TZS)</Label>
                                 <div className="relative">
                                     <span className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 font-bold text-sm">#</span>
                                     <Input
@@ -255,11 +276,11 @@ export default function EditCustomer({ customer, errors = {} }: EditCustomerProp
                                         className="h-12 pl-8 font-mono text-[16px] font-black text-slate-900 border-2 border-slate-100"
                                     />
                                 </div>
-                                <p className="text-[12px] text-slate-400 leading-relaxed font-medium">Verify the risk profile before increasing the credit capacity.</p>
+                                <p className="text-[11px] text-slate-400 leading-relaxed font-medium">Max permissible outstanding balance.</p>
                             </div>
 
                             <div className="space-y-2">
-                                <Label htmlFor="password" className="text-[14px] font-bold opacity-80 ml-1">Reset portal password</Label>
+                                <Label htmlFor="password" className="text-[13px] font-semibold text-slate-700 ml-1">Reset password</Label>
                                 <div className="relative">
                                     <ShieldCheck className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400" />
                                     <Input
@@ -273,12 +294,12 @@ export default function EditCustomer({ customer, errors = {} }: EditCustomerProp
                                     />
                                 </div>
                                 {errors.password && <p className="text-xs text-red-500 mt-1">{errors.password}</p>}
-                                <p className="text-[12px] text-slate-400 leading-relaxed font-medium">Leave blank to keep the current password.</p>
+                                <p className="text-[11px] text-slate-400 leading-relaxed font-medium">Leave blank to keep current password.</p>
                             </div>
 
                             <div className="pt-4 border-t border-slate-50 flex items-center gap-3 text-slate-400">
                                 <ShieldCheck className="h-4 w-4" />
-                                <span className="text-[12px] font-bold tracking-widest leading-none">Secured artifact</span>
+                                <span className="text-[12px] font-bold leading-none">Security</span>
                             </div>
                         </CardContent>
                     </Card>
@@ -289,7 +310,7 @@ export default function EditCustomer({ customer, errors = {} }: EditCustomerProp
             <div className="flex items-center justify-between pt-6 border-t border-slate-100">
                 <div className="flex items-center gap-2 text-slate-400">
                     <HistoryIcon className="h-4 w-4" />
-                    <span className="text-[12px] font-bold tracking-wider">Changes audited to system logs</span>
+                    <span className="text-[12px] font-bold">Changes audited</span>
                 </div>
                 <div className="flex gap-4">
                     <Button

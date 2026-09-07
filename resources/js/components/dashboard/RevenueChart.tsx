@@ -41,35 +41,35 @@ export function RevenueChart({ revenueData, expenseData, labels }: RevenueChartP
   ];
 
   return (
-    <div className="bg-white rounded-xl border border-zinc-100 p-6 h-full">
+    <div className="bg-white dark:bg-slate-900 rounded-xl border border-zinc-100 dark:border-slate-800 p-6 h-full">
       <div className="flex items-center justify-between mb-6">
         <div>
-          <h3 className="text-sm font-semibold text-zinc-900">Revenue vs Expenses</h3>
-          <p className="text-xs text-zinc-400 mt-0.5">Monthly financial overview</p>
+          <h3 className="text-sm font-semibold text-zinc-900 dark:text-white">Revenue vs Expenses</h3>
+          <p className="text-xs text-zinc-400 dark:text-zinc-500 mt-0.5">Monthly financial overview</p>
         </div>
         <div className="flex items-center gap-4">
-          <div className="flex bg-slate-100 p-0.5 rounded-md">
+          <div className="flex bg-slate-100 dark:bg-slate-800 p-0.5 rounded-md">
             <button 
               onClick={() => setChartType("area")}
-              className={`p-1.5 rounded-sm flex items-center justify-center transition-all ${chartType === 'area' ? 'bg-white shadow-sm text-blue-600' : 'text-slate-500 hover:text-slate-700'}`}
+              className={`p-1.5 rounded-sm flex items-center justify-center transition-all ${chartType === 'area' ? 'bg-white dark:bg-slate-900 shadow-sm text-blue-600 dark:text-blue-400' : 'text-slate-500 dark:text-slate-400 hover:text-slate-700 dark:hover:text-slate-200'}`}
               title="Line Graph"
             >
               <TrendingUp className="w-3.5 h-3.5" />
             </button>
             <button 
               onClick={() => setChartType("bar")}
-              className={`p-1.5 rounded-sm flex items-center justify-center transition-all ${chartType === 'bar' ? 'bg-white shadow-sm text-blue-600' : 'text-slate-500 hover:text-slate-700'}`}
+              className={`p-1.5 rounded-sm flex items-center justify-center transition-all ${chartType === 'bar' ? 'bg-white dark:bg-slate-900 shadow-sm text-blue-600 dark:text-blue-400' : 'text-slate-500 dark:text-slate-400 hover:text-slate-700 dark:hover:text-slate-200'}`}
               title="Bar Graph"
             >
               <BarChart3 className="w-3.5 h-3.5" />
             </button>
           </div>
           <div className="flex gap-5 text-xs font-medium">
-            <span className="flex items-center gap-2 text-zinc-600">
+            <span className="flex items-center gap-2 text-zinc-600 dark:text-zinc-300">
               <span className="w-2.5 h-2.5 rounded-full bg-blue-600" />
               Revenue
             </span>
-            <span className="flex items-center gap-2 text-zinc-600">
+            <span className="flex items-center gap-2 text-zinc-600 dark:text-zinc-300">
               <span className="w-2.5 h-2.5 rounded-full bg-orange-400" />
               Expenses
             </span>
@@ -89,7 +89,7 @@ export function RevenueChart({ revenueData, expenseData, labels }: RevenueChartP
                 <stop offset="100%" stopColor="#fb923c" stopOpacity={0} />
               </linearGradient>
             </defs>
-            <CartesianGrid strokeDasharray="3 3" stroke="#f1f5f9" vertical={false} />
+            <CartesianGrid strokeDasharray="3 3" stroke="rgba(148, 163, 184, 0.15)" vertical={false} />
             <XAxis
               dataKey="month"
               tick={{ fontSize: 11, fill: "#94a3b8" }}
@@ -104,18 +104,19 @@ export function RevenueChart({ revenueData, expenseData, labels }: RevenueChartP
             />
             <Tooltip
               contentStyle={{
-                background: "#fff",
-                border: "1px solid #e2e8f0",
+                background: "var(--card, #0f172a)",
+                borderColor: "var(--border, #1e293b)",
                 borderRadius: "10px",
                 fontSize: "12px",
-                boxShadow: "0 8px 24px -4px rgba(0,0,0,0.1)",
+                boxShadow: "0 8px 24px -4px rgba(0,0,0,0.2)",
                 padding: "10px 14px",
+                color: "var(--foreground, #f8fafc)",
               }}
               formatter={(value: any, name: any) => [
                 `TZS ${Number(value).toLocaleString()}`,
                 name === "revenue" ? "Revenue" : "Expenses"
               ]}
-              labelStyle={{ fontWeight: 600, marginBottom: 4, color: "#1e293b" }}
+              labelStyle={{ fontWeight: 600, marginBottom: 4, color: "var(--foreground, #f8fafc)" }}
             />
             <Area
               type="monotone"
@@ -138,7 +139,7 @@ export function RevenueChart({ revenueData, expenseData, labels }: RevenueChartP
           </AreaChart>
         ) : (
           <BarChart data={chartData}>
-            <CartesianGrid strokeDasharray="3 3" stroke="#f1f5f9" vertical={false} />
+            <CartesianGrid strokeDasharray="3 3" stroke="rgba(148, 163, 184, 0.15)" vertical={false} />
             <XAxis
               dataKey="month"
               tick={{ fontSize: 11, fill: "#94a3b8" }}
@@ -153,18 +154,19 @@ export function RevenueChart({ revenueData, expenseData, labels }: RevenueChartP
             />
             <Tooltip
               contentStyle={{
-                background: "#fff",
-                border: "1px solid #e2e8f0",
+                background: "var(--card, #0f172a)",
+                borderColor: "var(--border, #1e293b)",
                 borderRadius: "10px",
                 fontSize: "12px",
-                boxShadow: "0 8px 24px -4px rgba(0,0,0,0.1)",
+                boxShadow: "0 8px 24px -4px rgba(0,0,0,0.2)",
                 padding: "10px 14px",
+                color: "var(--foreground, #f8fafc)",
               }}
               formatter={(value: any, name: any) => [
                 `TZS ${Number(value).toLocaleString()}`,
                 name === "revenue" ? "Revenue" : "Expenses"
               ]}
-              labelStyle={{ fontWeight: 600, marginBottom: 4, color: "#1e293b" }}
+              labelStyle={{ fontWeight: 600, marginBottom: 4, color: "var(--foreground, #f8fafc)" }}
             />
             <Bar dataKey="revenue" fill="#2563eb" radius={[4, 4, 0, 0]} />
             <Bar dataKey="expenses" fill="#fb923c" radius={[4, 4, 0, 0]} />

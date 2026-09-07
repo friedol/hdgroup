@@ -271,30 +271,31 @@ export default function ProductDetail({
 
             <div className="min-h-screen bg-white">
                 {/* Hero Section */}
-                <section className="relative bg-amber-400 text-slate-900 overflow-hidden py-8">
-                    <div className="absolute top-0 right-0 w-64 h-64 bg-amber-300/50 rounded-full blur-3xl opacity-50 -translate-y-1/2 translate-x-1/2"></div>
-                    <div className="absolute bottom-0 left-0 w-64 h-64 bg-amber-300/50 rounded-full blur-3xl opacity-50 translate-y-1/2 -translate-x-1/2"></div>
+                <section className="relative bg-blue-600 text-white overflow-hidden py-12">
+                    <div className="absolute top-0 right-0 w-64 h-64 bg-white/10 rounded-full blur-3xl -translate-y-1/2 translate-x-1/2"></div>
+                    <div className="absolute bottom-0 left-0 w-64 h-64 bg-white/10 rounded-full blur-3xl translate-y-1/2 -translate-x-1/2"></div>
  
-                    <div className="mx-auto w-[99%] max-w-[1920px] px-2 sm:px-4 relative z-10 text-center">
+                    <div className="mx-auto w-[98%] md:w-[88%] max-w-[1600px] px-2 sm:px-4 md:px-8 relative z-10 text-center">
                         <div className="flex flex-col items-center justify-center gap-2 text-sm text-slate-800 mb-4 font-semibold">
                             <div className="flex items-center gap-2">
-                                <Link href="/shop/products" className="text-slate-800 hover:text-amber-700 transition tracking-wide text-[10px] uppercase">
+                                <Link href="/shop/products" className="text-white/80 hover:text-white transition tracking-wide text-[10px] uppercase">
                                     Products
                                 </Link>
-                                <span className="text-amber-600">/</span>
+                                <span className="text-red-300">/</span>
                                 <span className="text-slate-800 tracking-wide text-[10px] uppercase">
                                     {product.product_management?.category?.category_name || 'General'}
                                 </span>
-                                <span className="text-amber-600">/</span>
-                                <span className="text-amber-900 font-medium tracking-wide text-[10px] uppercase">{product.product_name}</span>
+                                <span className="text-red-300">/</span>
+                                <span className="text-white font-medium tracking-wide text-[10px] uppercase">{product.product_name}</span>
                             </div>
                         </div>
-                        <h1 className="text-2xl md:text-3xl font-semibold mb-2 tracking-tight capitalize">{product.product_name.toLowerCase()}</h1>
-                        <p className="text-xs text-slate-800 max-w-2xl mx-auto font-normal">Explore detailed specifications and acquisition metrics.</p>
+                        <p className="text-xl font-dancing text-white/80 mb-1 font-bold">Product Overview</p>
+                        <h1 className="text-2xl md:text-3xl font-extrabold mb-2 tracking-tight capitalize text-white">{product.product_name.toLowerCase()}</h1>
+                        <p className="text-xs text-white/80 max-w-2xl mx-auto font-normal">Explore detailed specifications and acquisition metrics.</p>
                     </div>
                 </section>
 
-                <div className="w-[99%] max-w-[1920px] mx-auto px-2 sm:px-4 py-8">
+                <div className="w-[98%] md:w-[88%] max-w-[1600px] mx-auto px-2 sm:px-4 md:px-8 py-8">
                     <Link href="/shop" className="inline-flex items-center gap-2 text-blue-600 hover:text-blue-700 mb-6">
                         <ChevronLeft className="w-4 h-4" />
                         Back to shop
@@ -349,7 +350,7 @@ export default function ProductDetail({
                                     {[...Array(5)].map((_, i) => (
                                         <Star
                                             key={i}
-                                            className={`w-4 h-4 ${i < Math.round(averageRating) ? 'fill-yellow-400 text-yellow-400' : 'text-gray-300'}`}
+                                            className={`w-4 h-4 ${i < Math.round(averageRating) ? 'fill-blue-400 text-blue-400' : 'text-gray-300'}`}
                                         />
                                     ))}
                                 </div>
@@ -371,7 +372,7 @@ export default function ProductDetail({
                                         </span>
                                     )}
                                 </div>
-                                <p className="text-[10px] md:text-[11px] font-medium text-amber-600 uppercase tracking-widest mt-1">
+                                <p className="text-[10px] md:text-[11px] font-medium text-blue-600 uppercase tracking-widest mt-1">
                                     Current Valuation Node
                                 </p>
                             </div>
@@ -486,19 +487,24 @@ export default function ProductDetail({
                                                     : 'border-slate-100 bg-white text-slate-600 hover:border-amber-200 hover:bg-slate-50'
                                                 }`}
                                             >
-                                                <div className="flex items-center gap-2">
+                                                <div className="flex items-center gap-2 flex-wrap">
                                                     <div className="w-4 h-4 rounded-full bg-slate-100 flex items-center justify-center border border-slate-200 overflow-hidden">
                                                         <div className="w-full h-full" style={{ backgroundColor: getVariantSwatchColor(variant.color) }}></div>
                                                     </div>
                                                     <span>{variant.color}</span>
                                                     <span className="text-[11px] font-medium text-slate-500">({availableQty.toLocaleString()} pcs)</span>
+                                                    {!isManufactured && Number(variant.price) > 0 && (
+                                                        <span className="text-[11px] font-semibold text-blue-600">
+                                                            {new Intl.NumberFormat('en-US').format(Number(variant.price))} TSH
+                                                        </span>
+                                                    )}
                                                 </div>
                                             </button>
                                             );
                                         })}
                                     </div>
                                     {!selectedColor && (
-                                        <p className="text-[10px] text-amber-600 font-medium mt-2">* Selection required</p>
+                                        <p className="text-[10px] text-red-600 font-medium mt-2">* Selection required</p>
                                     )}
                                     {selectedColor && selectedVariantQty <= 0 && (
                                         <p className="text-[10px] text-red-600 font-medium mt-2">* Selected color is out of stock for this bag type</p>
@@ -529,7 +535,7 @@ export default function ProductDetail({
                             <Button
                                 onClick={handleAddToCart}
                                 disabled={!canAddToCart}
-                                className="w-full h-12 md:h-14 text-[14px] md:text-lg font-semibold gap-2 mb-2 bg-amber-400 hover:bg-amber-500 text-slate-900 transition-all shadow-lg shadow-amber-200"
+                                className="w-full h-12 md:h-14 text-[14px] md:text-lg font-semibold gap-2 mb-2 bg-red-600 hover:bg-red-700 text-white transition-all shadow-lg shadow-red-200"
                                 size="lg"
                             >
                                 <ShoppingCart className="w-6 h-6" />
@@ -598,7 +604,7 @@ export default function ProductDetail({
                                                                 {[...Array(5)].map((_, i) => (
                                                                     <Star
                                                                         key={i}
-                                                                        className={`w-3 h-3 ${i < review.rating ? 'fill-yellow-400 text-yellow-400' : 'text-gray-300'}`}
+                                                                        className={`w-3 h-3 ${i < review.rating ? 'fill-blue-400 text-blue-400' : 'text-gray-300'}`}
                                                                     />
                                                                 ))}
                                                             </div>
@@ -628,7 +634,7 @@ export default function ProductDetail({
                                                             onClick={() => setReviewForm(prev => ({ ...prev, rating: star }))}
                                                             className="focus:outline-none"
                                                         >
-                                                            <Star className={`w-6 h-6 ${reviewForm.rating >= star ? 'fill-yellow-400 text-yellow-400' : 'text-gray-300 hover:text-yellow-200'}`} />
+                                                            <Star className={`w-6 h-6 ${reviewForm.rating >= star ? 'fill-blue-400 text-blue-400' : 'text-gray-300 hover:text-blue-200'}`} />
                                                         </button>
                                                     ))}
                                                 </div>
@@ -648,7 +654,7 @@ export default function ProductDetail({
                                                 <textarea 
                                                     value={reviewForm.comment}
                                                     onChange={(e) => setReviewForm(prev => ({ ...prev, comment: e.target.value }))}
-                                                    className="w-full rounded-md border border-slate-200 p-3 text-sm focus:outline-none focus:ring-2 focus:ring-amber-500 bg-white"
+                                                    className="w-full rounded-md border border-slate-200 p-3 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white"
                                                     rows={4}
                                                     placeholder="Share your thoughts about this product..."
                                                 ></textarea>
@@ -698,8 +704,14 @@ export default function ProductDetail({
                                                 <thead className="bg-slate-50 border-b border-slate-200">
                                                     <tr>
                                                         <th className="px-4 py-3 text-left font-semibold text-slate-700">Color</th>
-                                                        <th className="px-4 py-3 text-left font-semibold text-slate-700">Plain Price</th>
-                                                        <th className="px-4 py-3 text-left font-semibold text-slate-700">Printed Price</th>
+                                                        {isManufactured ? (
+                                                            <>
+                                                                <th className="px-4 py-3 text-left font-semibold text-slate-700">Plain Price</th>
+                                                                <th className="px-4 py-3 text-left font-semibold text-slate-700">Printed Price</th>
+                                                            </>
+                                                        ) : (
+                                                            <th className="px-4 py-3 text-left font-semibold text-slate-700">Selling Price</th>
+                                                        )}
                                                     </tr>
                                                 </thead>
                                                 <tbody className="divide-y divide-slate-200">
@@ -707,24 +719,34 @@ export default function ProductDetail({
                                                         <tr key={variant.id} className="hover:bg-slate-50 transition-colors">
                                                             <td className="px-4 py-3">
                                                                 <div className="flex items-center gap-3">
-                                                                    <div 
-                                                                        className="w-6 h-6 rounded-full border-2 border-slate-300" 
+                                                                    <div
+                                                                        className="w-6 h-6 rounded-full border-2 border-slate-300"
                                                                         style={{ backgroundColor: getVariantSwatchColor(variant.color) }}
                                                                         title={variant.color}
                                                                     />
                                                                     <span className="font-medium text-slate-900">{variant.color}</span>
                                                                 </div>
                                                             </td>
-                                                            <td className="px-4 py-3 text-slate-600">
-                                                                <span className={`font-medium ${resolveVariantDisplayPrice(variant, 'plain') === null ? 'text-slate-400 italic' : ''}`}>
-                                                                    {formatPriceOrDash(resolveVariantDisplayPrice(variant, 'plain'))}
-                                                                </span>
-                                                            </td>
-                                                            <td className="px-4 py-3 text-slate-600">
-                                                                <span className={`font-medium ${resolveVariantDisplayPrice(variant, 'printed') === null ? 'text-slate-400 italic' : ''}`}>
-                                                                    {formatPriceOrDash(resolveVariantDisplayPrice(variant, 'printed'))}
-                                                                </span>
-                                                            </td>
+                                                            {isManufactured ? (
+                                                                <>
+                                                                    <td className="px-4 py-3 text-slate-600">
+                                                                        <span className={`font-medium ${resolveVariantDisplayPrice(variant, 'plain') === null ? 'text-slate-400 italic' : ''}`}>
+                                                                            {formatPriceOrDash(resolveVariantDisplayPrice(variant, 'plain'))}
+                                                                        </span>
+                                                                    </td>
+                                                                    <td className="px-4 py-3 text-slate-600">
+                                                                        <span className={`font-medium ${resolveVariantDisplayPrice(variant, 'printed') === null ? 'text-slate-400 italic' : ''}`}>
+                                                                            {formatPriceOrDash(resolveVariantDisplayPrice(variant, 'printed'))}
+                                                                        </span>
+                                                                    </td>
+                                                                </>
+                                                            ) : (
+                                                                <td className="px-4 py-3 text-slate-600">
+                                                                    <span className={`font-medium ${!variant.price ? 'text-slate-400 italic' : ''}`}>
+                                                                        {variant.price ? `${new Intl.NumberFormat('en-US').format(Number(variant.price))} TSH` : '—'}
+                                                                    </span>
+                                                                </td>
+                                                            )}
                                                         </tr>
                                                     ))}
                                                 </tbody>
@@ -740,7 +762,8 @@ export default function ProductDetail({
                     {/* Related Products */}
                     {relatedProducts.length > 0 && (
                         <div>
-                            <h2 className="text-2xl font-medium text-gray-900 mb-6">Related Products</h2>
+                            <p className="text-xl font-dancing text-red-500 mb-1 font-bold">More Options</p>
+                            <h2 className="text-2xl font-bold text-gray-900 mb-6 tracking-tight">Related Products</h2>
                             <RelatedProducts products={relatedProducts} />
                         </div>
                     )}

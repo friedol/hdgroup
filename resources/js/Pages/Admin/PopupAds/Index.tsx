@@ -34,7 +34,7 @@ export default function Index({ ads }: { ads: PopupAd[] }) {
     <>
       <Head title="Popup ads" />
       <AppLayout breadcrumbs={breadcrumbs}>
-        <div className="max-w-[1400px] mx-auto space-y-6 pb-10">
+        <div className="w-full space-y-6 pb-10">
           {/* Header */}
           <div className="flex items-center justify-between">
             <div>

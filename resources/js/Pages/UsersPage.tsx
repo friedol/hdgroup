@@ -47,7 +47,6 @@ interface UsersPageProps {
 const permissionGroups = [
   { module: "Inventory", permissions: ["View Products", "Create Products", "Edit Products", "Delete Products", "Stock Adjustments", "Transfers"] },
   { module: "POS", permissions: ["New Sale", "Process Returns", "View History", "Apply Discounts", "Void Transactions"] },
-  { module: "Production", permissions: ["View BOMs", "Create BOMs", "Production Orders", "Raw Materials", "Benchmarks"] },
   { module: "Finance", permissions: ["View Loans", "Create Loans", "Record Payments", "Manage Expenses", "Financial Reports"] },
   { module: "Logistics", permissions: ["View Containers", "Manage Containers", "Generate Manifests", "Assign Orders"] },
   { module: "Users", permissions: ["View Users", "Create Users", "Edit Users", "Delete Users", "Manage Roles"] },

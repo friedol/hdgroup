@@ -93,23 +93,23 @@ export default function Cart({ cartItems, subtotal, subtotalAfterDiscount, promo
 
             <div className="min-h-screen bg-white">
                 {/* Hero Section */}
-                <section className="relative bg-amber-400 text-slate-900 overflow-hidden py-4 md:py-8">
-                    <div className="absolute top-0 right-0 w-64 h-64 bg-amber-300/50 rounded-full blur-3xl opacity-50 -translate-y-1/2 translate-x-1/2"></div>
-                    <div className="absolute bottom-0 left-0 w-64 h-64 bg-amber-300/50 rounded-full blur-3xl opacity-50 translate-y-1/2 -translate-x-1/2"></div>
+                <section className="relative bg-blue-600 text-white overflow-hidden py-4 md:py-8">
+                    <div className="absolute top-0 right-0 w-64 h-64 bg-white/10 rounded-full blur-3xl -translate-y-1/2 translate-x-1/2"></div>
+                    <div className="absolute bottom-0 left-0 w-64 h-64 bg-white/10 rounded-full blur-3xl translate-y-1/2 -translate-x-1/2"></div>
 
-                    <div className="mx-auto w-[99%] max-w-[1920px] px-2 sm:px-4 relative z-10 text-center">
+                    <div className="mx-auto w-[98%] md:w-[88%] max-w-[1600px] px-2 sm:px-4 md:px-8 relative z-10 text-center">
                         <div className="flex flex-col items-center justify-center gap-1 md:gap-2 mb-2 md:mb-4">
-                            <div className="w-8 h-8 md:w-10 md:h-10 bg-white/40 backdrop-blur-md rounded-lg md:rounded-xl flex items-center justify-center border border-amber-300/50 shadow-xl shadow-amber-950/10">
-                                <ShoppingCart className="w-4 h-4 md:w-5 md:h-5 text-slate-900" />
+                            <div className="w-8 h-8 md:w-10 md:h-10 bg-white/20 backdrop-blur-md rounded-lg md:rounded-xl flex items-center justify-center border border-white/30 shadow-xl">
+                                <ShoppingCart className="w-4 h-4 md:w-5 md:h-5 text-white" />
                             </div>
-                            <span className="text-[8px] md:text-[10px] font-bold text-amber-900 uppercase tracking-[0.2em]">Acquisition Layer</span>
+                            <span className="text-xl font-dancing font-bold text-white">Acquisition Layer</span>
                         </div>
-                        <h1 className="text-xl md:text-3xl font-extrabold mb-1 tracking-tight">Shopping Cart</h1>
-                        <p className="text-[10px] md:text-xs text-slate-800 max-w-2xl mx-auto font-normal">Review items and proceed to secure checkout.</p>
+                        <h1 className="text-2xl md:text-3xl font-extrabold mb-1 tracking-tight">Shopping Cart</h1>
+                        <p className="text-[10px] md:text-xs text-white/80 max-w-2xl mx-auto font-normal">Review items and proceed to secure checkout.</p>
                     </div>
                 </section>
 
-                <div className="w-[99%] max-w-[1920px] mx-auto px-2 sm:px-4 py-8">
+                <div className="w-[98%] md:w-[88%] max-w-[1600px] mx-auto px-2 sm:px-4 md:px-8 py-8">
                     {cartItems && cartItems.length > 0 ? (
                         <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
                             {/* Cart Items */}
@@ -271,7 +271,7 @@ export default function Cart({ cartItems, subtotal, subtotalAfterDiscount, promo
                                     </div>
 
                                     <Link href="/checkout">
-                                        <Button className="w-full h-14 text-lg font-bold gap-2 bg-amber-400 text-slate-900 hover:bg-amber-500 shadow-lg shadow-amber-300/40">
+                                        <Button className="w-full h-14 text-lg font-bold gap-2 bg-red-600 text-white hover:bg-red-700 shadow-lg shadow-red-300/40">
                                             <ShoppingCart className="w-5 h-5" />
                                             Proceed to Checkout
                                         </Button>
@@ -311,7 +311,7 @@ export default function Cart({ cartItems, subtotal, subtotalAfterDiscount, promo
                             <h2 className="text-2xl font-bold text-gray-900 mb-2">Your cart is empty</h2>
                             <p className="text-gray-500 mb-8 max-w-sm mx-auto">Looks like you haven't added anything to your cart yet. Explore our products to find what you need.</p>
                             <Link href="/shop">
-                                <Button size="lg" className="h-12 px-8 bg-amber-400 hover:bg-amber-500 text-slate-900 font-bold">Continue Shopping</Button>
+                                <Button size="lg" className="h-12 px-8 bg-blue-600 hover:bg-blue-700 text-white font-bold">Continue Shopping</Button>
                             </Link>
                         </div>
                     )}

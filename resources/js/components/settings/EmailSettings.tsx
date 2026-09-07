@@ -22,7 +22,7 @@ export default function EmailSettings({ getSettingValue }: EmailSettingsProps) {
     mail_password: getSettingValue('mail_password', ''),
     mail_encryption: getSettingValue('mail_encryption', 'ssl'),
     mail_from_address: getSettingValue('mail_from_address', 'info@chibobrand.com'),
-    mail_from_name: getSettingValue('mail_from_name', 'HD Group Ltd'),
+    mail_from_name: getSettingValue('mail_from_name', 'Jopo Juniours Co. Ltd Ltd'),
     test_recipient: "",
   });
 
@@ -180,7 +180,7 @@ export default function EmailSettings({ getSettingValue }: EmailSettingsProps) {
                   <Input 
                     value={emailForm.mail_from_name}
                     onChange={(e) => setEmailForm({...emailForm, mail_from_name: e.target.value})}
-                    placeholder="HD Group notifications" 
+                    placeholder="Jopo Juniours Co. Ltd notifications" 
                     className="h-10 text-sm bg-white shadow-sm" 
                   />
                 </div>

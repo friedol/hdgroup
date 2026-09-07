@@ -1,168 +1,240 @@
 <!DOCTYPE html>
-<html lang="en">
+<html>
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Gatekeeper Logs - Print</title>
+    <meta charset="utf-8">
+    <title>Gatekeeper Logs Report</title>
+    @if($system_favicon)
+        <link rel="shortcut icon" href="{{ asset('storage/' . $system_favicon) }}" type="image/x-icon">
+    @endif
     <style>
-        * {
-            margin: 0;
-            padding: 0;
-            box-sizing: border-box;
-        }
-        body {
-            font-family: Arial, sans-serif;
-            font-size: 11px;
-            line-height: 1.4;
-            color: #333;
-        }
-        .container {
-            max-width: 210mm;
-            padding: 10mm;
-            margin: 0 auto;
-        }
+        @page { size: A4 landscape; margin: 0.45in; }
+        * { font-family: Arial, Helvetica, sans-serif; }
+        body { color: #222; margin: 0; font-size: 10px; }
+
         .header {
-            text-align: center;
-            margin-bottom: 20px;
-            border-bottom: 2px solid #333;
-            padding-bottom: 10px;
+            background: #89a8cc;
+            color: #fff;
+            padding: 14px 16px;
+            border: 1px solid #8ea7c4;
         }
-        .header h1 {
-            font-size: 18px;
-            margin-bottom: 5px;
-        }
-        .header p {
-            font-size: 10px;
-            color: #666;
-        }
-        .filters {
-            background: #f5f5f5;
-            padding: 8px;
-            margin-bottom: 15px;
-            border-radius: 3px;
-            font-size: 9px;
-        }
-        table {
+
+        .header-grid {
             width: 100%;
             border-collapse: collapse;
-            margin-bottom: 20px;
         }
-        th {
-            background: #333;
-            color: white;
-            padding: 6px;
-            text-align: left;
-            font-weight: bold;
-            border: 1px solid #333;
+
+        .header-grid td { border: none; padding: 0; vertical-align: top; }
+
+        .title-left { font-size: 18px; font-weight: 800; letter-spacing: 0.3px; }
+        .title-right { font-size: 18px; font-weight: 800; text-align: right; letter-spacing: 0.2px; }
+        .sub { margin-top: 4px; font-size: 11px; opacity: 0.95; }
+
+        .meta {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 8px;
+            margin-bottom: 12px;
         }
-        td {
-            padding: 5px;
-            border: 1px solid #ddd;
+
+        .meta th, .meta td {
+            border: 1px solid #c9d2dc;
+            padding: 6px 8px;
+            text-align: center;
+        }
+
+        .meta th {
+            background: #f3f6f9;
+            font-size: 10px;
+            color: #334155;
+            font-weight: 700;
+        }
+
+        .section-title {
+            background: #3f6ea7;
+            color: #fff;
+            padding: 7px 10px;
+            font-size: 16px;
+            font-weight: 800;
+            border: 1px solid #295f9a;
+            margin-top: 10px;
+        }
+
+        table.report {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 0;
+        }
+
+        .report th, .report td {
+            border: 1px solid #c5ccd5;
+            padding: 6px 8px;
             font-size: 10px;
         }
-        tr:nth-child(even) {
-            background: #f9f9f9;
+
+        .report th {
+            background: #4f78ad;
+            color: #fff;
+            font-weight: 700;
+            text-align: left;
         }
-        .in {
-            background: #d4edda;
-            color: #155724;
-            font-weight: bold;
-        }
-        .out {
-            background: #fff3cd;
-            color: #856404;
-            font-weight: bold;
-        }
-        .footer {
-            text-align: right;
+
+        .center { text-align: center; }
+        .right { text-align: right; }
+        .font-bold { font-weight: 700; }
+        .font-mono { font-family: 'Courier New', Courier, monospace; }
+
+        .badge {
+            display: inline-block;
+            padding: 2px 6px;
+            border-radius: 3px;
             font-size: 9px;
-            color: #666;
+            font-weight: 800;
+            text-transform: uppercase;
+        }
+        .badge-in { background: #dcfce7; color: #166534; }
+        .badge-out { background: #ffedd5; color: #9a3412; }
+        .badge-verified { background: #dbeafe; color: #1e40af; }
+
+        .footer {
             margin-top: 20px;
             padding-top: 10px;
             border-top: 1px solid #ddd;
+            font-size: 9px;
+            color: #64748b;
+            text-align: right;
         }
+
         @media print {
-            body {
-                margin: 0;
-                padding: 0;
-            }
-            .container {
-                padding: 0;
-            }
+            body { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
         }
     </style>
 </head>
 <body>
-    <div class="container">
-        <div class="header">
-            <h1>Gatekeeper Logs Report</h1>
-            <p>HD GROUP - Product Movement Tracking</p>
-            <p>Generated on {{ now()->format('d M Y H:i:s') }}</p>
-        </div>
-
-        @if(array_filter($filters))
-        <div class="filters">
-            <strong>Filters Applied:</strong>
-            @if($filters['search'] ?? false)
-                Search: <strong>{{ $filters['search'] }}</strong> |
-            @endif
-            @if($filters['type'] ?? false)
-                Type: <strong>{{ $filters['type'] }}</strong> |
-            @endif
-            @if($filters['status'] ?? false)
-                Status: <strong>{{ $filters['status'] }}</strong> |
-            @endif
-            @if($filters['start_date'] ?? false)
-                From: <strong>{{ $filters['start_date'] }}</strong> -
-                To: <strong>{{ $filters['end_date'] ?? 'Today' }}</strong>
-            @endif
-        </div>
-        @endif
-
-        <table>
-            <thead>
-                <tr>
-                    <th style="width: 5%">Type</th>
-                    <th style="width: 15%">Product</th>
-                    <th style="width: 8%">Qty</th>
-                    <th style="width: 15%">Handler</th>
-                    <th style="width: 15%">From/To</th>
-                    <th style="width: 10%">Ref #</th>
-                    <th style="width: 8%">Status</th>
-                    <th style="width: 15%">Date & Time</th>
-                </tr>
-            </thead>
-            <tbody>
-                @forelse($logs as $log)
-                <tr>
-                    <td class="{{ strtolower($log->type) }}">
-                        {{ $log->type === 'IN' ? '→ IN' : '← OUT' }}
-                    </td>
-                    <td>{{ $log->product_name }}</td>
-                    <td style="text-align: right;">{{ number_format($log->quantity, 2) }} {{ $log->unit }}</td>
-                    <td>{{ $log->handler_name }} ({{ $log->handler_type }})</td>
-                    <td>{{ $log->type === 'IN' ? $log->source : $log->destination }}</td>
-                    <td style="text-align: center;">{{ $log->reference_number ?? '-' }}</td>
-                    <td style="text-align: center;">{{ ucfirst($log->status) }}</td>
-                    <td style="text-align: center;">{{ $log->recorded_at->format('d/m/Y H:i') }}</td>
-                </tr>
-                @empty
-                <tr>
-                    <td colspan="8" style="text-align: center; padding: 20px;">No logs found</td>
-                </tr>
-                @endforelse
-            </tbody>
+    <div class="header">
+        <table class="header-grid">
+            <tr>
+                <td style="width: 60%;">
+                    <table style="width: 100%; border-collapse: collapse;">
+                        <tr>
+                            @if($system_logo)
+                                <td style="width: 70px; vertical-align: middle;">
+                                    <img src="{{ asset('storage/' . $system_logo) }}" style="height: 55px; width: auto; display: block; margin-right: 15px;">
+                                </td>
+                            @endif
+                            <td style="vertical-align: middle;">
+                                <div class="title-left">{{ $companyName }}</div>
+                                <div class="sub">Address: {{ $companyAddress ?: 'N/A' }} | Branch: {{ $branchName }}</div>
+                            </td>
+                        </tr>
+                    </table>
+                </td>
+                <td style="width: 40%;">
+                    <div class="title-right">Gatekeeper Movement Report</div>
+                </td>
+            </tr>
         </table>
-
-        <div class="footer">
-            <p><strong>Total Records:</strong> {{ count($logs) }}</p>
-            <p>This document is automatically generated. No signature required.</p>
-            <p>For official records, ensure proper authorization and archival.</p>
-        </div>
     </div>
 
+    <table class="meta">
+        <tr>
+            <th>Date Generated</th>
+            <th>Active Branch</th>
+            <th>Report Scope</th>
+            <th>Total Records</th>
+        </tr>
+        <tr>
+            <td>{{ now()->format('d M, Y H:i') }}</td>
+            <td>{{ $branchName }}</td>
+            <td>
+                @if(array_filter($filters))
+                    Filtered Analysis
+                @else
+                    Complete History
+                @endif
+            </td>
+            <td class="font-bold">{{ count($logs) }}</td>
+        </tr>
+    </table>
+
+    @if(array_filter($filters))
+    <div style="margin-bottom: 10px; font-size: 9px; color: #64748b;">
+        <strong>Applied Filters:</strong>
+        @foreach($filters as $key => $value)
+            @if($value)
+                <span style="margin-right: 10px;">{{ ucfirst(str_replace('_', ' ', $key)) }}: <strong>{{ $value }}</strong></span>
+            @endif
+        @endforeach
+    </div>
+    @endif
+
+    <div class="section-title">Product Movement Logs</div>
+    <table class="report">
+        <thead>
+            <tr>
+                <th style="width: 5%">Type</th>
+                <th style="width: 20%">Product / Category</th>
+                <th style="width: 10%">Quantity</th>
+                <th style="width: 15%">Handler Details</th>
+                <th style="width: 15%">Source / Destination</th>
+                <th style="width: 10%">Reference</th>
+                <th style="width: 8%">Status</th>
+                <th style="width: 17%">Recorded At</th>
+            </tr>
+        </thead>
+        <tbody>
+            @forelse($logs as $log)
+                <tr>
+                    <td class="center">
+                        <span class="badge {{ $log->type === 'IN' ? 'badge-in' : 'badge-out' }}">
+                            {{ $log->type }}
+                        </span>
+                    </td>
+                    <td>
+                        <div class="font-bold text-slate-900">{{ $log->product_name }}</div>
+                        <div style="font-size: 8px; color: #64748b; text-transform: uppercase;">{{ $log->item_type === 'raw_material' ? 'Raw Material' : 'Finished Product' }}</div>
+                    </td>
+                    <td class="font-bold">
+                        {{ number_format($log->quantity, 2) }} {{ $log->unit }}
+                    </td>
+                    <td>
+                        <div class="font-bold">{{ $log->handler_name }}</div>
+                        <div style="font-size: 8px; color: #64748b;">{{ $log->handler_type }}</div>
+                    </td>
+                    <td>
+                        {{ $log->type === 'IN' ? ($log->source ?: 'External') : ($log->destination ?: 'Customer') }}
+                    </td>
+                    <td class="font-mono center">
+                        {{ $log->reference_number ?: '-' }}
+                    </td>
+                    <td class="center">
+                        <span class="badge badge-verified">{{ $log->status }}</span>
+                    </td>
+                    <td class="center">
+                        {{ $log->recorded_at->format('d M Y, H:i') }}
+                        <div style="font-size: 8px; color: #64748b;">by {{ $log->recorded_by_name }}</div>
+                    </td>
+                </tr>
+            @empty
+                <tr>
+                    <td colspan="8" class="center" style="padding: 30px; color: #64748b;">
+                        No product movement records found for the selected criteria.
+                    </td>
+                </tr>
+            @endforelse
+        </tbody>
+    </table>
+
+    <div class="footer">
+        <p>This report was generated by the Mizzonite Group Gatekeeper System.</p>
+        <p>Verified by: ___________________________ Date: _________________</p>
+    </div>
+
+    @if(request()->get('action') !== 'pdf')
     <script>
-        window.print();
+        window.onload = function() {
+            window.print();
+        }
     </script>
+    @endif
 </body>
 </html>

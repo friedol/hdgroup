@@ -2,27 +2,26 @@
 
 namespace App\Http\Controllers;
 
-use Carbon\Carbon;
 use App\Models\Cart;
-use App\Models\Loan;
-use App\Models\Post;
-use App\Models\Role;
-use App\Models\User;
-use App\Models\Order;
-use App\Models\Store;
-use App\Models\Export;
-use App\Models\Comment;
-use App\Models\Product;
-use App\Models\Session;
 use App\Models\Category;
-use App\Models\Feedback;
-use App\Models\Transfer;
+use App\Models\Comment;
 use App\Models\Container;
+use App\Models\Export;
+use App\Models\Order;
+use App\Models\Post;
+use App\Models\Product;
+use App\Models\Role;
+use App\Models\Session;
+use App\Models\Store;
+use App\Models\Transfer;
+use App\Models\User;
+use Carbon\Carbon;
+use Illuminate\Contracts\Auth\MustVerifyEmail;
 use Illuminate\Http\Request;
-use Illuminate\Validation\Rule;
-use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Auth;
-
+use Illuminate\Support\Facades\DB;
+use Illuminate\Validation\Rule;
+use Inertia\Inertia;
 
 class PageController extends Controller
 {
@@ -30,8 +29,9 @@ class PageController extends Controller
 
     public function index()
     {
-        return \Inertia\Inertia::render('Auth/Index');
+        return Inertia::render('Auth/Index');
     }
+
     public function home_page()
     {
         // if (Auth()->check()) {
@@ -51,9 +51,8 @@ class PageController extends Controller
         // $newArrivalsCounter = Product::whereDate('created_at', $todayDate)->count();
         // $products = Product::filter(request(['search']))->orderBy('product_name', 'asc')->get();
 
-        return \Inertia\Inertia::render('HomePage');
+        return Inertia::render('HomePage');
     }
-
 
     public function categories($id)
     {
@@ -74,14 +73,12 @@ class PageController extends Controller
         $newArrivalsCounter = Product::whereDate('created_at', $todayDate)->count();
         $products = Product::filter(request(['search']))->orderBy('product_name', 'asc')->get();
 
-        return \Inertia\Inertia::render('HomePage', compact('products', 'categories', 'productsCounter', 'categoryCounter', 'customersCounter', 'newArrivalsCounter', 'allproducts', 'cartCount'));
+        return Inertia::render('HomePage', compact('products', 'categories', 'productsCounter', 'categoryCounter', 'customersCounter', 'newArrivalsCounter', 'allproducts', 'cartCount'));
     }
-
-
 
     public function register()
     {
-        return \Inertia\Inertia::render('Auth/Register');
+        return Inertia::render('Auth/Register');
     }
 
     public function explore(Request $request)
@@ -113,7 +110,7 @@ class PageController extends Controller
         if ($request->ajax()) {
             return response()->json([
                 'products' => view('partials.products', compact('allproducts'))->render(),
-                'next_page' => $allproducts->nextPageUrl()
+                'next_page' => $allproducts->nextPageUrl(),
             ]);
         }
 
@@ -125,7 +122,7 @@ class PageController extends Controller
             $catProducts[$key]->images = json_decode($product->images, true);
         }
 
-        return \Inertia\Inertia::render('Explore', compact(
+        return Inertia::render('Explore', compact(
             'productsCounter',
             'categoryCounter',
             'customersCounter',
@@ -138,8 +135,6 @@ class PageController extends Controller
             'catProducts'
         ));
     }
-
-
 
     public function store_orders(Request $request)
     {
@@ -156,14 +151,12 @@ class PageController extends Controller
             'price' => 'required|numeric',
         ]);
 
-
         Cart::create($cartDetails);
 
         // dd($request->all());
 
         return redirect('/my-carts')->with('cart_success_msg', 'You ordered product successfully!');
     }
-
 
     public function my_carts()
     {
@@ -189,10 +182,9 @@ class PageController extends Controller
             ->orderBy('id', 'desc')->get();
 
         $cartCounter = Cart::where('phone_number', Auth::guard('web')->user()->staff_phone)->count();
-        return \Inertia\Inertia::render('Customer/MyCart', compact('productsCounter', 'categoryCounter', 'customersCounter', 'newArrivalsCounter', 'carts', 'cartCounter', 'cartCount', 'completeCart'));
+
+        return Inertia::render('Customer/MyCart', compact('productsCounter', 'categoryCounter', 'customersCounter', 'newArrivalsCounter', 'carts', 'cartCounter', 'cartCount', 'completeCart'));
     }
-
-
 
     public function store_my_order()
     {
@@ -200,9 +192,9 @@ class PageController extends Controller
         $userCart = Cart::where('phone_number', $user)
             ->where('status', 'Pending')
             ->update(['status' => 'Complete']);
+
         return redirect()->back()->with('success', 'Order Submitted successfully');
     }
-
 
     public function store_accounts(Request $request)
     {
@@ -228,27 +220,18 @@ class PageController extends Controller
         return redirect()->back()->with('account_success_created', 'Customer registered successfully!');
     }
 
-
-
-
-
-
-
-
-
-
-
-
     public function orders()
     {
         $todayDate = Carbon::now()->format('Y-m-d');
         $carts = Cart::whereDate('created_at', $todayDate)->get();
-        return \Inertia\Inertia::render('Admin/Orders', compact('carts'));
+
+        return Inertia::render('Admin/Orders', compact('carts'));
     }
 
     public function delete_order_cart(Request $request, Cart $cart)
     {
         $cart->delete();
+
         return redirect()->back()->with('success_delete_cart', 'Order deleted successfully!');
     }
 
@@ -353,7 +336,7 @@ class PageController extends Controller
             $datePrice = $totalPrice;
         }
 
-        return \Inertia\Inertia::render('Admin/Reports', [
+        return Inertia::render('Admin/Reports', [
             'exports' => $transfers,
             'myexports' => $totalPrice,
         ], compact('datePrice', 'totalQuantity', 'totalPrice'));
@@ -413,9 +396,8 @@ class PageController extends Controller
             $TotalQuantityOut += $product->quantity_out;
         }
 
-        return \Inertia\Inertia::render('Admin/InventoryReport', compact('products', 'stores', 'totalQuantity', 'totalPrice', 'totalQuantityOnHand', 'ToatlQuantityIn', 'TotalQuantityOut'));
+        return Inertia::render('Admin/InventoryReport', compact('products', 'stores', 'totalQuantity', 'totalPrice', 'totalQuantityOnHand', 'ToatlQuantityIn', 'TotalQuantityOut'));
     }
-
 
     public function recommended_product()
     {
@@ -424,7 +406,6 @@ class PageController extends Controller
 
         // Get today's date
         $today = Carbon::now()->format('Y-m-d');
-
 
         // Base query for Transfer table
         $transferQuery = Transfer::select(
@@ -464,9 +445,8 @@ class PageController extends Controller
         $d['exports'] = $exportQuery->get();
 
         // Return the view with data
-        return \Inertia\Inertia::render('Admin/Comments/Recommended', $d);
+        return Inertia::render('Admin/Comments/Recommended', $d);
     }
-
 
     public function sales_recommended()
     {
@@ -498,7 +478,7 @@ class PageController extends Controller
         }
 
         if ($role == 1 || $role == 2) {
-            $d['adminLoggedTrue']  = $user->staff_name;
+            $d['adminLoggedTrue'] = $user->staff_name;
         }
 
         // Execute query
@@ -512,15 +492,14 @@ class PageController extends Controller
 
         $d['totalAdvocacyVolume'] = (clone $metricQuery)->sum('product_quantity');
         $d['verifiedPipeline'] = (clone $metricQuery)->where('status', 'Checked')->count();
-        $d['pendingVerification'] = (clone $metricQuery)->where(function($q) {
+        $d['pendingVerification'] = (clone $metricQuery)->where(function ($q) {
             $q->whereNull('status')->orWhere('status', '');
         })->count();
         $d['volumeToday'] = (clone $metricQuery)->whereDate('created_at', Carbon::today())->sum('product_quantity');
 
         // Return the view with data
-        return \Inertia\Inertia::render('Admin/Comments/SalesRecommended', $d);
+        return Inertia::render('Admin/Comments/SalesRecommended', $d);
     }
-
 
     public function order_recommended()
     {
@@ -529,7 +508,6 @@ class PageController extends Controller
 
         // Get today's date
         $today = Carbon::now()->format('Y-m-d');
-
 
         // Base query for Transfer table
         $orderQuery = Cart::selectRaw('
@@ -544,7 +522,6 @@ class PageController extends Controller
                     ')
             ->groupBy('unique_id', 'is_checked', 'name', 'staff_recommeded', 'status', 'created_at')
             ->orderBy('id', 'desc');
-
 
         // Apply filter for staff_recommeded if the user role is 3
         if ($role == 3) {
@@ -567,9 +544,8 @@ class PageController extends Controller
         $d['volumeToday'] = (clone $metricQuery)->whereDate('created_at', Carbon::today())->sum('quantity');
 
         // Return the view with data
-        return \Inertia\Inertia::render('Admin/Comments/OrderRecommended', $d);
+        return Inertia::render('Admin/Comments/OrderRecommended', $d);
     }
-
 
     public function order_recommended_edit($unique_id)
     {
@@ -577,7 +553,7 @@ class PageController extends Controller
         $d['ordersDetail'] = Cart::where('unique_id', $unique_id)->first();
 
         // Return the view with data
-        return \Inertia\Inertia::render('Admin/Comments/OrderRecommendedEdit', $d);
+        return Inertia::render('Admin/Comments/OrderRecommendedEdit', $d);
     }
 
     public function order_recommended_show($unique_id)
@@ -586,11 +562,8 @@ class PageController extends Controller
         $d['ordersDetail'] = Cart::where('unique_id', $unique_id)->first();
 
         // Return the view with data
-        return \Inertia\Inertia::render('Admin/Comments/OrderRecommendedShow', $d);
+        return Inertia::render('Admin/Comments/OrderRecommendedShow', $d);
     }
-
-
-
 
     public function order_recommended_update(Request $request, string $unique_id)
     {
@@ -612,15 +585,13 @@ class PageController extends Controller
                 throw new \Exception("Order with ID $orderId not found for the unique_id $unique_id.");
             }
         }
+
         return back()->with('success', 'Order Checked');
     }
 
-
-
-
     public function settings()
     {
-        return \Inertia\Inertia::render('Admin/Settings');
+        return Inertia::render('Admin/Settings');
     }
 
     public function exported_products(Request $request)
@@ -645,7 +616,6 @@ class PageController extends Controller
             $quantities = json_decode($export->product_quantity, true);
             $prices = json_decode($export->product_price, true);
 
-
             if (is_array($quantities) && is_array($prices)) {
                 $total = 0;
                 foreach ($quantities as $index => $quantity) {
@@ -653,12 +623,12 @@ class PageController extends Controller
                         $total += (float) $quantity * (float) $prices[$index];
                     }
                 }
+
                 return $total;
             }
 
             return 0;
         });
-
 
         // Calculate total of all products exported today
         $datePrice = Export::whereDate('created_at', $currentDate)->get()->sum(function ($export) {
@@ -672,6 +642,7 @@ class PageController extends Controller
                         $total += (float) $quantity * (float) $prices[$index];
                     }
                 }
+
                 return $total;
             }
 
@@ -695,6 +666,7 @@ class PageController extends Controller
                             $total += (float) $quantity * (float) $prices[$index];
                         }
                     }
+
                     return $total;
                 }
 
@@ -704,12 +676,11 @@ class PageController extends Controller
             $totalComponents = Export::whereDate('created_at', $searchDate)->whereNotNull('product_name')->count();
         }
 
-        return \Inertia\Inertia::render('Admin/ExportedProducts', [
+        return Inertia::render('Admin/ExportedProducts', [
             'products' => Product::all(),
             'exports' => $exports,
         ], compact('myexports', 'datePrice', 'totalComponents', 'currentDate', 'customerName'));
     }
-
 
     public function view_all_sales(Request $request)
     {
@@ -742,6 +713,7 @@ class PageController extends Controller
                         $total += (float) $quantity * (float) $prices[$index];
                     }
                 }
+
                 return $total;
             }
 
@@ -767,6 +739,7 @@ class PageController extends Controller
                             $total += (float) $quantity * (float) $prices[$index];
                         }
                     }
+
                     return $total;
                 }
 
@@ -778,13 +751,11 @@ class PageController extends Controller
 
         // $exports =  Export::whereDate('created_at', $currentDate);
 
-        return \Inertia\Inertia::render('Admin/AllSales', [
+        return Inertia::render('Admin/AllSales', [
             'products' => Product::all(),
             'exports' => $exports,
         ], compact('myexports', 'datePrice', 'totalComponents', 'currentDate', 'customerName'));
     }
-
-
 
     public function loans_products(Request $request)
     {
@@ -811,7 +782,7 @@ class PageController extends Controller
             $customer_name[] = json_decode($export->customer_name, true);
         }
 
-        if ($request->has(['start_date', 'end_date']) && $request->start_date != "" && $request->end_date != "") {
+        if ($request->has(['start_date', 'end_date']) && $request->start_date != '' && $request->end_date != '') {
             $fromDate = $request->start_date;
             $toDate = $request->end_date;
 
@@ -820,12 +791,11 @@ class PageController extends Controller
             })->get();
         }
 
-        return \Inertia\Inertia::render('Admin/LoansProduct', [
+        return Inertia::render('Admin/LoansProduct', [
             'exports' => $decodedExports,
             'todayDate' => $todayDate,
         ], compact('customer_name'));
     }
-
 
     // public function authentication(Request $request)
     // {
@@ -887,22 +857,29 @@ class PageController extends Controller
 
         if (Auth::guard('web')->attempt([
             $loginField => $credentials['email_or_phone'],
-            'password' => $credentials['password']
+            'password' => $credentials['password'],
         ])) {
             $user = Auth::guard('web')->user();
             \Log::info('Web Guard Success', ['user_id' => $user->id, 'role_id' => $user->role_id]);
-            
-            if ($user instanceof \Illuminate\Contracts\Auth\MustVerifyEmail && !$user->hasVerifiedEmail()) {
-                 \Log::info('Unverified Email - logging out');
-                 Auth::guard('web')->logout();
-                 return redirect()->back()->with('message', 'Please verify your email address before logging in. If you did not receive the email, please check your spam folder.')->with('status', 'warning');
+
+            if ($user instanceof MustVerifyEmail && ! $user->hasVerifiedEmail()) {
+                \Log::info('Unverified Email - logging out');
+                Auth::guard('web')->logout();
+
+                return redirect()->back()->with('message', 'Please verify your email address before logging in. If you did not receive the email, please check your spam folder.')->with('status', 'warning');
             }
 
             $request->session()->regenerate();
             \Log::info('Session regenerated');
 
-            $url = $user->role_id == 12 ? route('home') : route('dashboard');
+            if ($user->role_id == 12) {
+                $url = route('home');
+            } else {
+                $url = route('dashboard');
+            }
+
             \Log::info('Redirecting to intended URL', ['url' => $url]);
+
             return redirect()->intended($url)
                 ->with('message', 'Login Successfully')
                 ->with('status', 'success');
@@ -915,19 +892,21 @@ class PageController extends Controller
         $loginFieldCustomer = filter_var($credentials['email_or_phone'], FILTER_VALIDATE_EMAIL) ? 'customer_email' : 'customer_phone';
         if (Auth::guard('customers')->attempt([
             $loginFieldCustomer => $credentials['email_or_phone'],
-            'password' => $credentials['password']
+            'password' => $credentials['password'],
         ])) {
             $user = Auth::guard('customers')->user();
             \Log::info('Customer Guard Success', ['user_id' => $user->id]);
 
-            if ($user && !$user->hasVerifiedEmail()) {
+            if ($user && ! $user->hasVerifiedEmail()) {
                 \Log::info('Unverified Customer Email - logging out');
                 Auth::guard('customers')->logout();
+
                 return redirect()->back()->with('message', 'Please verify your email address before logging in. If you did not receive the email, please check your spam folder.')->with('status', 'warning');
             }
 
             $request->session()->regenerate();
             \Log::info('Customer Redirecting to Home', ['url' => route('home')]);
+
             return redirect()->intended(route('home'))
                 ->with('message', 'Login Successfully')
                 ->with('status', 'success');
@@ -936,12 +915,11 @@ class PageController extends Controller
         }
 
         \Log::info('Both guards failed - redirecting back with errors');
+
         return redirect()->back()
             ->withErrors(['email_or_phone' => 'Incorrect Email/Phone or password!'])
             ->withInput();
     }
-
-
 
     public function edit_profile_details(Request $request, User $user)
     {
@@ -983,6 +961,7 @@ class PageController extends Controller
                 $user_passDetails['username'],
                 $user_passDetails['password'],
             ]);
+
             return redirect()->back()
                 ->with('message', 'Passwords updated successfully!')
                 ->with('status', 'success')
@@ -1008,7 +987,6 @@ class PageController extends Controller
         return redirect('/')->with('logout_flash_mgs', 'Logged out successfully!');
     }
 
-
     public function single_export($id)
     {
 
@@ -1032,7 +1010,7 @@ class PageController extends Controller
             $transfers[$key]->product_quantity = json_decode($transfer->product_quantity, true);
         }
 
-        return \Inertia\Inertia::render('Admin/SingleExport', [
+        return Inertia::render('Admin/SingleExport', [
             // 'transfers' => Transfer::all(),
             'stores' => Store::all(),
             'product' => $product,
@@ -1042,9 +1020,6 @@ class PageController extends Controller
             'chartData' => $chartData,
         ], compact('transfers'));
     }
-
-
-
 
     public function edit_loan_details(Request $request, Export $export)
     {
@@ -1066,7 +1041,6 @@ class PageController extends Controller
         return redirect()->back();
     }
 
-
     public function make_orders(Request $request)
     {
         $orders = Order::filter(request(['search']))->orderBy('id', 'desc')->get();
@@ -1078,7 +1052,7 @@ class PageController extends Controller
             $quantity[] = json_decode($order->quantity, true);
         }
 
-        if ($request->has(['start_date', 'end_date']) && $request->start_date != "" && $request->end_date != "") {
+        if ($request->has(['start_date', 'end_date']) && $request->start_date != '' && $request->end_date != '') {
             $fromDate = $request->start_date;
             $toDate = $request->end_date;
 
@@ -1087,7 +1061,8 @@ class PageController extends Controller
 
         $containers = Container::orderBy('id', 'asc')->get();
         $posts = Post::filter(request(['search']))->orderBy('id', 'asc')->get();
-        return \Inertia\Inertia::render('Admin/CreateOrders', compact('posts', 'containers', 'orders', 'productName', 'quantity'));
+
+        return Inertia::render('Admin/CreateOrders', compact('posts', 'containers', 'orders', 'productName', 'quantity'));
     }
 
     public function post_orders(Request $request)
@@ -1118,7 +1093,6 @@ class PageController extends Controller
         return redirect()->back()->with('success_created', 'Order created successfully!');
     }
 
-
     public function single_order($id)
     {
         $containers = Container::all();
@@ -1129,7 +1103,8 @@ class PageController extends Controller
         $containerId = json_decode($order->container_id, true);
         $productName = json_decode($order->product_name, true);
         $quantity = json_decode($order->quantity, true);
-        return \Inertia\Inertia::render('Admin/ViewMore', compact('order', 'staffName', 'containerId', 'productName', 'quantity', 'containers'));
+
+        return Inertia::render('Admin/ViewMore', compact('order', 'staffName', 'containerId', 'productName', 'quantity', 'containers'));
     }
 
     public function create_products(Request $request)
@@ -1156,8 +1131,6 @@ class PageController extends Controller
         return redirect()->back()->with('prod_created_flash_msg', 'Product registered successfully!');
     }
 
-
-
     public function edit_product_imported(Request $request, Product $product)
     {
         $editedImported = $request->validate([
@@ -1179,10 +1152,6 @@ class PageController extends Controller
         return redirect()->back()->with('import_success', 'Product impoted successfully');
     }
 
-
-
-
-
     public function store_comments(Request $request)
     {
         $commentsDetails = $request->validate([
@@ -1197,13 +1166,9 @@ class PageController extends Controller
         return redirect()->back()->with('comment_sent', 'Comment sent successfully!');
     }
 
-
-
-
-
     public function single_user_load($id)
     {
-        return \Inertia\Inertia::render('Admin/SingleUser', [
+        return Inertia::render('Admin/SingleUser', [
             'user' => User::find($id),
         ]);
     }
@@ -1226,12 +1191,14 @@ class PageController extends Controller
         }
 
         $user->update($editedProfile);
+
         return redirect()->back()->with('success_edit', 'User updated successfully!');
     }
 
     public function delete_user(Request $request, User $user)
     {
         $user->delete();
+
         return redirect('/admin/users')->with('success_delete', 'User deleted successfully!');
     }
 
@@ -1256,7 +1223,7 @@ class PageController extends Controller
             $created_at[] = $this->decodeJson($transfer->created_at);
         }
 
-        return \Inertia\Inertia::render('Admin/SingleStore', [
+        return Inertia::render('Admin/SingleStore', [
             'users' => User::where('staff_email', '!=', 'developer@gmail.com')->get(),
             'store' => $store,
             'products' => Product::orderBy('id', 'asc')->get(),
@@ -1269,17 +1236,14 @@ class PageController extends Controller
         return is_string($data) && is_array(json_decode($data, true)) ? json_decode($data, true) : $data;
     }
 
-
-
-
     public function reset_password()
     {
-        return \Inertia\Inertia::render('ResetPassword');
+        return Inertia::render('ResetPassword');
     }
 
     public function edit_export_product($id)
     {
-        return \Inertia\Inertia::render('Admin/EditExproduct', [
+        return Inertia::render('Admin/EditExproduct', [
             'product' => Export::find($id),
         ]);
     }
@@ -1311,7 +1275,7 @@ class PageController extends Controller
             $productNames = is_string($export->product_name) ? json_decode($export->product_name) : [];
             $productQuantities = is_string($export->product_quantity) ? json_decode($export->product_quantity) : [];
 
-            if (!is_array($productNames) || !is_array($productQuantities) || count($productNames) !== count($productQuantities)) {
+            if (! is_array($productNames) || ! is_array($productQuantities) || count($productNames) !== count($productQuantities)) {
                 return null;
             }
 
@@ -1338,7 +1302,8 @@ class PageController extends Controller
             return $items->collapse();
         });
         $nowDate = Carbon::now()->format('Y-m-d');
-        return \Inertia\Inertia::render('Admin/TransferedProducts', [
+
+        return Inertia::render('Admin/TransferedProducts', [
             'transfers' => Transfer::latest()->filter(request(['search']))->paginate(10),
             'chartData' => $dataByProduct,
             'dates' => $dates,
@@ -1348,7 +1313,7 @@ class PageController extends Controller
     public function single_transfer($id)
     {
 
-        $stores = store::all();
+        $stores = Store::all();
 
         $nowDate = Carbon::now()->format('Y-m-d');
 
@@ -1363,7 +1328,7 @@ class PageController extends Controller
         $productNames = json_decode($transfer->product_name, true);
         $productQuantities = json_decode($transfer->product_quantity, true);
 
-        return \Inertia\Inertia::render('Admin/TransferedItem', [
+        return Inertia::render('Admin/TransferedItem', [
             'transfer' => $transfer,
         ], compact('productNames', 'productQuantities', 'sourceStores', 'destinationStores', 'createdAt', 'staff_name', 'reason', 'staff_recommended', 'nowDate', 'stores'));
     }
@@ -1371,7 +1336,8 @@ class PageController extends Controller
     public function all_transfers()
     {
         $nowDate = Carbon::now()->format('Y-m-d');
-        return \Inertia\Inertia::render('Admin/AllTransfers', [
+
+        return Inertia::render('Admin/AllTransfers', [
             'transfers' => Transfer::latest()->filter(request(['search']))->get(),
         ], compact('nowDate'));
     }
@@ -1382,7 +1348,8 @@ class PageController extends Controller
         $product->customer_name = json_decode($product->customer_name, true);
         $product->phone = json_decode($product->phone, true);
         $product->tin = json_decode($product->tin, true);
-        return \Inertia\Inertia::render('Admin/Print', [
+
+        return Inertia::render('Admin/Print', [
             'product' => $product,
             'customer_name' => $product->customer_name,
             'customerPhone' => $product->phone,
@@ -1393,10 +1360,9 @@ class PageController extends Controller
     public function delete_single_product(Request $request, Product $product)
     {
         $product->delete();
+
         return redirect()->back()->with('success_delete_product', 'Product deleted successfully!');
     }
-
-
 
     public function transfer_report(Request $request)
     {
@@ -1463,6 +1429,7 @@ class PageController extends Controller
             array_walk_recursive($array, function ($value) use (&$flatArray) {
                 $flatArray[] = $value;
             });
+
             return $flatArray;
         };
 
@@ -1470,7 +1437,7 @@ class PageController extends Controller
         $flatQuantities = $flattenArray($quantities);
         $myquantities = array_sum($flatQuantities);
 
-        return \Inertia\Inertia::render('Admin/TransferReport', [
+        return Inertia::render('Admin/TransferReport', [
             'totalQuantity' => $myquantities,
             'products' => Product::all(),
         ], compact('datePrice', 'transfers', 'sourceStore', 'destinationStore', 'staffRec', 'reason', 'status'));
@@ -1479,6 +1446,7 @@ class PageController extends Controller
     public function delete_order(Request $request, Order $order)
     {
         $order->delete();
+
         return redirect('/admin/create-orders')->with('order_deleted_flash_msg', 'Order deleted successfully!');
     }
 
@@ -1517,18 +1485,20 @@ class PageController extends Controller
     {
         $posts = Post::orderBy('id', 'asc')->get();
 
-        if ($request->has(['start_date', 'end_date']) && $request->start_date != "" && $request->end_date != "") {
+        if ($request->has(['start_date', 'end_date']) && $request->start_date != '' && $request->end_date != '') {
             $startDate = $request->start_date;
             $endDate = $request->end_date;
 
             $posts = Post::whereBetween('created_at', [$startDate, $endDate])->get();
         }
-        return \Inertia\Inertia::render('Admin/ViewProducts', compact('posts'));
+
+        return Inertia::render('Admin/ViewProducts', compact('posts'));
     }
 
     public function delete_post_product(Request $request, Post $post)
     {
         $post->delete();
+
         return redirect()->back();
     }
 
@@ -1556,7 +1526,8 @@ class PageController extends Controller
         $quantity = json_decode($order->quantity, true);
 
         $posts = Post::all();
-        return \Inertia\Inertia::render('Admin/ViewOrder', compact('posts', 'order', 'containers', 'productName', 'quantity'));
+
+        return Inertia::render('Admin/ViewOrder', compact('posts', 'order', 'containers', 'productName', 'quantity'));
     }
 
     public function add_product_order(Request $request, Order $order)

@@ -7,17 +7,18 @@ use Illuminate\Database\Eloquent\Model;
 
 class Export extends Model
 {
-    use HasFactory, \App\Traits\HasBranch;
+    use \App\Traits\HasBranch, HasFactory;
 
     protected $casts = [
         'is_checked' => 'boolean',
     ];
 
-    public function scopeFilter($query, array $filters){
-        if($filters['search'] ?? false){
-            $query->where('created_at', 'like' , '%' . request('search') . '%')
-                ->orwhere('id', 'like', '%' . request('search') . '%')
-                ->orwhere('tin', 'like' , '%' . request('search') . '%');
+    public function scopeFilter($query, array $filters)
+    {
+        if ($filters['search'] ?? false) {
+            $query->where('created_at', 'like', '%'.request('search').'%')
+                ->orwhere('id', 'like', '%'.request('search').'%')
+                ->orwhere('tin', 'like', '%'.request('search').'%');
         }
     }
 
@@ -57,5 +58,10 @@ class Export extends Model
     {
         return $this->hasMany(Delivery::class, 'item_id')
             ->where('item_type', 'export');
+    }
+
+    public function branch()
+    {
+        return $this->belongsTo(Branch::class);
     }
 }

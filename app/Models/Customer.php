@@ -2,26 +2,29 @@
 
 namespace App\Models;
 
-use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Contracts\Auth\MustVerifyEmail;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
+use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
 
 class Customer extends Authenticatable implements MustVerifyEmail
 {
-    use HasFactory, Notifiable, \App\Traits\HasBranch;
+    use \App\Traits\HasBranch, HasFactory, Notifiable;
 
     protected $fillable = [
         'staff_id',
         'customer_name',
         'customer_email',
         'customer_phone',
+        'customer_address',
         'alternative_phone',
         'whatsapp_no',
         'company_name',
         'business_address',
         'brought_by',
         'is_walking_customer',
+        'credit_limit',
+        'is_active',
         'city',
         'notes',
         'username',
@@ -43,9 +46,11 @@ class Customer extends Authenticatable implements MustVerifyEmail
     protected $appends = ['name', 'email'];
 
     protected $casts = [
-        'password'           => 'hashed',
+        'password' => 'hashed',
         'is_walking_customer' => 'boolean',
-        'email_verified_at'  => 'datetime',
+        'is_active' => 'boolean',
+        'credit_limit' => 'float',
+        'email_verified_at' => 'datetime',
     ];
 
     /**
@@ -80,7 +85,7 @@ class Customer extends Authenticatable implements MustVerifyEmail
 
     public function sales()
     {
-        return $this->hasMany(Sale::class, 'customer_id');
+        return $this->hasMany(Sale::class, 'pos_customer_id');
     }
 
     public function followUpLogs()
@@ -105,7 +110,7 @@ class Customer extends Authenticatable implements MustVerifyEmail
 
     public function getStatusColorAttribute()
     {
-        return match($this->follow_up_status) {
+        return match ($this->follow_up_status) {
             'Overdue' => 'danger',
             'Due Today' => 'warning',
             'Upcoming' => 'primary',
@@ -120,21 +125,32 @@ class Customer extends Authenticatable implements MustVerifyEmail
         return $this->manual_follow_up_date ?: $this->next_expected_order_date;
     }
 
+    public function branch()
+    {
+        return $this->belongsTo(Branch::class);
+    }
+
     public function scopeForSaler($query, $user)
     {
-        if (!$user || !in_array($user->role, ['saler', 'staff'])) {
+        if (! $user) {
             return $query;
         }
+
+        $roleName = $user->role->role_name ?? '';
+        if (! in_array($roleName, ['Saler', 'Staff'])) {
+            return $query;
+        }
+
         return $query->where('brought_by', $user->id);
     }
 
     public function scopeFilter($query, array $filters)
     {
         if ($filters['search'] ?? false) {
-            $query->where('customer_name', 'like', '%' . request('search') . '%')
-                ->orWhere('customer_email', 'like', '%' . request('search') . '%')
-                ->orWhere('customer_phone', 'like', '%' . request('search') . '%')
-                ->orWhere('company_name', 'like', '%' . request('search') . '%');
+            $query->where('customer_name', 'like', '%'.request('search').'%')
+                ->orWhere('customer_email', 'like', '%'.request('search').'%')
+                ->orWhere('customer_phone', 'like', '%'.request('search').'%')
+                ->orWhere('company_name', 'like', '%'.request('search').'%');
         }
     }
 }

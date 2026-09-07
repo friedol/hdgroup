@@ -2,13 +2,13 @@
 
 namespace App\Http\Controllers\management;
 
-use App\Models\Unit;
-use App\Models\Product;
-use App\Models\Category;
-use Illuminate\Http\Request;
-use App\Models\ProductManagement;
-use Illuminate\Support\Facades\DB;
 use App\Http\Controllers\Controller;
+use App\Models\Category;
+use App\Models\Product;
+use App\Models\ProductManagement;
+use App\Models\Unit;
+use Illuminate\Http\Request;
+use Illuminate\Support\Facades\DB;
 
 class MProductController extends Controller
 {
@@ -17,16 +17,7 @@ class MProductController extends Controller
      */
     public function index()
     {
-        $products = ProductManagement::with('images')->orderBy('product_name', 'asc')->get();
-        return \Inertia\Inertia::render('InventoryPage', [
-            'products' => $products,
-            'kpis' => [
-                'total_products' => $products->count(),
-                'low_stock_alerts' => $products->where('low_stock_threshold', '>', 0)->count(), // Simplified
-                'out_of_stock' => 0, // Management view shows records, not stock instances
-                'total_value' => 'N/A',
-            ]
-        ]);
+        return redirect()->route('products.index');
     }
 
     /**
@@ -88,7 +79,7 @@ class MProductController extends Controller
             DB::rollBack();
 
             return response()->json([
-                'error' => 'Failed to create product: ' . $e->getMessage()
+                'error' => 'Failed to create product: '.$e->getMessage(),
             ], 500);
         }
     }
@@ -99,6 +90,7 @@ class MProductController extends Controller
     public function show(string $id)
     {
         $product = ProductManagement::findOrFail($id);
+
         return response()->json($product);
     }
 

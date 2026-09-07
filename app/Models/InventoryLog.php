@@ -13,7 +13,8 @@ class InventoryLog extends Model
         'quantity_change',
         'previous_quantity',
         'new_quantity',
-        'notes'
+        'notes',
+        'branch_id',
     ];
 
     public function inventory()

@@ -41,8 +41,8 @@ function resolveColorName(c: string): string {
 }
 // ───────────────────────────────────────────────────────────
 
-interface StoreQty    { store_name: string; qty: number }
-interface SaleUnit    { unit_name: string; factor: number; market_price: number }
+interface StoreQty    { store_name: string; qty: number; unit?: string; raw_qty?: number }
+interface SaleUnit    { unit_name?: string; name?: string; factor: number; market_price?: number; price?: number; plain_price?: number; printed_price?: number }
 interface TechSpec    { title: string; value: string }
 interface BomItem     { material_name: string; qty_per_unit: number; unit: string }
 interface Movement    { id: number; type: string; quantity: number; reference: string; store?: string; created_at: string }
@@ -72,6 +72,7 @@ interface Product {
   reorder_level?: number;
   low_alert?: number;
   current_stock?: number;
+  stock_unit?: string;
   total_stock_value?: number;
   inventories_by_store?: StoreQty[];
   material?: string | null;
@@ -98,7 +99,8 @@ export default function ShowProduct({ product, color_variants = [] }: { product:
   const plainSelling = product.plain_price ?? product.selling_price ?? 0;
   const printedSelling = product.printed_price ?? plainSelling;
   const margin  = cost > 0 ? (((plainSelling - cost) / cost) * 100) : 0;
-  const stock   = product.current_stock ?? 0;
+  const stock     = product.current_stock ?? 0;
+  const stockUnit = product.stock_unit ?? product.unit_of_measurement ?? 'units';
   const reorder = product.reorder_level ?? 0;
   const images  = product.images ?? [];
   const saleUnits    = product.sale_units    ?? [];
@@ -198,9 +200,11 @@ export default function ShowProduct({ product, color_variants = [] }: { product:
               <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">
                 {[
                   { label: 'Buying price', value: 'TZS ' + fmt(cost), icon: <Package className="h-4 w-4 md:h-5 md:w-5" />, valueColor: 'text-slate-900', bg: 'bg-white', border: 'border-slate-200', chip: 'bg-slate-50/80', tone: 'Cost' },
-                  { label: 'Plain/Printed', value: 'TZS ' + fmt(plainSelling) + ' / ' + fmt(printedSelling), icon: <TrendingUp className="h-4 w-4 md:h-5 md:w-5" />, valueColor: 'text-blue-600', bg: 'bg-blue-50/30', border: 'border-blue-200', chip: 'bg-blue-50/80', tone: 'Value' },
+                  isTrading
+                    ? { label: 'Selling price', value: 'TZS ' + fmt(plainSelling), icon: <TrendingUp className="h-4 w-4 md:h-5 md:w-5" />, valueColor: 'text-blue-600', bg: 'bg-blue-50/30', border: 'border-blue-200', chip: 'bg-blue-50/80', tone: 'Value' }
+                    : { label: 'Plain/Printed', value: 'TZS ' + fmt(plainSelling) + ' / ' + fmt(printedSelling), icon: <TrendingUp className="h-4 w-4 md:h-5 md:w-5" />, valueColor: 'text-blue-600', bg: 'bg-blue-50/30', border: 'border-blue-200', chip: 'bg-blue-50/80', tone: 'Value' },
                   { label: 'Profit margin', value: margin.toFixed(1) + '%', icon: <BarChart3 className="h-4 w-4 md:h-5 md:w-5" />, valueColor: margin >= 0 ? 'text-emerald-600' : 'text-rose-600', bg: margin >= 0 ? 'bg-emerald-50/30' : 'bg-rose-50/30', border: margin >= 0 ? 'border-emerald-200' : 'border-rose-200', chip: margin >= 0 ? 'bg-emerald-50/80' : 'bg-rose-50/80', tone: margin >= 0 ? 'Healthy' : 'Risk' },
-                  { label: 'Current stock', value: stock.toLocaleString(), icon: <Layers className="h-4 w-4 md:h-5 md:w-5" />, valueColor: stock < reorder && reorder > 0 ? 'text-rose-600' : 'text-slate-900', bg: stock < reorder && reorder > 0 ? 'bg-rose-50/30' : 'bg-white', border: stock < reorder && reorder > 0 ? 'border-rose-200' : 'border-slate-200', chip: stock < reorder && reorder > 0 ? 'bg-rose-50/80' : 'bg-slate-50/80', tone: stock < reorder && reorder > 0 ? 'Low' : 'Stable' },
+                  { label: 'Current stock', value: `${stock.toLocaleString()} ${stockUnit}`, icon: <Layers className="h-4 w-4 md:h-5 md:w-5" />, valueColor: stock < reorder && reorder > 0 ? 'text-rose-600' : 'text-slate-900', bg: stock < reorder && reorder > 0 ? 'bg-rose-50/30' : 'bg-white', border: stock < reorder && reorder > 0 ? 'border-rose-200' : 'border-slate-200', chip: stock < reorder && reorder > 0 ? 'bg-rose-50/80' : 'bg-slate-50/80', tone: stock < reorder && reorder > 0 ? 'Low' : 'Stable' },
                 ].map(kpi => (
                   <div key={kpi.label} className={`rounded-xl border ${kpi.border} p-3 md:p-6 shadow-sm hover:shadow-md transition-shadow ${kpi.bg}`}>
                     <div className="flex items-center justify-between mb-2 md:mb-4">
@@ -256,10 +260,16 @@ export default function ShowProduct({ product, color_variants = [] }: { product:
                   <div className="bg-white border border-slate-200 rounded-xl p-8 shadow-sm">
                     <SectionTitle icon={<Tag className="h-5 w-5" />} label="Standard costing" />
                     <div className="grid grid-cols-1 md:grid-cols-4 gap-8">
-                      <Field label="Standard buying cost"   value={'TZS ' + fmt(cost)} />
-                      <Field label="Plain bag price"  value={'TZS ' + fmt(plainSelling)} />
-                      <Field label="Printed bag price"  value={'TZS ' + fmt(printedSelling)} />
-                      <Field label="Estimated plain profit"  value={'TZS ' + fmt(plainSelling - cost)} />
+                      <Field label="Standard buying cost" value={'TZS ' + fmt(cost)} />
+                      {isTrading ? (
+                        <Field label="Selling price" value={'TZS ' + fmt(plainSelling)} />
+                      ) : (
+                        <>
+                          <Field label="Plain bag price" value={'TZS ' + fmt(plainSelling)} />
+                          <Field label="Printed bag price" value={'TZS ' + fmt(printedSelling)} />
+                        </>
+                      )}
+                      <Field label={isTrading ? 'Estimated profit' : 'Estimated plain profit'} value={'TZS ' + fmt(plainSelling - cost)} />
                       <div className="col-span-1">
                          <p className="text-[11px] font-medium text-slate-400 mb-1">Standard margin</p>
                          <Badge variant="outline" className={`h-7 px-3 rounded-lg font-semibold border-none ${margin >= 0 ? 'bg-emerald-50 text-emerald-700' : 'bg-rose-50 text-rose-700'}`}>
@@ -297,28 +307,47 @@ export default function ShowProduct({ product, color_variants = [] }: { product:
                 {saleUnits.length > 0 && (
                   <TabsContent value="pricing" className="mt-4">
                     <div className="bg-white border border-slate-200 rounded-sm p-5">
-                      <SectionTitle icon={<ShoppingCart className="h-4 w-4" />} label="Sale Units & Market Pricing" />
+                      <SectionTitle icon={<ShoppingCart className="h-4 w-4" />} label="Sale Units & Pricing" />
                       <table className="w-full text-sm">
                         <thead>
                           <tr className="border-b border-slate-100">
                             <th className="text-left text-[10px] font-medium uppercase text-slate-400 py-2">Unit</th>
                             <th className="text-left text-[10px] font-medium uppercase text-slate-400 py-2">Factor</th>
-                            <th className="text-left text-[10px] font-medium uppercase text-slate-400 py-2">Market Price</th>
+                            {isManufactured ? (
+                              <>
+                                <th className="text-left text-[10px] font-medium uppercase text-slate-400 py-2">Plain Price</th>
+                                <th className="text-left text-[10px] font-medium uppercase text-slate-400 py-2">Printed Price</th>
+                              </>
+                            ) : (
+                              <th className="text-left text-[10px] font-medium uppercase text-slate-400 py-2">Selling Price</th>
+                            )}
                             <th className="text-left text-[10px] font-medium uppercase text-slate-400 py-2">Profit</th>
                             <th className="text-left text-[10px] font-medium uppercase text-slate-400 py-2">Margin</th>
                           </tr>
                         </thead>
                         <tbody>
                           {saleUnits.map((u, i) => {
+                            const sellingPrice = u.market_price ?? u.price ?? 0;
                             const base = cost * u.factor;
-                            const profit = u.market_price - base;
-                            const mg = u.market_price > 0 ? ((profit / u.market_price) * 100).toFixed(1) : '0.0';
+                            const profit = sellingPrice - base;
+                            const mg = sellingPrice > 0 ? ((profit / sellingPrice) * 100).toFixed(1) : '0.0';
 
                             return (
                               <tr key={i} className="border-b border-slate-50">
-                                <td className="py-2 font-medium">{u.unit_name || '—'}</td>
+                                <td className="py-2 font-medium">{u.unit_name || u.name || '—'}</td>
                                 <td className="py-2">{u.factor}</td>
-                                <td className="py-2 font-medium">TZS {fmt(u.market_price)}</td>
+                                {isManufactured ? (
+                                  <>
+                                    <td className="py-2 font-medium">
+                                      {u.plain_price != null ? 'TZS ' + fmt(u.plain_price) : '—'}
+                                    </td>
+                                    <td className="py-2 font-medium">
+                                      {u.printed_price != null ? 'TZS ' + fmt(u.printed_price) : '—'}
+                                    </td>
+                                  </>
+                                ) : (
+                                  <td className="py-2 font-medium">TZS {fmt(sellingPrice)}</td>
+                                )}
                                 <td className={`py-2 font-medium ${profit >= 0 ? 'text-green-600' : 'text-red-600'}`}>TZS {fmt(profit)}</td>
                                 <td className={`py-2 font-medium ${parseFloat(mg) >= 0 ? 'text-green-600' : 'text-red-600'}`}>{mg}%</td>
                               </tr>
@@ -444,12 +473,12 @@ export default function ShowProduct({ product, color_variants = [] }: { product:
                         {storeQtys.map((s, i) => (
                           <div key={i} className="flex justify-between items-center py-2 px-3 bg-slate-50 rounded-sm border border-slate-100">
                             <span className="text-sm font-medium text-slate-700">{s.store_name}</span>
-                            <span className="text-sm font-medium text-slate-900">{s.qty.toLocaleString()} units</span>
+                            <span className="text-sm font-medium text-slate-900">{s.qty.toLocaleString()} {s.unit ?? 'units'}</span>
                           </div>
                         ))}
                         <div className="flex justify-between items-center py-2 px-3 bg-blue-50 rounded-sm border border-blue-100 mt-2">
                           <span className="text-xs font-medium uppercase text-blue-600">Total</span>
-                          <span className="text-sm font-medium text-blue-700">{stock.toLocaleString()} units</span>
+                          <span className="text-sm font-medium text-blue-700">{stock.toLocaleString()} {stockUnit}</span>
                         </div>
                       </div>
                     ) : (
@@ -459,7 +488,7 @@ export default function ShowProduct({ product, color_variants = [] }: { product:
                   <div className="grid grid-cols-3 gap-3">
                     <div className="bg-white border border-slate-200 rounded-sm p-4">
                       <p className="text-[10px] font-medium uppercase text-slate-400">Total Stock</p>
-                      <p className={`text-2xl font-medium mt-1 ${stock < reorder && reorder > 0 ? 'text-red-600' : 'text-slate-900'}`}>{stock.toLocaleString()}</p>
+                      <p className={`text-2xl font-medium mt-1 ${stock < reorder && reorder > 0 ? 'text-red-600' : 'text-slate-900'}`}>{stock.toLocaleString()} <span className="text-sm font-normal text-slate-400">{stockUnit}</span></p>
                       {stock < reorder && reorder > 0 && <p className="text-[10px] text-red-500 mt-0.5">⚠ Below reorder level ({reorder})</p>}
                     </div>
                     <div className="bg-white border border-slate-200 rounded-sm p-4">

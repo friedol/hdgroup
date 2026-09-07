@@ -64,12 +64,12 @@ export function NotificationCenter() {
         }
     };
 
-    const getPriorityColor = (priority: string) => {
+    const getPriorityAccent = (priority: string) => {
         switch (priority) {
-            case 'critical': return 'border-l-4 border-l-red-500 bg-red-50';
-            case 'high': return 'border-l-4 border-l-orange-500 bg-orange-50';
-            case 'medium': return 'border-l-4 border-l-blue-500 bg-blue-50';
-            default: return 'border-l-4 border-l-slate-200 bg-slate-50';
+            case 'critical': return 'border-l-[3px] border-l-red-500';
+            case 'high': return 'border-l-[3px] border-l-orange-400';
+            case 'medium': return 'border-l-[3px] border-l-blue-400';
+            default: return 'border-l-[3px] border-l-slate-200';
         }
     };
 
@@ -108,7 +108,7 @@ export function NotificationCenter() {
                     </div>
                 </SheetHeader>
 
-                <div className="flex-1 overflow-y-auto custom-scrollbar bg-slate-50/30">
+                <div className="flex-1 overflow-y-auto custom-scrollbar bg-white">
                     {loading && notifications.length === 0 ? (
                         <div className="flex flex-col items-center justify-center h-full py-12 gap-3 opacity-50">
                             <Loader2 className="w-6 h-6 animate-spin text-blue-600" />
@@ -125,34 +125,32 @@ export function NotificationCenter() {
                             </div>
                         </div>
                     ) : (
-                        <div className="p-4 space-y-3">
+                        <div className="divide-y divide-slate-100">
                             {notifications.map((notif) => (
-                                <div 
+                                <div
                                     key={notif.id}
                                     onClick={() => {
                                         setOpen(false);
                                         router.get(notif.link);
                                     }}
-                                    className={`group p-4 rounded-xl border border-slate-100 shadow-sm cursor-pointer transition-all hover:shadow-md hover:scale-[1.01] active:scale-100 relative bg-white ${getPriorityColor(notif.priority)}`}
+                                    className={`group flex gap-3 px-5 py-4 cursor-pointer transition-colors hover:bg-slate-50 relative ${getPriorityAccent(notif.priority)}`}
                                 >
-                                    <div className="flex gap-4">
-                                        <div className="mt-1 shrink-0">
-                                            <div className="w-8 h-8 rounded-lg bg-white shadow-sm border border-slate-100 flex items-center justify-center">
-                                                {getIcon(notif.type)}
-                                            </div>
+                                    <div className="mt-0.5 shrink-0">
+                                        <div className="w-8 h-8 rounded-full bg-slate-100 flex items-center justify-center">
+                                            {getIcon(notif.type)}
                                         </div>
-                                        <div className="flex-1 space-y-1 pr-6">
-                                            <div className="flex items-center justify-between">
-                                                <h4 className="text-xs font-black text-slate-900 uppercase tracking-tight">{notif.title}</h4>
-                                                <span className="text-[10px] text-slate-400 font-bold">{notif.time}</span>
-                                            </div>
-                                            <p className="text-xs text-slate-600 font-medium leading-relaxed">
-                                                {notif.message}
-                                            </p>
+                                    </div>
+                                    <div className="flex-1 min-w-0 pr-5">
+                                        <div className="flex items-start justify-between gap-2 mb-0.5">
+                                            <h4 className="text-xs font-bold text-slate-900 leading-tight truncate">{notif.title}</h4>
+                                            <span className="text-[10px] text-slate-400 font-medium shrink-0">{notif.time}</span>
                                         </div>
-                                        <div className="absolute top-1/2 -translate-y-1/2 right-4 opacity-0 group-hover:opacity-100 transition-opacity">
-                                            <ArrowRight size={14} className="text-blue-500" />
-                                        </div>
+                                        <p className="text-xs text-slate-500 leading-relaxed line-clamp-2">
+                                            {notif.message}
+                                        </p>
+                                    </div>
+                                    <div className="absolute top-1/2 -translate-y-1/2 right-4 opacity-0 group-hover:opacity-100 transition-opacity">
+                                        <ArrowRight size={13} className="text-slate-400" />
                                     </div>
                                 </div>
                             ))}
@@ -167,7 +165,7 @@ export function NotificationCenter() {
                     >
                         Mark all as read
                     </button>
-                    <p className="text-[10px] text-center text-slate-400 font-bold mt-4 uppercase tracking-[0.2em]">HD Group Notification Center</p>
+                    <p className="text-[10px] text-center text-slate-400 font-bold mt-4 uppercase tracking-[0.2em]">Jopo Juniours Co. Ltd Notification Center</p>
                 </div>
             </SheetContent>
         </Sheet>

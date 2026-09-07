@@ -1,11 +1,17 @@
 import { usePage, Link } from "@inertiajs/react";
-import { Bell, Search, ChevronDown, ShoppingCart } from "lucide-react";
+import { Bell, Search, ChevronDown, ShoppingCart, Sun, Moon, Monitor } from "lucide-react";
+import { useAppearance } from "@/hooks/use-appearance";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 
 const pageTitles: Record<string, string> = {
   "/dashboard": "Dashboard",
   "/inventory": "Inventory",
   "/pos": "Point of Sale",
-  "/production": "Production",
   "/finance": "Finance",
   "/logistics": "Logistics",
   "/users": "User Management",
@@ -16,13 +22,14 @@ const pageTitles: Record<string, string> = {
 export function AppHeader() {
   const { url } = usePage();
   const title = pageTitles[url] || "Dashboard";
+  const { appearance, resolvedAppearance, updateAppearance } = useAppearance();
 
   return (
     <header className="h-16 border-b border-border bg-card sticky top-0 z-10">
       <div className="mx-auto flex h-full max-w-6xl items-center justify-between px-4">
         <div>
           <h1 className="text-lg font-semibold text-foreground leading-none">{title}</h1>
-          <p className="text-xs text-muted-foreground mt-0.5">HD Group • Main Branch</p>
+          <p className="text-xs text-muted-foreground mt-0.5">Jopo Juniours Co. Ltd • Main Branch</p>
         </div>
 
         <div className="flex items-center gap-3">
@@ -43,6 +50,48 @@ export function AppHeader() {
         >
           <ShoppingCart className="w-4 h-4" />
         </Link>
+
+        {/* Theme Switcher */}
+        <DropdownMenu>
+          <DropdownMenuTrigger asChild>
+            <button className="p-2 rounded-lg hover:bg-secondary transition-colors" title="Switch Theme">
+              {resolvedAppearance === 'dark' ? (
+                <Moon className="w-4 h-4 text-amber-400" />
+              ) : (
+                <Sun className="w-4 h-4 text-amber-500" />
+              )}
+            </button>
+          </DropdownMenuTrigger>
+          <DropdownMenuContent align="end" className="w-36 p-1.5 rounded-xl shadow-xl border-slate-200 dark:border-slate-800 mt-1">
+            <div className="px-2 py-1 mb-1 text-[10px] font-bold text-slate-400 uppercase tracking-widest">
+              Theme
+            </div>
+            <DropdownMenuItem
+              className={`rounded-lg cursor-pointer text-xs font-medium gap-2 ${appearance === 'light' ? 'bg-blue-50 dark:bg-blue-900/30 text-blue-700 dark:text-blue-400 font-semibold' : ''}`}
+              onClick={() => updateAppearance('light')}
+            >
+              <Sun className="h-3.5 w-3.5" />
+              <span>Light</span>
+              {appearance === 'light' && <span className="ml-auto">✓</span>}
+            </DropdownMenuItem>
+            <DropdownMenuItem
+              className={`rounded-lg cursor-pointer text-xs font-medium gap-2 ${appearance === 'dark' ? 'bg-blue-50 dark:bg-blue-900/30 text-blue-700 dark:text-blue-400 font-semibold' : ''}`}
+              onClick={() => updateAppearance('dark')}
+            >
+              <Moon className="h-3.5 w-3.5" />
+              <span>Dark</span>
+              {appearance === 'dark' && <span className="ml-auto">✓</span>}
+            </DropdownMenuItem>
+            <DropdownMenuItem
+              className={`rounded-lg cursor-pointer text-xs font-medium gap-2 ${appearance === 'system' ? 'bg-blue-50 dark:bg-blue-900/30 text-blue-700 dark:text-blue-400 font-semibold' : ''}`}
+              onClick={() => updateAppearance('system')}
+            >
+              <Monitor className="h-3.5 w-3.5" />
+              <span>System</span>
+              {appearance === 'system' && <span className="ml-auto">✓</span>}
+            </DropdownMenuItem>
+          </DropdownMenuContent>
+        </DropdownMenu>
 
         {/* Notifications */}
         <button className="relative p-2 rounded-lg hover:bg-secondary transition-colors">

@@ -201,7 +201,7 @@ export default function PaymentRequestsIndex({ requests, outstandingSales, summa
   return (
     <AppLayout breadcrumbs={breadcrumbs}>
       <Head title="Payment Requests" />
-      <div className="max-w-[1400px] mx-auto space-y-6 pb-10">
+      <div className="w-full space-y-6 pb-10">
 
         {/* Header */}
         <div className="flex items-start justify-between gap-3 sm:gap-4">

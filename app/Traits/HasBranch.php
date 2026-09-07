@@ -3,14 +3,13 @@
 namespace App\Traits;
 
 use Illuminate\Database\Eloquent\Builder;
-use Illuminate\Support\Facades\Auth;
 
 /**
  * Trait HasBranch
- * 
+ *
  * Provides multi-tenant branch scoping for Eloquent models.
  * Automatically ensures all queries are filtered by the active branch.
- * 
+ *
  * Usage:
  * 1. Add `use HasBranch;` to your model
  * 2. Ensure `branch_id` column exists in the database table
@@ -24,8 +23,9 @@ trait HasBranch
     protected static function bootHasBranch(): void
     {
         static::creating(function ($model) {
-            // Automatically set branch_id when creating new records
-            if (!$model->branch_id) {
+            // Auto-set branch_id only when it was never explicitly provided.
+            // If branch_id is explicitly null, respect it (means "global / all branches").
+            if (! array_key_exists('branch_id', $model->getAttributes())) {
                 $model->branch_id = active_branch_id();
             }
         });
@@ -34,27 +34,21 @@ trait HasBranch
         static::addGlobalScope('branch', function (Builder $builder) {
             $branchId = active_branch_id();
             if ($branchId) {
-                $builder->where($builder->getModel()->getTable() . '.branch_id', $branchId);
+                $builder->where($builder->getModel()->getTable().'.branch_id', $branchId);
             }
         });
     }
 
     /**
      * Scope to filter records for a specific branch
-     * 
-     * @param Builder $query
-     * @param int|null $branchId
-     * @return Builder
      */
     public function scopeForBranch(Builder $query, ?int $branchId = null): Builder
     {
-        return $query->where($this->getTable() . '.branch_id', $branchId ?? active_branch_id());
+        return $query->where($this->getTable().'.branch_id', $branchId ?? active_branch_id());
     }
 
     /**
      * Get the branch_id value for this model instance
-     * 
-     * @return int|null
      */
     public function getBranchId(): ?int
     {
@@ -63,13 +57,13 @@ trait HasBranch
 
     /**
      * Set the branch_id value for this model instance
-     * 
-     * @param int $branchId
+     *
      * @return $this
      */
     public function setBranchId(int $branchId)
     {
         $this->branch_id = $branchId;
+
         return $this;
     }
 }

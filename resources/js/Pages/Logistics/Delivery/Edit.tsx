@@ -3,7 +3,6 @@ import { ArrowLeft, Plus, X, Trash2 } from 'lucide-react';
 import { useState } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
-import { Button } from '@/components/ui/button';
 import AppLayout from '@/layouts/app-layout';
 
 interface Driver {
@@ -99,19 +98,13 @@ export default function DeliveryEdit({ delivery, drivers }: DeliveryEditProps) {
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    put(`/deliveries/${delivery.id}`, {
-      onSuccess: () => {},
-      onError: () => {},
-    });
+    put(`/deliveries/${delivery.id}`);
   };
 
   const handleDelete = (e: React.FormEvent) => {
     e.preventDefault();
     if (confirm('Are you sure you want to delete this delivery?')) {
-      deleteDelivery(`/deliveries/${delivery.id}`, {
-        onSuccess: () => {},
-        onError: () => {},
-      });
+      deleteDelivery(`/deliveries/${delivery.id}`);
     }
   };
 
@@ -121,39 +114,45 @@ export default function DeliveryEdit({ delivery, drivers }: DeliveryEditProps) {
   const deliveryTotal = deliveryCost - deliveryDiscount;
   const grandTotal = totalItemsValue + deliveryTotal;
 
+  const labelClass = "text-xs font-semibold text-slate-500 uppercase tracking-wider mb-2 block";
+  const inputClass = "w-full px-3.5 py-2 text-sm border border-slate-200 rounded-xl outline-none focus:border-blue-400 focus:ring-2 focus:ring-blue-100 bg-slate-50/50 focus:bg-white transition-all h-10 shadow-none";
+  const selectClass = "w-full px-3.5 py-2 text-sm border border-slate-200 rounded-xl outline-none focus:border-blue-400 focus:ring-2 focus:ring-blue-100 bg-slate-50/50 focus:bg-white transition-all h-10 shadow-none cursor-pointer";
+
   if (!isPending) {
     return (
       <>
         <Head title="Edit Delivery" />
         <AppLayout breadcrumbs={breadcrumbs}>
-          <div className="space-y-6">
+          <div className="max-w-[1700px] mx-auto space-y-6 pb-20">
             <div className="flex items-center gap-3">
-              <Link href="/deliveries">
-                <ArrowLeft className="w-5 h-5 text-muted-foreground hover:text-foreground" />
+              <Link href="/deliveries" className="h-9 w-9 bg-white border border-slate-200 rounded-xl flex items-center justify-center text-slate-400 hover:text-slate-700 hover:border-slate-300 shadow-sm transition-all">
+                <ArrowLeft className="w-4 h-4" />
               </Link>
               <div>
-                <h1 className="text-xl font-bold">Edit Delivery</h1>
-                <p className="text-sm text-slate-600 mt-1">Delivery #{delivery.delivery_number}</p>
+                <h1 className="text-[18px] font-bold text-slate-900 tracking-tight leading-none">Edit Delivery</h1>
+                <p className="text-xs font-medium text-slate-500 mt-1.5">Delivery #{delivery.delivery_number}</p>
               </div>
             </div>
 
-            <Card className="border-yellow-200 bg-yellow-50">
+            <Card className="rounded-2xl border border-amber-200 bg-amber-50/50 overflow-hidden shadow-none p-2">
               <CardHeader>
-                <CardTitle className="text-yellow-900">Cannot Edit</CardTitle>
+                <CardTitle className="text-sm font-bold text-amber-800">Cannot Edit Delivery</CardTitle>
               </CardHeader>
-              <CardContent>
-                <p className="text-yellow-800">
+              <CardContent className="pt-2 text-xs font-semibold text-amber-705">
+                <p>
                   This delivery cannot be edited because it has already been assigned or is in transit. 
-                  Current status: <span className="font-bold">{delivery.status}</span>
+                  Current status: <span className="font-extrabold">{delivery.status}</span>
                 </p>
-                <p className="text-sm text-yellow-700 mt-2">
+                <p className="text-slate-400 mt-1 font-medium">
                   Only pending deliveries can be edited.
                 </p>
               </CardContent>
             </Card>
 
             <Link href="/deliveries">
-              <Button variant="outline">Back to Deliveries</Button>
+              <button className="h-9 px-4 rounded-xl text-xs font-semibold border border-slate-200 hover:bg-slate-50 text-slate-650 transition-all">
+                Back to Deliveries
+              </button>
             </Link>
           </div>
         </AppLayout>
@@ -165,40 +164,40 @@ export default function DeliveryEdit({ delivery, drivers }: DeliveryEditProps) {
     <>
       <Head title={`Edit Delivery - ${delivery.delivery_number}`} />
       <AppLayout breadcrumbs={breadcrumbs}>
-        <div className="space-y-6">
+        <div className="max-w-[1700px] mx-auto space-y-6 pb-20">
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-3">
-              <Link href="/deliveries">
-                <ArrowLeft className="w-5 h-5 text-muted-foreground hover:text-foreground" />
+              <Link href="/deliveries" className="h-9 w-9 bg-white border border-slate-200 rounded-xl flex items-center justify-center text-slate-400 hover:text-slate-700 hover:border-slate-300 shadow-sm transition-all">
+                <ArrowLeft className="w-4 h-4" />
               </Link>
               <div>
-                <h1 className="text-xl font-bold">Edit Delivery</h1>
-                <p className="text-sm text-slate-600 mt-1">Delivery #{delivery.delivery_number}</p>
+                <h1 className="text-[18px] font-bold text-slate-900 tracking-tight leading-none">Edit Delivery</h1>
+                <p className="text-xs font-medium text-slate-500 mt-1.5">Delivery #{delivery.delivery_number}</p>
               </div>
             </div>
             {isPending && (
               <button
                 onClick={handleDelete}
                 disabled={processing}
-                className="flex items-center gap-2 px-3 py-2 text-red-600 border border-red-600 rounded-md hover:bg-red-50 disabled:opacity-50"
+                className="flex items-center gap-2 h-9 px-4 rounded-xl text-xs font-bold text-rose-600 border border-rose-250 bg-white hover:bg-rose-50 transition-all disabled:opacity-50"
               >
-                <Trash2 className="w-4 h-4" />
-                Delete
+                <Trash2 className="w-3.5 h-3.5" /> Delete
               </button>
             )}
           </div>
 
           <form onSubmit={handleSubmit} className="space-y-6">
+            
             {/* Order Type */}
-            <Card>
-              <CardHeader>
-                <CardTitle className="text-sm">Order Type</CardTitle>
+            <Card className="rounded-2xl border border-slate-200 shadow-sm bg-white overflow-hidden">
+              <CardHeader className="border-b border-slate-50 pb-4">
+                <CardTitle className="text-sm font-bold text-slate-800">Order Type</CardTitle>
               </CardHeader>
-              <CardContent>
+              <CardContent className="pt-5">
                 <select
                   value={data.delivery_type}
                   onChange={(e) => setData('delivery_type', e.target.value)}
-                  className="w-full px-3 py-2 border rounded-md"
+                  className={selectClass}
                   disabled={!isPending}
                 >
                   <option value="export">Export/Sales</option>
@@ -209,50 +208,51 @@ export default function DeliveryEdit({ delivery, drivers }: DeliveryEditProps) {
             </Card>
 
             {/* Customer Information */}
-            <Card>
-              <CardHeader>
-                <CardTitle className="text-sm">Customer Information</CardTitle>
+            <Card className="rounded-2xl border border-slate-200 shadow-sm bg-white overflow-hidden">
+              <CardHeader className="border-b border-slate-50 pb-4">
+                <CardTitle className="text-sm font-bold text-slate-800">Customer Information</CardTitle>
               </CardHeader>
-              <CardContent className="space-y-4">
+              <CardContent className="pt-5 space-y-4">
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   <div>
-                    <label className="block text-sm font-medium mb-2">Customer Name *</label>
+                    <label className={labelClass}>Customer Name *</label>
                     <Input
                       placeholder="Enter customer name"
                       value={data.customer_name}
                       onChange={(e) => setData('customer_name', e.target.value)}
                       disabled={!isPending}
-                      className={errors.customer_name ? 'border-red-500' : ''}
+                      className={`${inputClass} ${errors.customer_name ? 'border-red-500' : ''}`}
                     />
-                    {errors.customer_name && <p className="text-red-500 text-xs mt-1">{errors.customer_name}</p>}
+                    {errors.customer_name && <p className="text-red-500 text-[11px] font-semibold mt-1">{errors.customer_name}</p>}
                   </div>
                   <div>
-                    <label className="block text-sm font-medium mb-2">Phone *</label>
+                    <label className={labelClass}>Phone *</label>
                     <Input
                       placeholder="Enter phone number"
                       value={data.phone}
                       onChange={(e) => setData('phone', e.target.value)}
                       disabled={!isPending}
-                      className={errors.phone ? 'border-red-500' : ''}
+                      className={`${inputClass} ${errors.phone ? 'border-red-500' : ''}`}
                     />
-                    {errors.phone && <p className="text-red-500 text-xs mt-1">{errors.phone}</p>}
+                    {errors.phone && <p className="text-red-500 text-[11px] font-semibold mt-1">{errors.phone}</p>}
                   </div>
                   <div>
-                    <label className="block text-sm font-medium mb-2">Email</label>
+                    <label className={labelClass}>Email</label>
                     <Input
                       type="email"
                       placeholder="Enter email address"
                       value={data.email}
                       onChange={(e) => setData('email', e.target.value)}
                       disabled={!isPending}
+                      className={inputClass}
                     />
                   </div>
                   <div>
-                    <label className="block text-sm font-medium mb-2">Delivery Zone</label>
+                    <label className={labelClass}>Delivery Zone</label>
                     <select
                       value={data.delivery_zone}
                       onChange={(e) => setData('delivery_zone', e.target.value)}
-                      className="w-full px-3 py-2 border rounded-md disabled:opacity-50"
+                      className={selectClass}
                       disabled={!isPending}
                     >
                       <option value="">Select zone</option>
@@ -265,100 +265,108 @@ export default function DeliveryEdit({ delivery, drivers }: DeliveryEditProps) {
                 </div>
 
                 <div>
-                  <label className="block text-sm font-medium mb-2">Delivery Address *</label>
+                  <label className={labelClass}>Delivery Address *</label>
                   <textarea
                     placeholder="Enter full delivery address"
                     value={data.delivery_address}
                     onChange={(e) => setData('delivery_address', e.target.value)}
                     disabled={!isPending}
-                    className={`w-full px-3 py-2 border rounded-md disabled:opacity-50 ${errors.delivery_address ? 'border-red-500' : ''}`}
+                    className={`w-full px-3.5 py-2.5 text-sm border border-slate-200 rounded-xl outline-none focus:border-blue-400 focus:ring-2 focus:ring-blue-100 bg-slate-50/50 focus:bg-white transition-all min-h-[80px] disabled:opacity-50 ${errors.delivery_address ? 'border-red-500' : ''}`}
                     rows={3}
                   />
-                  {errors.delivery_address && <p className="text-red-500 text-xs mt-1">{errors.delivery_address}</p>}
+                  {errors.delivery_address && <p className="text-red-500 text-[11px] font-semibold mt-1">{errors.delivery_address}</p>}
                 </div>
               </CardContent>
             </Card>
 
             {/* Delivery Items */}
-            <Card>
-              <CardHeader>
-                <div className="flex items-center justify-between">
-                  <div>
-                    <CardTitle className="text-sm">Items to Deliver</CardTitle>
-                    <CardDescription>Add or remove items for this delivery</CardDescription>
-                  </div>
-                  {isPending && (
-                    <Button type="button" size="sm" variant="outline" onClick={handleAddItem} className="gap-2">
-                      <Plus className="w-4 h-4" />
-                      Add Item
-                    </Button>
-                  )}
+            <Card className="rounded-2xl border border-slate-200 shadow-sm bg-white overflow-hidden">
+              <CardHeader className="border-b border-slate-50 pb-4 flex flex-row items-center justify-between">
+                <div>
+                  <CardTitle className="text-sm font-bold text-slate-800">Items to Deliver</CardTitle>
+                  <CardDescription className="text-xs text-slate-400">Add or remove items for this delivery</CardDescription>
                 </div>
+                {isPending && (
+                  <button 
+                    type="button" 
+                    onClick={handleAddItem}
+                    className="rounded-xl gap-2 text-xs font-semibold h-9 px-4 bg-white border border-slate-200 text-slate-700 shadow-sm flex items-center hover:bg-slate-50 transition-all"
+                  >
+                    <Plus className="w-3.5 h-3.5" /> Add Item
+                  </button>
+                )}
               </CardHeader>
-              <CardContent className="space-y-4">
+              <CardContent className="pt-5 space-y-4">
                 {items.map((item, index) => (
-                  <div key={index} className="border rounded-lg p-4 space-y-3">
-                    <div className="flex justify-between items-start">
-                      <h3 className="font-medium">Item {index + 1}</h3>
+                  <div key={index} className="border border-slate-150 rounded-xl p-4 space-y-4 bg-slate-50/20">
+                    <div className="flex justify-between items-center pb-2 border-b border-slate-100">
+                      <h3 className="text-xs font-bold text-slate-800">Item {index + 1}</h3>
                       {items.length > 1 && isPending && (
                         <button
                           type="button"
                           onClick={() => handleRemoveItem(index)}
-                          className="text-red-500 hover:text-red-700"
+                          className="text-rose-600 hover:text-rose-700 text-xs font-bold flex items-center gap-1"
                         >
-                          <X className="w-4 h-4" />
+                          <X className="w-3.5 h-3.5" /> Remove
                         </button>
                       )}
                     </div>
 
-                    <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+                    <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                       <div>
-                        <label className="block text-xs font-medium mb-1">Product Name *</label>
+                        <label className={labelClass}>Product Name *</label>
                         <Input
                           placeholder="Product name"
                           value={item.product_name}
                           onChange={(e) => handleItemChange(index, 'product_name', e.target.value)}
                           disabled={!isPending}
+                          className={inputClass}
                         />
                       </div>
                       <div>
-                        <label className="block text-xs font-medium mb-1">Quantity *</label>
+                        <label className={labelClass}>Quantity *</label>
                         <Input
                           type="number"
                           placeholder="Qty"
                           min="1"
                           value={item.quantity}
-                          onChange={(e) => handleItemChange(index, 'quantity', parseInt(e.target.value))}
+                          onChange={(e) => handleItemChange(index, 'quantity', parseInt(e.target.value) || 0)}
                           disabled={!isPending}
+                          className={inputClass}
                         />
                       </div>
                       <div>
-                        <label className="block text-xs font-medium mb-1">Unit Price *</label>
+                        <label className={labelClass}>Unit Price *</label>
                         <Input
                           type="number"
                           placeholder="Price"
                           min="0"
                           step="0.01"
                           value={item.unit_price}
-                          onChange={(e) => handleItemChange(index, 'unit_price', parseFloat(e.target.value))}
+                          onChange={(e) => handleItemChange(index, 'unit_price', parseFloat(e.target.value) || 0)}
                           disabled={!isPending}
+                          className={inputClass}
                         />
                       </div>
                     </div>
 
-                    <div className="bg-slate-50 p-2 rounded text-sm text-right">
+                    <div className="bg-slate-100/50 border border-slate-100 p-2.5 rounded-lg text-xs font-bold text-slate-705 text-right">
                       Item Total: TZS {(item.quantity * item.unit_price).toLocaleString()}
                     </div>
                   </div>
                 ))}
 
                 {items.length === 0 && (
-                  <div className="text-center py-8 text-muted-foreground">
-                    <p>No items added yet</p>
+                  <div className="text-center py-10">
+                    <p className="text-xs font-bold text-slate-400">No items added yet</p>
                     {isPending && (
-                      <Button type="button" size="sm" variant="ghost" onClick={handleAddItem} className="mt-2">
+                      <button 
+                        type="button" 
+                        onClick={handleAddItem}
+                        className="rounded-xl gap-2 text-xs font-semibold h-9 px-4 bg-blue-600 hover:bg-blue-700 text-white shadow-sm flex items-center transition-all mt-3 mx-auto"
+                      >
                         Add First Item
-                      </Button>
+                      </button>
                     )}
                   </div>
                 )}
@@ -366,14 +374,14 @@ export default function DeliveryEdit({ delivery, drivers }: DeliveryEditProps) {
             </Card>
 
             {/* Delivery Costs */}
-            <Card>
-              <CardHeader>
-                <CardTitle className="text-sm">Delivery Costs</CardTitle>
+            <Card className="rounded-2xl border border-slate-200 shadow-sm bg-white overflow-hidden">
+              <CardHeader className="border-b border-slate-50 pb-4">
+                <CardTitle className="text-sm font-bold text-slate-800">Delivery Costs</CardTitle>
               </CardHeader>
-              <CardContent className="space-y-4">
+              <CardContent className="pt-5 space-y-5">
                 <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                   <div>
-                    <label className="block text-sm font-medium mb-2">Delivery Cost *</label>
+                    <label className={labelClass}>Delivery Cost *</label>
                     <Input
                       type="number"
                       placeholder="0.00"
@@ -382,11 +390,11 @@ export default function DeliveryEdit({ delivery, drivers }: DeliveryEditProps) {
                       value={data.delivery_cost}
                       onChange={(e) => setData('delivery_cost', parseFloat(e.target.value) || 0)}
                       disabled={!isPending}
-                      className={errors.delivery_cost ? 'border-red-500' : ''}
+                      className={`${inputClass} ${errors.delivery_cost ? 'border-red-500' : ''}`}
                     />
                   </div>
                   <div>
-                    <label className="block text-sm font-medium mb-2">Delivery Discount</label>
+                    <label className={labelClass}>Delivery Discount</label>
                     <Input
                       type="number"
                       placeholder="0.00"
@@ -395,47 +403,48 @@ export default function DeliveryEdit({ delivery, drivers }: DeliveryEditProps) {
                       value={data.delivery_discount}
                       onChange={(e) => setData('delivery_discount', parseFloat(e.target.value) || 0)}
                       disabled={!isPending}
+                      className={inputClass}
                     />
                   </div>
                   <div>
-                    <label className="block text-sm font-medium mb-2">Delivery Total</label>
-                    <div className="px-3 py-2 bg-slate-100 rounded-md font-bold">
+                    <label className={labelClass}>Delivery Total</label>
+                    <div className="px-3.5 py-2.5 bg-slate-100 border border-slate-150 rounded-xl font-bold text-sm h-10 flex items-center text-slate-800">
                       TZS {deliveryTotal.toLocaleString()}
                     </div>
                   </div>
                 </div>
 
-                <div className="bg-blue-50 p-4 rounded-lg">
-                  <div className="flex justify-between mb-2">
+                <div className="bg-blue-50/50 border border-blue-100 p-5 rounded-2xl text-xs font-semibold text-slate-655 space-y-2.5">
+                  <div className="flex justify-between items-center">
                     <span>Items Total:</span>
-                    <span>TZS {totalItemsValue.toLocaleString()}</span>
+                    <span className="font-bold text-slate-800">TZS {totalItemsValue.toLocaleString()}</span>
                   </div>
-                  <div className="flex justify-between mb-2">
-                    <span>Delivery:</span>
-                    <span>TZS {deliveryTotal.toLocaleString()}</span>
+                  <div className="flex justify-between items-center">
+                    <span>Delivery Charge:</span>
+                    <span className="font-bold text-slate-800">TZS {deliveryTotal.toLocaleString()}</span>
                   </div>
-                  <div className="border-t pt-2 flex justify-between font-bold text-lg">
+                  <div className="border-t border-blue-100 pt-3 flex justify-between items-center font-extrabold text-base text-slate-900">
                     <span>Grand Total:</span>
-                    <span>TZS {grandTotal.toLocaleString()}</span>
+                    <span className="text-blue-700">TZS {grandTotal.toLocaleString()}</span>
                   </div>
                 </div>
               </CardContent>
             </Card>
 
             {/* Payment & Assignment */}
-            <Card>
-              <CardHeader>
-                <CardTitle className="text-sm">Delivery Details</CardTitle>
+            <Card className="rounded-2xl border border-slate-200 shadow-sm bg-white overflow-hidden">
+              <CardHeader className="border-b border-slate-50 pb-4">
+                <CardTitle className="text-sm font-bold text-slate-800">Delivery Details</CardTitle>
               </CardHeader>
-              <CardContent className="space-y-4">
+              <CardContent className="pt-5 space-y-4">
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   <div>
-                    <label className="block text-sm font-medium mb-2">Payment Method *</label>
+                    <label className={labelClass}>Payment Method *</label>
                     <select
                       value={data.payment_method}
                       onChange={(e) => setData('payment_method', e.target.value)}
                       disabled={!isPending}
-                      className="w-full px-3 py-2 border rounded-md disabled:opacity-50"
+                      className={selectClass}
                     >
                       <option value="cash">Cash</option>
                       <option value="card">Card</option>
@@ -445,12 +454,12 @@ export default function DeliveryEdit({ delivery, drivers }: DeliveryEditProps) {
                     </select>
                   </div>
                   <div>
-                    <label className="block text-sm font-medium mb-2">Assign Driver</label>
+                    <label className={labelClass}>Assign Driver</label>
                     <select
                       value={data.delivery_person_id}
                       onChange={(e) => setData('delivery_person_id', e.target.value)}
                       disabled={!isPending}
-                      className="w-full px-3 py-2 border rounded-md disabled:opacity-50"
+                      className={selectClass}
                     >
                       <option value="">Select driver</option>
                       {drivers.map((driver) => (
@@ -461,12 +470,12 @@ export default function DeliveryEdit({ delivery, drivers }: DeliveryEditProps) {
                     </select>
                   </div>
                   <div>
-                    <label className="block text-sm font-medium mb-2">Priority</label>
+                    <label className={labelClass}>Priority</label>
                     <select
                       value={data.priority}
                       onChange={(e) => setData('priority', e.target.value)}
                       disabled={!isPending}
-                      className="w-full px-3 py-2 border rounded-md disabled:opacity-50"
+                      className={selectClass}
                     >
                       <option value="normal">Normal</option>
                       <option value="urgent">Urgent</option>
@@ -474,45 +483,46 @@ export default function DeliveryEdit({ delivery, drivers }: DeliveryEditProps) {
                     </select>
                   </div>
                   <div>
-                    <label className="block text-sm font-medium mb-2">Scheduled Date</label>
+                    <label className={labelClass}>Scheduled Date</label>
                     <Input
                       type="datetime-local"
                       value={data.scheduled_date}
                       onChange={(e) => setData('scheduled_date', e.target.value)}
                       disabled={!isPending}
+                      className={inputClass}
                     />
                   </div>
                 </div>
 
                 <div>
-                  <label className="block text-sm font-medium mb-2">Notes</label>
+                  <label className={labelClass}>Notes</label>
                   <textarea
                     placeholder="Add any special instructions or notes"
                     value={data.notes}
                     onChange={(e) => setData('notes', e.target.value)}
                     disabled={!isPending}
-                    className="w-full px-3 py-2 border rounded-md disabled:opacity-50"
+                    className="w-full px-3.5 py-2.5 text-sm border border-slate-200 rounded-xl outline-none focus:border-blue-400 focus:ring-2 focus:ring-blue-100 bg-slate-50/50 focus:bg-white transition-all min-h-[80px]"
                     rows={3}
                   />
                 </div>
               </CardContent>
             </Card>
 
-            {/* Submit Button */}
+            {/* Action Buttons */}
             {isPending && (
-              <div className="flex gap-3">
-                <Button
-                  type="submit"
+              <div className="flex gap-3 justify-end">
+                <Link href="/deliveries">
+                  <button type="button" className="h-9 px-4 rounded-xl text-xs font-semibold border border-slate-200 hover:bg-slate-50 text-slate-650 transition-all">
+                    Cancel
+                  </button>
+                </Link>
+                <button 
+                  type="submit" 
                   disabled={processing}
-                  className="bg-blue-600 hover:bg-blue-700"
+                  className="rounded-xl h-9 px-4 text-xs font-semibold bg-blue-600 hover:bg-blue-700 text-white shadow-sm shadow-blue-500/30 transition-all flex items-center justify-center disabled:opacity-50 disabled:cursor-not-allowed"
                 >
                   {processing ? 'Saving...' : 'Save Changes'}
-                </Button>
-                <Link href="/deliveries">
-                  <Button type="button" variant="outline">
-                    Cancel
-                  </Button>
-                </Link>
+                </button>
               </div>
             )}
           </form>

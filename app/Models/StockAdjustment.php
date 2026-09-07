@@ -7,7 +7,7 @@ use Illuminate\Database\Eloquent\Model;
 
 class StockAdjustment extends Model
 {
-    use HasFactory, \App\Traits\HasBranch;
+    use \App\Traits\HasBranch, HasFactory;
 
     protected $fillable = [
         'product_id',
@@ -18,6 +18,8 @@ class StockAdjustment extends Model
         'user_id',
         'adjustment_type',
         'quantity',
+        'financial_loss_value',
+        'damage_category',
         'reason',
         'notes',
         'status',

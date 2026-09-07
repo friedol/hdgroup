@@ -20,9 +20,13 @@ class DatabaseSeeder extends Seeder
         $this->call(UserRoleTable::class);
 
         $this->call(CategorySeeder::class);
+        $this->call([
+            PermissionSeeder::class,
+            PurchasesPermissionSeeder::class,
+            CreateDeliveryPermissionSeeder::class,
+        ]);
         $this->call(UnitSeeder::class);
         $this->call(ImportUsersSeeder::class);
 
-        
     }
 }

@@ -574,7 +574,7 @@ export default function BranchSmsConfigForm({ branchId, branchName, onSuccess }:
                   <p className="text-xs text-slate-500">Message content for test SMS</p>
                   <Input
                     id="test_message"
-                    placeholder="Test message from HD Group"
+                    placeholder="Test message from Jopo Juniours Co. Ltd"
                     value={testMessage}
                     onChange={(e) => setTestMessage(e.target.value)}
                     className="h-10 border-slate-300"

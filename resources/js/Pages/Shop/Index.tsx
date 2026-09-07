@@ -40,8 +40,11 @@ interface Product {
     };
     variants?: Array<{
         id: number;
-        color?: string;
+        color: string;
         qty?: number;
+        plain_price?: number;
+        printed_price?: number;
+        price?: number;
     }>;
 }
 
@@ -179,7 +182,7 @@ export default function Shop({
             <div className="relative min-h-screen bg-background">
                 {/* Hero Section */}
                 <section className="relative overflow-hidden bg-background pt-6 pb-2">
-                    <div className="w-[99%] max-w-[1920px] mx-auto px-2 sm:px-4 relative z-10">
+                    <div className="w-[98%] md:w-[88%] max-w-[1600px] mx-auto px-2 sm:px-4 md:px-8 relative z-10">
                         <div className="flex flex-col lg:flex-row gap-2 h-full">
                             {/* Left Active Slide */}
                             <div className="relative w-full lg:w-[75%] rounded-[1.5rem] overflow-hidden shadow-sm h-[185px] sm:h-[220px] md:h-auto md:aspect-[16/10] lg:aspect-auto lg:h-[500px]">
@@ -194,7 +197,7 @@ export default function Shop({
                                                 {slide.title && slide.title.toLowerCase() !== 'untitled' && <h2 className="text-xl md:text-2xl font-bold text-white mb-2 capitalize">{slide.title.toLowerCase()}</h2>}
                                                 {slide.subtitle && <p className="text-sm md:text-base text-white/90 mb-4 drop-shadow-md">{slide.subtitle}</p>}
                                                 {slide.button_text && (
-                                                    <a href={slide.button_link || '#'} className="self-start px-5 py-2.5 bg-white text-slate-900 font-bold rounded-full hover:bg-amber-300 transition-colors text-sm">
+                                                    <a href={slide.button_link || '#'} className="self-start px-5 py-2.5 bg-white text-slate-900 font-bold rounded-full hover:bg-blue-300 transition-colors text-sm">
                                                         {slide.button_text}
                                                     </a>
                                                 )}
@@ -224,15 +227,15 @@ export default function Shop({
                                         className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-700"
                                     />
                                 ) : (
-                                    <div className="w-full h-full bg-gradient-to-br from-amber-400 to-amber-600 flex items-center justify-center">
-                                        <p className="text-slate-900 font-bold text-center text-sm px-4">Add a Popup Ad to display here</p>
+                                    <div className="w-full h-full bg-gradient-to-br from-blue-500 to-blue-700 flex items-center justify-center">
+                                        <p className="text-white font-bold text-center text-sm px-4">Add a Popup Ad to display here</p>
                                     </div>
                                 )}
                                 {activePopupAd && (activePopupAdTitle || activePopupAd.button_text) && (
                                     <div className="absolute inset-0 bg-gradient-to-t from-black/50 to-transparent flex flex-col justify-end p-4">
                                         {activePopupAdTitle && <p className="text-white font-bold text-sm mb-1">{activePopupAdTitle}</p>}
                                         {activePopupAd.button_text && (
-                                            <a href={activePopupAd.button_link || '#'} className="self-start px-3 py-1.5 bg-amber-400 text-slate-900 font-bold rounded-full text-xs hover:bg-white transition-colors">
+                                            <a href={activePopupAd.button_link || '#'} className="self-start px-3 py-1.5 bg-blue-600 text-white font-bold rounded-full text-xs hover:bg-white transition-colors">
                                                 {activePopupAd.button_text}
                                             </a>
                                         )}
@@ -248,15 +251,15 @@ export default function Shop({
                 {/* Shop by Category */}
                 {categories.length > 0 && (
                     <section className="py-8 md:py-12 bg-background">
-                        <div className="mx-auto w-[99%] max-w-[1920px] px-2 sm:px-4">
+                        <div className="mx-auto w-[98%] md:w-[88%] max-w-[1600px] px-2 sm:px-4 md:px-8">
                             <div className="flex items-center justify-between mb-5">
                                 <div>
-                                    <p className="text-[10px] font-black tracking-widest text-amber-500 uppercase mb-1">Browse</p>
+                                    <p className="text-xl font-dancing text-red-500 mb-1 font-bold">Browse</p>
                                     <h2 className="text-xl md:text-2xl font-extrabold text-slate-900">Shop by Category</h2>
                                 </div>
                                 <Link
                                     href="/shop/categories"
-                                    className="flex items-center gap-1.5 px-3 py-1.5 md:px-4 md:py-2 rounded-lg border border-amber-400 bg-amber-400 text-slate-900 font-semibold text-xs hover:bg-amber-500 hover:border-amber-500 transition-all"
+                                    className="flex items-center gap-1.5 px-3 py-1.5 md:px-4 md:py-2 rounded-lg border border-blue-600 bg-blue-600 text-white font-semibold text-xs hover:bg-blue-700 hover:border-blue-700 transition-all"
                                 >
                                     <svg xmlns="http://www.w3.org/2000/svg" className="w-3.5 h-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
                                         <line x1="5" y1="12" x2="19" y2="12"/><polyline points="12 5 19 12 12 19"/>
@@ -266,7 +269,7 @@ export default function Shop({
                             </div>
                             <div className="relative overflow-hidden touch-pan-x pb-2">
                                 <style>{`@keyframes categoryAutoSlide { 0% { transform: translateX(0); } 100% { transform: translateX(-33.3333%); } }`}</style>
-                                <div className="flex w-max animate-[categoryAutoSlide_22s_linear_infinite] hover:[animation-play-state:paused] active:[animation-play-state:paused]">
+                                <div className="flex w-max animate-[categoryAutoSlide_180s_linear_infinite] hover:[animation-play-state:paused] active:[animation-play-state:paused]">
                                 {[0, 1, 2].map((copyIndex) => (
                                     <div key={copyIndex} className="flex items-center gap-3 pr-3">
                                         {categories.map((cat) => (
@@ -275,8 +278,8 @@ export default function Shop({
                                                 href={`/category/${cat.id}`}
                                                 className="shrink-0 group flex flex-col items-center gap-2"
                                             >
-                                                <div className="w-[74px] h-[74px] sm:w-[82px] sm:h-[82px] rounded-full bg-white border border-slate-200 group-hover:border-amber-300 group-hover:shadow-md group-hover:shadow-amber-100/60 transition-all flex flex-col items-center justify-center px-2 text-center">
-                                                    <LayoutGrid className="w-4 h-4 text-amber-500 mb-1" />
+                                                <div className="w-[74px] h-[74px] sm:w-[82px] sm:h-[82px] rounded-full bg-white border border-slate-200 group-hover:border-blue-300 group-hover:shadow-md group-hover:shadow-blue-100/60 transition-all flex flex-col items-center justify-center px-2 text-center">
+                                                    <LayoutGrid className="w-4 h-4 text-blue-700 mb-1" />
                                                     <span className="text-[9px] sm:text-[10px] font-bold text-slate-700 leading-tight capitalize line-clamp-2">
                                                         {cat.category_name.toLowerCase()}
                                                     </span>
@@ -294,7 +297,7 @@ export default function Shop({
                 {/* Hot Deals Ticker */}
                 {/* <div className="bg-slate-900 py-3 overflow-hidden">
                     <div className="mx-auto w-[99%] max-w-[1920px] px-2 sm:px-4 flex items-center gap-4">
-                        <div className="flex items-center gap-2 shrink-0 bg-yellow-400 px-3 py-1.5 rounded-lg">
+                        <div className="flex items-center gap-2 shrink-0 bg-blue-400 px-3 py-1.5 rounded-lg">
                             <Zap className="w-3.5 h-3.5 text-slate-900" />
                             <span className="text-[11px] font-black text-slate-900 uppercase tracking-wide">Hot Deals</span>
                         </div>
@@ -312,10 +315,11 @@ export default function Shop({
 
                 {/* Products Section */}
                 <div className="py-5 md:py-14 bg-background relative">
-                    <div className="mx-auto w-[99%] max-w-[1920px] px-2 sm:px-4 relative z-10 mb-4 md:mb-10">
+                    <div className="mx-auto w-[98%] md:w-[88%] max-w-[1600px] px-2 sm:px-4 md:px-8 relative z-10 mb-4 md:mb-10">
                         <div className="flex flex-row items-center justify-between gap-4 pb-4">
                             {/* Left: Title */}
                             <div>
+                                <p className="text-xl font-dancing text-blue-600 mb-1 font-bold">Product Gallery</p>
                                 <h2 className="text-xl md:text-2xl font-bold text-slate-900 tracking-tight leading-tight">
                                     Our Products
                                 </h2>
@@ -325,7 +329,7 @@ export default function Shop({
                             <div className="flex items-center gap-2 shrink-0">
                                 <Link
                                     href="/shop/products"
-                                    className="flex items-center gap-1.5 px-3 py-1.5 md:px-4 md:py-2 rounded-lg border border-amber-400 bg-amber-400 text-slate-900 font-semibold text-xs hover:bg-amber-500 hover:border-amber-500 transition-all"
+                                    className="flex items-center gap-1.5 px-3 py-1.5 md:px-4 md:py-2 rounded-lg border border-blue-600 bg-blue-600 text-white font-semibold text-xs hover:bg-blue-700 hover:border-blue-700 transition-all"
                                 >
                                     <svg xmlns="http://www.w3.org/2000/svg" className="w-3.5 h-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
                                         <line x1="5" y1="12" x2="19" y2="12"/><polyline points="12 5 19 12 12 19"/>
@@ -336,7 +340,7 @@ export default function Shop({
                         </div>
                     </div>
                     {filteredProducts.length > 0 ? (
-                        <div className="w-[99%] max-w-[1920px] mx-auto px-2 sm:px-4 relative z-10">
+                        <div className="w-[98%] md:w-[88%] max-w-[1600px] mx-auto px-2 sm:px-4 md:px-8 relative z-10">
                             <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 2xl:grid-cols-6 gap-3 md:gap-6 pb-8">
                                 {filteredProducts.map((product) => (
                                     <div key={product.id} className="animate-fade-up">
@@ -353,20 +357,20 @@ export default function Shop({
                 </div>
                 {/* Why Choose Us */}
                 <section className="py-10 md:py-16 bg-slate-50">
-                    <div className="mx-auto w-[99%] max-w-[1920px] px-2 sm:px-4">
+                    <div className="mx-auto w-[98%] md:w-[88%] max-w-[1600px] px-2 sm:px-4 md:px-8">
                         <div className="text-center mb-8 md:mb-10">
-                            <p className="text-[10px] font-black tracking-widest text-amber-500 uppercase mb-2">Why Shop With Us</p>
+                            <p className="text-xl font-dancing text-red-600 mb-2 font-bold">Why Shop With Us</p>
                             <h2 className="text-2xl md:text-3xl font-extrabold text-slate-900">Your Shopping, Our Priority</h2>
                             <p className="text-slate-500 mt-2 max-w-xl mx-auto text-sm">We go the extra mile to make your experience smooth, safe, and rewarding.</p>
                         </div>
                         <style>{`@keyframes featureFloat { 0%, 100% { transform: translateY(0px); } 50% { transform: translateY(-8px); } } @keyframes featureFloatSoft { 0%, 100% { transform: translateY(0px) scale(1); } 50% { transform: translateY(6px) scale(1.05); } }`}</style>
                         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 md:gap-5">
-                            <div className="relative overflow-hidden rounded-2xl p-5 md:p-6 border border-amber-200/70 bg-gradient-to-br from-amber-50 via-orange-50 to-yellow-100/70 shadow-sm hover:shadow-lg hover:-translate-y-1 transition-all duration-300 animate-in fade-in slide-in-from-bottom-4 duration-700">
-                                <div className="absolute -top-8 -right-6 w-24 h-24 rounded-full bg-amber-300/30 blur-2xl motion-safe:animate-[featureFloat_6s_ease-in-out_infinite]" />
-                                <div className="absolute -bottom-6 -left-6 w-20 h-20 rounded-full bg-orange-300/25 blur-2xl motion-safe:animate-[featureFloatSoft_7s_ease-in-out_infinite]" />
+                            <div className="relative overflow-hidden rounded-2xl p-5 md:p-6 border border-blue-200/70 bg-gradient-to-br from-blue-50 via-blue-50 to-blue-100/70 shadow-sm hover:shadow-lg hover:-translate-y-1 transition-all duration-300 animate-in fade-in slide-in-from-bottom-4 duration-700">
+                                <div className="absolute -top-8 -right-6 w-24 h-24 rounded-full bg-blue-300/30 blur-2xl motion-safe:animate-[featureFloat_6s_ease-in-out_infinite]" />
+                                <div className="absolute -bottom-6 -left-6 w-20 h-20 rounded-full bg-blue-300/25 blur-2xl motion-safe:animate-[featureFloatSoft_7s_ease-in-out_infinite]" />
                                 <div className="relative flex gap-4 items-start">
-                                    <div className="w-11 h-11 shrink-0 rounded-xl bg-white/80 backdrop-blur flex items-center justify-center ring-1 ring-amber-200/80">
-                                        <ShoppingBag className="w-5 h-5 text-amber-600" />
+                                    <div className="w-11 h-11 shrink-0 rounded-xl bg-white/80 backdrop-blur flex items-center justify-center ring-1 ring-blue-200/80">
+                                        <ShoppingBag className="w-5 h-5 text-blue-700" />
                                     </div>
                                     <div>
                                         <h3 className="font-bold text-slate-900 text-sm mb-1">Wide Product Range</h3>
@@ -417,12 +421,12 @@ export default function Shop({
                                 </div>
                             </div>
 
-                            <div className="relative overflow-hidden rounded-2xl p-5 md:p-6 border border-yellow-200/70 bg-gradient-to-br from-yellow-50 via-amber-50 to-lime-100/70 shadow-sm hover:shadow-lg hover:-translate-y-1 transition-all duration-300 animate-in fade-in slide-in-from-bottom-4 duration-700 delay-500">
-                                <div className="absolute -top-8 -right-6 w-24 h-24 rounded-full bg-yellow-300/30 blur-2xl motion-safe:animate-[featureFloat_7.2s_ease-in-out_infinite]" />
-                                <div className="absolute -bottom-6 -left-6 w-20 h-20 rounded-full bg-lime-300/25 blur-2xl motion-safe:animate-[featureFloatSoft_8.2s_ease-in-out_infinite]" />
+                            <div className="relative overflow-hidden rounded-2xl p-5 md:p-6 border border-blue-200/70 bg-gradient-to-br from-blue-50 via-blue-50 to-blue-100/70 shadow-sm hover:shadow-lg hover:-translate-y-1 transition-all duration-300 animate-in fade-in slide-in-from-bottom-4 duration-700 delay-500">
+                                <div className="absolute -top-8 -right-6 w-24 h-24 rounded-full bg-blue-300/30 blur-2xl motion-safe:animate-[featureFloat_7.2s_ease-in-out_infinite]" />
+                                <div className="absolute -bottom-6 -left-6 w-20 h-20 rounded-full bg-blue-300/25 blur-2xl motion-safe:animate-[featureFloatSoft_8.2s_ease-in-out_infinite]" />
                                 <div className="relative flex gap-4 items-start">
-                                    <div className="w-11 h-11 shrink-0 rounded-xl bg-white/80 backdrop-blur flex items-center justify-center ring-1 ring-yellow-200/80">
-                                        <BadgeCheck className="w-5 h-5 text-yellow-600" />
+                                    <div className="w-11 h-11 shrink-0 rounded-xl bg-white/80 backdrop-blur flex items-center justify-center ring-1 ring-blue-200/80">
+                                        <BadgeCheck className="w-5 h-5 text-blue-700" />
                                     </div>
                                     <div>
                                         <h3 className="font-bold text-slate-900 text-sm mb-1">Quality Guaranteed</h3>
@@ -473,7 +477,7 @@ export default function Shop({
                                         {activePopupAdTitle && <h3 className="text-2xl font-bold text-white mb-2">{activePopupAdTitle}</h3>}
                                     {activePopupAd.subtitle && <p className="text-sm text-white/80 mb-4">{activePopupAd.subtitle}</p>}
                                     {activePopupAd.button_text && (
-                                        <a href={activePopupAd.button_link || '#'} className="bg-amber-400 hover:bg-amber-500 text-slate-900 font-bold px-8 py-3 rounded-full transition-colors w-full md:w-auto">
+                                        <a href={activePopupAd.button_link || '#'} className="bg-blue-600 hover:bg-blue-700 text-white font-bold px-8 py-3 rounded-full transition-colors w-full md:w-auto">
                                             {activePopupAd.button_text}
                                         </a>
                                     )}

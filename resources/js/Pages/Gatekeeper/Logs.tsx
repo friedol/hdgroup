@@ -19,6 +19,7 @@ interface Log {
   status: "pending" | "verified" | "rejected";
   recorded_at: string;
   recorded_by_name: string;
+  item_category?: string;
 }
 
 interface GatekeeperLogsProps {
@@ -80,6 +81,20 @@ export default function Logs({ logs, summary, filters }: GatekeeperLogsProps) {
       : "bg-orange-50 border-l-4 border-orange-500";
   };
 
+  const getCategoryBadge = (category?: string) => {
+    if (!category) return null;
+    let colors = "bg-blue-100 text-blue-800";
+    if (category === "Paid Order") colors = "bg-purple-100 text-purple-800";
+    if (category === "Raw Material") colors = "bg-emerald-100 text-emerald-800";
+    if (category === "Chemical") colors = "bg-indigo-100 text-indigo-800";
+    
+    return (
+      <span className={`text-[10px] font-bold px-1.5 py-0.5 rounded uppercase ml-2 ${colors}`}>
+        {category}
+      </span>
+    );
+  };
+
   return (
     <>
       <Head title="Gatekeeper Logs" />
@@ -89,9 +104,6 @@ export default function Logs({ logs, summary, filters }: GatekeeperLogsProps) {
           <div className="flex items-center justify-between">
             <div>
               <h1 className="text-[18px] font-bold">Gatekeeper Logs</h1>
-              <p className="text-sm text-slate-600 mt-1">
-                Monitor all product movements in and out
-              </p>
             </div>
             <div className="flex gap-2">
               <Link href="/gatekeeper/record-in">
@@ -235,8 +247,7 @@ export default function Logs({ logs, summary, filters }: GatekeeperLogsProps) {
                         <th className="text-left py-3 px-4 font-medium">From/To</th>
                         <th className="text-left py-3 px-4 font-medium">Ref #</th>
                         <th className="text-left py-3 px-4 font-medium">Status</th>
-                        <th className="text-left py-3 px-4 font-medium">Date & Time</th>
-                        <th className="text-left py-3 px-4 font-medium">Actions</th>
+                        <th className="text-left py-3 px-4 font-medium text-right pr-8">Date & Time</th>
                       </tr>
                     </thead>
                     <tbody>
@@ -263,7 +274,10 @@ export default function Logs({ logs, summary, filters }: GatekeeperLogsProps) {
                               )}
                             </span>
                           </td>
-                          <td className="py-3 px-4 font-medium">{log.product_name}</td>
+                          <td className="py-3 px-4 font-medium">
+                            {log.product_name}
+                            {getCategoryBadge(log.item_category)}
+                          </td>
                           <td className="py-3 px-4">
                             {log.quantity} {log.unit}
                           </td>
@@ -288,18 +302,8 @@ export default function Logs({ logs, summary, filters }: GatekeeperLogsProps) {
                               {log.status}
                             </span>
                           </td>
-                          <td className="py-3 px-4 text-xs">
+                          <td className="py-3 px-4 text-xs text-right pr-8">
                             {new Date(log.recorded_at).toLocaleString()}
-                          </td>
-                          <td className="py-3 px-4">
-                            <div className="flex gap-2">
-                              <Link href={`/gatekeeper/${log.id}`}>
-                                <Button size="sm" variant="outline" className="gap-1">
-                                  <Eye className="w-3 h-3" />
-                                  View
-                                </Button>
-                              </Link>
-                            </div>
                           </td>
                         </tr>
                       ))}

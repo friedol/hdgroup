@@ -2,27 +2,29 @@
 
 namespace App\Http\Controllers;
 
-use App\Models\HeroSlide;
 use App\Models\Branch;
+use App\Models\HeroSlide;
 use Illuminate\Http\Request;
+use Inertia\Inertia;
 
 class HeroSlideController extends Controller
 {
     public function index()
     {
-        $slides = HeroSlide::where('is_ad', false)
+        $slides = HeroSlide::withoutGlobalScope('branch')
+            ->where('is_ad', false)
             ->orderBy('page_type')
             ->orderBy('sort_order')
             ->get();
 
-        return \Inertia\Inertia::render('Admin/HeroSlides/Index', compact('slides'));
+        return Inertia::render('Admin/HeroSlides/Index', compact('slides'));
     }
 
     public function create()
     {
         $branches = Branch::where('is_active', true)->orderBy('name')->get();
 
-        return \Inertia\Inertia::render('Admin/HeroSlides/Create', compact('branches'));
+        return Inertia::render('Admin/HeroSlides/Create', compact('branches'));
     }
 
     public function store(Request $request)
@@ -42,9 +44,10 @@ class HeroSlideController extends Controller
 
         $imagePath = $request->file('image')->store('hero-slides', 'public');
 
-        $branchId = $validated['branch_id'] ?? $this->currentBranchId();
+        // null means global (all branches); only fall back to current branch when key was absent
+        $branchId = array_key_exists('branch_id', $validated) ? $validated['branch_id'] : $this->currentBranchId();
 
-        HeroSlide::create([
+        HeroSlide::withoutGlobalScopes()->create([
             'branch_id' => $branchId,
             'title' => $validated['title'],
             'subtitle' => $validated['subtitle'] ?? null,
@@ -66,7 +69,7 @@ class HeroSlideController extends Controller
         $this->authorizeBranch($heroSlide);
         $heroSlide->load('branch');
 
-        return \Inertia\Inertia::render('Admin/HeroSlides/Show', compact('heroSlide'));
+        return Inertia::render('Admin/HeroSlides/Show', compact('heroSlide'));
     }
 
     public function edit(HeroSlide $heroSlide)
@@ -74,7 +77,7 @@ class HeroSlideController extends Controller
         $this->authorizeBranch($heroSlide);
         $branches = Branch::where('is_active', true)->orderBy('name')->get();
 
-        return \Inertia\Inertia::render('Admin/HeroSlides/Edit', compact('heroSlide', 'branches'));
+        return Inertia::render('Admin/HeroSlides/Edit', compact('heroSlide', 'branches'));
     }
 
     public function update(Request $request, HeroSlide $heroSlide)
@@ -101,8 +104,9 @@ class HeroSlideController extends Controller
         $validated['is_active'] = $request->boolean('is_active', true);
         $validated['is_ad'] = false;
 
-        if (isset($validated['branch_id'])) {
-            $validated['branch_id'] = $validated['branch_id'] ?: $this->currentBranchId();
+        // Allow explicit null so a slide can be switched to global (all branches)
+        if (array_key_exists('branch_id', $validated)) {
+            $validated['branch_id'] = $validated['branch_id'] ?: null;
         }
 
         $heroSlide->update($validated);
@@ -133,7 +137,7 @@ class HeroSlideController extends Controller
         ]);
 
         foreach ($validated['slides'] as $index => $slideId) {
-            HeroSlide::find($slideId)->update(['sort_order' => $index]);
+            HeroSlide::withoutGlobalScopes()->find($slideId)?->update(['sort_order' => $index]);
         }
 
         return response()->json(['success' => true, 'message' => 'Sort order updated']);
@@ -164,4 +168,3 @@ class HeroSlideController extends Controller
         return $title !== '' ? $title : $fallback;
     }
 }
-

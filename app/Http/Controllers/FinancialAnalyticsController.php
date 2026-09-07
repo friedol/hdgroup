@@ -2,22 +2,23 @@
 
 namespace App\Http\Controllers;
 
-use Illuminate\Http\Request;
-use Illuminate\Support\Facades\DB;
-use Carbon\Carbon;
-use App\Models\Sale;
-use Barryvdh\DomPDF\Facade\Pdf;
-use App\Models\Expense;
 use App\Models\Branch;
-use App\Models\Product;
-use App\Models\SaleItem;
-use App\Models\Loan;
-use App\Models\Customer;
-use App\Models\Payment;
 use App\Models\Category;
+use App\Models\Customer;
+use App\Models\Expense;
+use App\Models\Loan;
+use App\Models\Payment;
+use App\Models\Product;
+use App\Models\Sale;
 use App\Models\Setting;
+use Barryvdh\DomPDF\Facade\Pdf;
+use Carbon\Carbon;
+use Illuminate\Http\Request;
+use Illuminate\Pagination\LengthAwarePaginator;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Storage;
+use Inertia\Inertia;
 
 class FinancialAnalyticsController extends Controller
 {
@@ -29,7 +30,7 @@ class FinancialAnalyticsController extends Controller
 
         // Standardise branchId for global users (if they pick 'All Branches', branchId is null)
         // But for non-global users, it must be their branch.
-        if (!$isGlobal) {
+        if (! $isGlobal) {
             $branchId = $user->branch_id;
         }
 
@@ -38,29 +39,29 @@ class FinancialAnalyticsController extends Controller
         $lastMonth = Carbon::now()->subMonth()->startOfMonth();
 
         $totalRevenue = Sale::query()->where('is_return', false)
-            ->when($branchId, fn($q) => $q->where('branch_id', $branchId))
+            ->when($branchId, fn ($q) => $q->where('branch_id', $branchId))
             ->whereMonth('created_at', Carbon::now()->month)
             ->whereYear('created_at', Carbon::now()->year)
             ->sum('total_amount');
 
         $lastMonthRevenue = Sale::query()->where('is_return', false)
-            ->when($branchId, fn($q) => $q->where('branch_id', $branchId))
+            ->when($branchId, fn ($q) => $q->where('branch_id', $branchId))
             ->whereMonth('created_at', $lastMonth->month)
             ->whereYear('created_at', $lastMonth->year)
             ->sum('total_amount');
 
-        $totalIn = Payment::query()->when($branchId, fn($q) => $q->where('branch_id', $branchId))
+        $totalIn = Payment::query()->when($branchId, fn ($q) => $q->where('branch_id', $branchId))
             ->whereMonth('payment_date', Carbon::now()->month)
             ->whereYear('payment_date', Carbon::now()->year)
             ->sum('amount_paid');
 
-        $totalOut = Expense::query()->when($branchId, fn($q) => $q->where('branch_id', $branchId))
+        $totalOut = Expense::query()->when($branchId, fn ($q) => $q->where('branch_id', $branchId))
             ->where('status', 'Approved')
             ->whereMonth('date', Carbon::now()->month)
             ->whereYear('date', Carbon::now()->year)
             ->sum('amount');
 
-        $lastMonthExpense = Expense::query()->when($branchId, fn($q) => $q->where('branch_id', $branchId))
+        $lastMonthExpense = Expense::query()->when($branchId, fn ($q) => $q->where('branch_id', $branchId))
             ->where('status', 'Approved')
             ->whereMonth('date', $lastMonth->month)
             ->whereYear('date', $lastMonth->year)
@@ -79,11 +80,11 @@ class FinancialAnalyticsController extends Controller
             $monthStart = $month->copy()->startOfMonth();
             $monthEnd = $month->copy()->endOfMonth();
 
-            $income = (float)Payment::query()->when($branchId, fn($q) => $q->where('branch_id', $branchId))
+            $income = (float) Payment::query()->when($branchId, fn ($q) => $q->where('branch_id', $branchId))
                 ->whereBetween('payment_date', [$monthStart, $monthEnd])
                 ->sum('amount_paid');
 
-            $expense = (float)Expense::query()->when($branchId, fn($q) => $q->where('branch_id', $branchId))
+            $expense = (float) Expense::query()->when($branchId, fn ($q) => $q->where('branch_id', $branchId))
                 ->where('status', 'Approved')
                 ->whereBetween('date', [$monthStart, $monthEnd])
                 ->sum('amount');
@@ -92,32 +93,32 @@ class FinancialAnalyticsController extends Controller
                 'month' => $month->format('M'),
                 'income' => $income,
                 'expenses' => $expense,
-                'profit' => $income - $expense
+                'profit' => $income - $expense,
             ];
         }
 
         // 2. Expense Category Breakdown (Pie Chart)
-        $expenseBreakdown = Expense::query()->when($branchId, fn($q) => $q->where('branch_id', $branchId))
+        $expenseBreakdown = Expense::query()->when($branchId, fn ($q) => $q->where('branch_id', $branchId))
             ->where('status', 'Approved')
             ->whereMonth('date', Carbon::now()->month)
             ->select('category', DB::raw('SUM(amount) as total'))
             ->groupBy('category')
             ->get()
-            ->map(fn($e) => [
+            ->map(fn ($e) => [
                 'name' => $e->category ?: 'Others',
-                'value' => (float)$e->total
+                'value' => (float) $e->total,
             ]);
 
         // 3. Branch Performance (Bar Chart - Only if Global)
         $branchPerformance = [];
-        if ($isGlobal && !$branchId) {
+        if ($isGlobal && ! $branchId) {
             $branches = Branch::query()->where('is_active', true)->get();
             foreach ($branches as $branch) {
-                $branchIncome = (float)Payment::query()->where('branch_id', $branch->id)
+                $branchIncome = (float) Payment::query()->where('branch_id', $branch->id)
                     ->whereMonth('payment_date', Carbon::now()->month)
                     ->sum('amount_paid');
-                
-                $branchExpense = (float)Expense::query()->where('branch_id', $branch->id)
+
+                $branchExpense = (float) Expense::query()->where('branch_id', $branch->id)
                     ->where('status', 'Approved')
                     ->whereMonth('date', Carbon::now()->month)
                     ->sum('amount');
@@ -125,7 +126,7 @@ class FinancialAnalyticsController extends Controller
                 $branchPerformance[] = [
                     'name' => $branch->name,
                     'income' => $branchIncome,
-                    'expenses' => $branchExpense
+                    'expenses' => $branchExpense,
                 ];
             }
         }
@@ -133,24 +134,24 @@ class FinancialAnalyticsController extends Controller
         // --- Existing Data for Tables ---
         $loans = Loan::orderByDesc('id')->limit(20)->get();
         $payments = Payment::with('loan')
-            ->when($branchId, fn($q) => $q->where('branch_id', $branchId))
+            ->when($branchId, fn ($q) => $q->where('branch_id', $branchId))
             ->orderByDesc('payment_date')
             ->limit(20)
             ->get();
-        
-        $expenses = Expense::query()->when($branchId, fn($q) => $q->where('branch_id', $branchId))
+
+        $expenses = Expense::query()->when($branchId, fn ($q) => $q->where('branch_id', $branchId))
             ->orderByDesc('date')
             ->limit(50)
             ->get();
 
-        return \Inertia\Inertia::render('FinancePage', [
+        return Inertia::render('FinancePage', [
             'kpis' => [
                 'totalRevenue' => $totalRevenue,
                 'totalExpenses' => $totalOut,
-                'outstandingLoans' => Loan::query()->when($branchId, fn($q) => $q->where('branch_id', $branchId))->sum('total_amount') - Payment::query()->when($branchId, fn($q) => $q->where('branch_id', $branchId))->sum('amount_paid'), // Approximation
+                'outstandingLoans' => Loan::query()->when($branchId, fn ($q) => $q->where('branch_id', $branchId))->sum('total_amount') - Payment::query()->when($branchId, fn ($q) => $q->where('branch_id', $branchId))->sum('amount_paid'), // Approximation
                 'netCashFlow' => $totalIn - $totalOut,
-                'revenueGrowth' => number_format($revGrowth, 1) . '%',
-                'expenseGrowth' => number_format($expGrowth, 1) . '%'
+                'revenueGrowth' => number_format($revGrowth, 1).'%',
+                'expenseGrowth' => number_format($expGrowth, 1).'%',
             ],
             'loans' => $loans,
             'payments' => $payments,
@@ -158,7 +159,7 @@ class FinancialAnalyticsController extends Controller
             'monthlyTrends' => $monthlyTrends,
             'expenseBreakdown' => $expenseBreakdown,
             'branchPerformance' => $branchPerformance,
-            'isGlobal' => $isGlobal && !$branchId
+            'isGlobal' => $isGlobal && ! $branchId,
         ]);
     }
 
@@ -203,7 +204,7 @@ class FinancialAnalyticsController extends Controller
         $carbonTo = Carbon::parse($dateTo)->endOfDay();
 
         $branches = Branch::query()->where('is_active', true)->orderBy('name')->get();
-        $categories = \App\Models\Category::all();
+        $categories = Category::all();
         $departments = $categories;
 
         // 1. Fetch Inflows
@@ -233,10 +234,10 @@ class FinancialAnalyticsController extends Controller
             $inflows->where('p.payment_method', $request->payment_method);
         }
         if ($request->filled('search')) {
-            $search = '%' . $request->search . '%';
+            $search = '%'.$request->search.'%';
             $inflows->where(function ($q) use ($search) {
                 $q->whereRaw("COALESCE(u.staff_name, b.name, 'Direct Sale') LIKE ?", [$search])
-                  ->orWhere('p.reference', 'like', $search);
+                    ->orWhere('p.reference', 'like', $search);
             });
         }
         if ($request->filled('department_id')) {
@@ -264,7 +265,7 @@ class FinancialAnalyticsController extends Controller
                 'e.amount',
                 DB::raw("'' as ref"),
                 'e.branch_id',
-                DB::raw("NULL as sale_id")
+                DB::raw('NULL as sale_id')
             )
             ->where('e.status', 'Approved')
             ->whereBetween('e.date', [$carbonFrom, $carbonTo]);
@@ -276,10 +277,10 @@ class FinancialAnalyticsController extends Controller
             $outflows->where('e.payment_method', $request->payment_method);
         }
         if ($request->filled('search')) {
-            $search = '%' . $request->search . '%';
+            $search = '%'.$request->search.'%';
             $outflows->where(function ($q) use ($search) {
                 $q->where('e.description', 'like', $search)
-                  ->orWhere('e.category', 'like', $search);
+                    ->orWhere('e.category', 'like', $search);
             });
         }
 
@@ -297,7 +298,7 @@ class FinancialAnalyticsController extends Controller
                 'cf.amount',
                 'cf.ref',
                 'cf.branch_id',
-                DB::raw("NULL as sale_id")
+                DB::raw('NULL as sale_id')
             )
             ->whereNull('cf.deleted_at')
             ->whereBetween('cf.transaction_date', [$carbonFrom, $carbonTo]);
@@ -309,7 +310,7 @@ class FinancialAnalyticsController extends Controller
             $manualFlows->where('cf.method', $request->payment_method);
         }
         if ($request->filled('search')) {
-            $search = '%' . $request->search . '%';
+            $search = '%'.$request->search.'%';
             $manualFlows->where(function ($q) use ($search) {
                 $q->where('cf.source_name', 'like', $search)
                     ->orWhere('cf.details', 'like', $search);
@@ -320,7 +321,7 @@ class FinancialAnalyticsController extends Controller
         $endDate = $carbonTo->format('Y-m-d');
 
         $branches = Branch::query()->where('is_active', true)->orderBy('name')->get();
-        $categories = \App\Models\Category::all();
+        $categories = Category::all();
         $departments = $categories;
 
         // Customers view: aggregate by customer (from loans + payments)
@@ -331,8 +332,8 @@ class FinancialAnalyticsController extends Controller
                 })
                 ->when($request->filled('search'), function ($q) use ($request) {
                     $q->where(function ($q) use ($request) {
-                        $q->where('customer_name', 'like', '%' . $request->search . '%')
-                            ->orWhere('customer_phone', 'like', '%' . $request->search . '%');
+                        $q->where('customer_name', 'like', '%'.$request->search.'%')
+                            ->orWhere('customer_phone', 'like', '%'.$request->search.'%');
                     });
                 })
                 ->selectRaw('customers.*')
@@ -345,13 +346,13 @@ class FinancialAnalyticsController extends Controller
             $paginatedEntries = $customers;
             $summary = ['totalIn' => 0, 'totalOut' => 0, 'count' => $paginatedEntries->total()];
 
-            return \Inertia\Inertia::render('Admin/Finance/CashFlow', compact(
+            return Inertia::render('Admin/Finance/CashFlow', compact(
                 'view', 'branches', 'categories', 'departments', 'branchId', 'period', 'dateFrom', 'dateTo',
                 'paginatedEntries', 'startDate', 'endDate', 'summary'
             ));
         }
         $allEntries = $inflows->get()->concat($outflows->get())->concat($manualFlows->get())->sortByDesc('date')->values();
-        
+
         $entries = $allEntries->map(function ($row) {
             return [
                 'id' => $row->id,
@@ -370,14 +371,14 @@ class FinancialAnalyticsController extends Controller
         $summary = [
             'totalIn' => collect($entries)->where('flow', 'IN')->sum('amount'),
             'totalOut' => collect($entries)->where('flow', 'OUT')->sum('amount'),
-            'count' => count($entries)
+            'count' => count($entries),
         ];
 
         if ($request->get('action') === 'print' || $request->boolean('print')) {
             $branch = $branchId ? Branch::find($branchId) : null;
             $logo = null;
             $logoMime = 'image/png';
-            
+
             if ($branch && $branch->logo) {
                 if (Storage::disk('public')->exists($branch->logo)) {
                     $logo = base64_encode(Storage::disk('public')->get($branch->logo));
@@ -400,7 +401,7 @@ class FinancialAnalyticsController extends Controller
 
         $perPage = 30;
         $page = $request->get('page', 1);
-        $paginatedEntries = new \Illuminate\Pagination\LengthAwarePaginator(
+        $paginatedEntries = new LengthAwarePaginator(
             collect($entries)->forPage($page, $perPage)->values(),
             collect($entries)->count(),
             $perPage,
@@ -408,12 +409,11 @@ class FinancialAnalyticsController extends Controller
             ['path' => $request->url(), 'query' => $request->query()]
         );
 
-        return \Inertia\Inertia::render('Admin/Finance/CashFlow', compact(
+        return Inertia::render('Admin/Finance/CashFlow', compact(
             'paginatedEntries', 'view', 'branches', 'categories', 'departments', 'branchId', 'period',
             'dateFrom', 'dateTo', 'startDate', 'endDate', 'summary'
         ));
     }
-
 
     public function getBranchProfitLoss(Request $request)
     {
@@ -447,7 +447,7 @@ class FinancialAnalyticsController extends Controller
                 'branch_name' => $branch->name,
                 'period' => [
                     'start_date' => $startDate,
-                    'end_date' => $endDate
+                    'end_date' => $endDate,
                 ],
                 'revenue' => $revenue,
                 'cost_of_goods_sold' => $cogs,
@@ -456,7 +456,7 @@ class FinancialAnalyticsController extends Controller
                 'net_profit' => $netProfit,
                 'gross_margin' => round($grossMargin, 2),
                 'net_margin' => round($netMargin, 2),
-                'expense_ratio' => $revenue > 0 ? ($operatingExpenses / $revenue) * 100 : 0
+                'expense_ratio' => $revenue > 0 ? ($operatingExpenses / $revenue) * 100 : 0,
             ];
         });
 
@@ -508,7 +508,7 @@ class FinancialAnalyticsController extends Controller
             return [
                 'name' => $branch->name,
                 'revenue' => $branch->sales()->whereBetween('created_at', [$startDate, $endDate])->sum('total_amount'),
-                'expenses' => $branch->expenses()->where('status', 'Approved')->whereBetween('date', [$startDate, $endDate])->sum('amount')
+                'expenses' => $branch->expenses()->where('status', 'Approved')->whereBetween('date', [$startDate, $endDate])->sum('amount'),
             ];
         })->sortByDesc('revenue')->values();
 
@@ -526,17 +526,17 @@ class FinancialAnalyticsController extends Controller
             'main_chart' => [
                 'labels' => $labels,
                 'revenue' => $revValues,
-                'expenses' => $expValues
+                'expenses' => $expValues,
             ],
             'branch_chart' => [
                 'labels' => $branchPerformance->pluck('name'),
                 'revenue' => $branchPerformance->pluck('revenue'),
-                'expenses' => $branchPerformance->pluck('expenses')
+                'expenses' => $branchPerformance->pluck('expenses'),
             ],
             'category_chart' => [
                 'labels' => $expenseCategories->pluck('name'),
-                'values' => $expenseCategories->pluck('value')
-            ]
+                'values' => $expenseCategories->pluck('value'),
+            ],
         ]);
     }
 
@@ -560,7 +560,7 @@ class FinancialAnalyticsController extends Controller
         return response()->json([
             'period' => [
                 'start_date' => $startDate,
-                'end_date' => $endDate
+                'end_date' => $endDate,
             ],
             'total_revenue' => $totalRevenue,
             'cost_of_goods_sold' => $totalCOGS,
@@ -570,7 +570,7 @@ class FinancialAnalyticsController extends Controller
             'gross_margin' => $totalRevenue > 0 ? round(($grossProfit / $totalRevenue) * 100, 2) : 0,
             'net_margin' => $totalRevenue > 0 ? round(($netProfit / $totalRevenue) * 100, 2) : 0,
             'monthly_comparison' => $monthlyComparison,
-            'branch_breakdown' => $this->getBranchContribution($startDate, $endDate)
+            'branch_breakdown' => $this->getBranchContribution($startDate, $endDate),
         ]);
     }
 
@@ -636,22 +636,22 @@ class FinancialAnalyticsController extends Controller
         $user = auth()->user();
         $isGlobal = $user->isGlobal();
 
-        if (!$isGlobal) {
+        if (! $isGlobal) {
             $selectedBranchId = $selectedBranchId ?: $user->branch_id;
         }
 
-        $branchId = ($selectedBranchId === 'all' || $selectedBranchId === 'null' || !$selectedBranchId) ? null : $selectedBranchId;
-        
+        $branchId = ($selectedBranchId === 'all' || $selectedBranchId === 'null' || ! $selectedBranchId) ? null : $selectedBranchId;
+
         $branches = Branch::query()->where('is_active', true)
             ->get(['id', 'system_name as name'])
             ->toArray();
-        
+
         $period = $request->get('period', 'month');
         $branchFilter = $request->get('branch') ?: 'all';
         $dateFrom = $request->get('start_date');
         $dateTo = $request->get('end_date');
 
-        if (!$dateFrom || !$dateTo) {
+        if (! $dateFrom || ! $dateTo) {
             switch ($period) {
                 case 'today':
                     $dateFrom = $dateTo = now()->format('Y-m-d');
@@ -682,20 +682,26 @@ class FinancialAnalyticsController extends Controller
         $departments = Category::orderBy('category_name')->get();
 
         // Resolve liquid categories using the controller's helper logic
-        $payments = Payment::query()->when($branchId, fn($q) => $q->where('branch_id', $branchId))
+        $payments = Payment::query()->when($branchId, fn ($q) => $q->where('branch_id', $branchId))
             ->whereBetween('payment_date', [$dateFrom, $dateTo])
             ->get();
 
-        $mobile = 0; $cash = 0; $bank = 0;
+        $mobile = 0;
+        $cash = 0;
+        $bank = 0;
         foreach ($payments as $p) {
             $cat = $this->categorizePaymentMethod($p->payment_method);
-            if ($cat === 'mobile') $mobile += (float)$p->amount_paid;
-            elseif ($cat === 'bank') $bank += (float)$p->amount_paid;
-            else $cash += (float)$p->amount_paid;
+            if ($cat === 'mobile') {
+                $mobile += (float) $p->amount_paid;
+            } elseif ($cat === 'bank') {
+                $bank += (float) $p->amount_paid;
+            } else {
+                $cash += (float) $p->amount_paid;
+            }
         }
 
         // 4. Accounts Receivable (outstanding loan balances at end date)
-        $receivables = Loan::query()->when($branchId, fn($q) => $q->where('branch_id', $branchId))
+        $receivables = Loan::query()->when($branchId, fn ($q) => $q->where('branch_id', $branchId))
             ->where('status', '!=', 'Paid')
             ->sum('balance');
 
@@ -713,7 +719,7 @@ class FinancialAnalyticsController extends Controller
 
         // Calculate LIABILITIES & EQUITY
         // Liabilities: sum of unpaid/pending expenses
-        $liabilities = Expense::query()->when($branchId, fn($q) => $q->where('branch_id', $branchId))
+        $liabilities = Expense::query()->when($branchId, fn ($q) => $q->where('branch_id', $branchId))
             ->whereBetween('date', [$dateFrom, $dateTo])
             ->whereIn('status', ['Pending', 'Partial'])
             ->sum('amount');
@@ -721,11 +727,11 @@ class FinancialAnalyticsController extends Controller
         // Equity: To ensure the balance sheet balances, Equity = Assets - Liabilities
         // We still calculate net profit for informational purposes
         $totalRevenue = Sale::query()->where('is_return', false)
-            ->when($branchId, fn($q) => $q->where('branch_id', $branchId))
+            ->when($branchId, fn ($q) => $q->where('branch_id', $branchId))
             ->whereBetween('created_at', [$dateFrom, $dateTo])
             ->sum('total_amount');
 
-        $totalExpenses = Expense::query()->when($branchId, fn($q) => $q->where('branch_id', $branchId))
+        $totalExpenses = Expense::query()->when($branchId, fn ($q) => $q->where('branch_id', $branchId))
             ->whereBetween('date', [$dateFrom, $dateTo])
             ->where('status', 'Approved')
             ->sum('amount');
@@ -736,24 +742,24 @@ class FinancialAnalyticsController extends Controller
 
         // Asset Details
         $assets = collect([
-            (object)['name' => 'Mobile', 'amount' => $mobile, 'in_period' => true],
-            (object)['name' => 'Cash', 'amount' => $cash, 'in_period' => true],
-            (object)['name' => 'Bank', 'amount' => $bank, 'in_period' => true],
-            (object)['name' => 'Accounts Receivable', 'amount' => $receivables, 'in_period' => false],
-            (object)['name' => 'Inventory', 'amount' => $inventory, 'in_period' => false],
+            (object) ['name' => 'Mobile', 'amount' => $mobile, 'in_period' => true],
+            (object) ['name' => 'Cash', 'amount' => $cash, 'in_period' => true],
+            (object) ['name' => 'Bank', 'amount' => $bank, 'in_period' => true],
+            (object) ['name' => 'Accounts Receivable', 'amount' => $receivables, 'in_period' => false],
+            (object) ['name' => 'Inventory', 'amount' => $inventory, 'in_period' => false],
         ]);
 
         // Liability Details
-        $liabilitiesBreakdown = Expense::query()->when($branchId, fn($q) => $q->where('branch_id', $branchId))
+        $liabilitiesBreakdown = Expense::query()->when($branchId, fn ($q) => $q->where('branch_id', $branchId))
             ->whereBetween('date', [$dateFrom, $dateTo])
             ->whereIn('status', ['Pending', 'Partial'])
             ->select('category', DB::raw('SUM(amount) as amount'))
             ->groupBy('category')
             ->get()
             ->map(function ($row) {
-                return (object)[
+                return (object) [
                     'name' => $row->category ?: 'General',
-                    'amount' => (float)$row->amount,
+                    'amount' => (float) $row->amount,
                 ];
             });
 
@@ -805,7 +811,7 @@ class FinancialAnalyticsController extends Controller
                         ->where('status', 'Approved')
                         ->sum('amount');
 
-                    return (object)[
+                    return (object) [
                         'branch_name' => $branch->name ?: $branch->system_name ?: 'Branch',
                         'mobile' => $mobile,
                         'cash' => $cash,
@@ -818,7 +824,45 @@ class FinancialAnalyticsController extends Controller
                 });
         }
 
-        return \Inertia\Inertia::render('Admin/Finance/BalanceSheet', [
+        $product_breakdown = DB::table('inventories')
+            ->join('products', function ($join) {
+                $join->on('inventories.product_id', '=', 'products.id')
+                    ->where('inventories.product_type', '=', 'App\\Models\\Product');
+            })
+            ->when($branchId, fn ($q) => $q->where('inventories.branch_id', $branchId))
+            ->where('products.is_enabled', true)
+            ->select('products.product_name as name', DB::raw('SUM(inventories.qty * COALESCE(products.product_price, 0)) as total_assets'))
+            ->groupBy('products.id', 'products.product_name')
+            ->get()
+            ->map(function ($p) {
+                return (object) [
+                    'name' => $p->name ?: 'Product',
+                    'mobile' => 0,
+                    'cash' => 0,
+                    'bank' => 0,
+                    'receivables' => 0,
+                    'total_assets' => $p->total_assets,
+                ];
+            });
+
+        $customer_breakdown = Loan::query()
+            ->when($branchId, fn ($q) => $q->where('branch_id', $branchId))
+            ->where('status', '!=', 'Paid')
+            ->select('customer_name as name', DB::raw('SUM(balance) as receivables'))
+            ->groupBy('customer_name')
+            ->get()
+            ->map(function ($c) {
+                return (object) [
+                    'name' => $c->name ?: 'Customer',
+                    'mobile' => 0,
+                    'cash' => 0,
+                    'bank' => 0,
+                    'receivables' => $c->receivables,
+                    'total_assets' => $c->receivables,
+                ];
+            });
+
+        return Inertia::render('Admin/Finance/BalanceSheet', [
             'period' => $period,
             'dateFrom' => $dateFrom->format('Y-m-d'),
             'dateTo' => $dateTo->format('Y-m-d'),
@@ -827,8 +871,10 @@ class FinancialAnalyticsController extends Controller
             'isGlobal' => $isGlobal,
             'assets' => $assets,
             'liabilitiesBreakdown' => $liabilitiesBreakdown,
-            'equityBreakdown' => collect([(object)['name' => 'Net Profit', 'amount' => $netProfit]]),
+            'equityBreakdown' => collect([(object) ['name' => 'Net Profit', 'amount' => $netProfit]]),
             'department_breakdown' => $department_breakdown,
+            'product_breakdown' => $product_breakdown,
+            'customer_breakdown' => $customer_breakdown,
             'summary' => [
                 'mobile' => $mobile,
                 'cash' => $cash,
@@ -852,27 +898,27 @@ class FinancialAnalyticsController extends Controller
         $user = Auth::user();
         $isGlobal = $user->isGlobal();
 
-        if (!$isGlobal) {
+        if (! $isGlobal) {
             $selectedBranchId = $selectedBranchId ?: session('active_branch_id') ?: $user->branch_id;
         }
 
-        $branchId = ($selectedBranchId === 'all' || $selectedBranchId === 'null' || !$selectedBranchId) ? null : $selectedBranchId;
-        
+        $branchId = ($selectedBranchId === 'all' || $selectedBranchId === 'null' || ! $selectedBranchId) ? null : $selectedBranchId;
+
         // Brading Logic
         $branch = null;
         $logo = null;
         $logoMime = 'image/png';
-        $businessName = Setting::getValue('business_name', Setting::getValue('system_name', 'HD Group'));
+        $businessName = Setting::getValue('business_name', Setting::getValue('system_name', 'Jopo Juniours Co. Ltd'));
         $branchName = $businessName;
         $branchAddress = null;
-        
+
         if ($branchId) {
             $branch = Branch::find($branchId);
             if ($branch) {
                 $branchName = $branch->system_name ?: $branch->name;
                 $branchAddress = $branch->address ?: null;
                 if ($branch->logo) {
-                    $branchLogoPath = storage_path('app/' . $branch->logo);
+                    $branchLogoPath = storage_path('app/'.$branch->logo);
                     if (file_exists($branchLogoPath)) {
                         $logo = base64_encode(file_get_contents($branchLogoPath));
                         $ext = strtolower(pathinfo($branch->logo, PATHINFO_EXTENSION));
@@ -881,8 +927,8 @@ class FinancialAnalyticsController extends Controller
                 }
             }
         }
-        
-        if (!$logo) {
+
+        if (! $logo) {
             $systemLogoPath = Setting::getValue('system_logo');
             if ($systemLogoPath && Storage::disk('public')->exists($systemLogoPath)) {
                 $logo = base64_encode(Storage::disk('public')->get($systemLogoPath));
@@ -890,14 +936,14 @@ class FinancialAnalyticsController extends Controller
                 $logoMime = $ext === 'jpg' || $ext === 'jpeg' ? 'image/jpeg' : 'image/png';
             }
         }
-        
+
         // Resolve period / dates (reuse same logic)
         $period = $request->get('period', 'month');
         $branchFilter = $request->get('branch') ?: 'all';
         $dateFrom = $request->get('start_date');
         $dateTo = $request->get('end_date');
 
-        if (!$dateFrom || !$dateTo) {
+        if (! $dateFrom || ! $dateTo) {
             switch ($period) {
                 case 'today':
                     $dateFrom = $dateTo = now()->format('Y-m-d');
@@ -925,19 +971,25 @@ class FinancialAnalyticsController extends Controller
         $asAt = $dateTo->copy();
 
         // Resolve liquid categories using the controller's helper logic
-        $payments = Payment::query()->when($branchId, fn($q) => $q->where('branch_id', $branchId))
+        $payments = Payment::query()->when($branchId, fn ($q) => $q->where('branch_id', $branchId))
             ->whereBetween('payment_date', [$dateFrom, $dateTo])
             ->get();
 
-        $mobile = 0; $cash = 0; $bank = 0;
+        $mobile = 0;
+        $cash = 0;
+        $bank = 0;
         foreach ($payments as $p) {
             $cat = $this->categorizePaymentMethod($p->payment_method);
-            if ($cat === 'mobile') $mobile += (float)$p->amount_paid;
-            elseif ($cat === 'bank') $bank += (float)$p->amount_paid;
-            else $cash += (float)$p->amount_paid;
+            if ($cat === 'mobile') {
+                $mobile += (float) $p->amount_paid;
+            } elseif ($cat === 'bank') {
+                $bank += (float) $p->amount_paid;
+            } else {
+                $cash += (float) $p->amount_paid;
+            }
         }
 
-        $receivables = Loan::query()->when($branchId, fn($q) => $q->where('branch_id', $branchId))
+        $receivables = Loan::query()->when($branchId, fn ($q) => $q->where('branch_id', $branchId))
             ->where('status', '!=', 'Paid')
             ->sum('balance');
 
@@ -953,17 +1005,17 @@ class FinancialAnalyticsController extends Controller
         $totalAssets = $mobile + $cash + $bank + $receivables + $inventory;
 
         // Calculate LIABILITIES & EQUITY
-        $liabilities = Expense::query()->when($branchId, fn($q) => $q->where('branch_id', $branchId))
+        $liabilities = Expense::query()->when($branchId, fn ($q) => $q->where('branch_id', $branchId))
             ->whereBetween('date', [$dateFrom, $dateTo])
             ->whereIn('status', ['Pending', 'Partial'])
             ->sum('amount');
 
         $totalRevenue = Sale::query()->where('is_return', false)
-            ->when($branchId, fn($q) => $q->where('branch_id', $branchId))
+            ->when($branchId, fn ($q) => $q->where('branch_id', $branchId))
             ->whereBetween('created_at', [$dateFrom, $dateTo])
             ->sum('total_amount');
 
-        $totalExpenses = Expense::query()->when($branchId, fn($q) => $q->where('branch_id', $branchId))
+        $totalExpenses = Expense::query()->when($branchId, fn ($q) => $q->where('branch_id', $branchId))
             ->whereBetween('date', [$dateFrom, $dateTo])
             ->where('status', 'Approved')
             ->sum('amount');
@@ -974,24 +1026,24 @@ class FinancialAnalyticsController extends Controller
 
         // Asset Details
         $assets = collect([
-            (object)['name' => 'Mobile', 'amount' => $mobile, 'in_period' => true],
-            (object)['name' => 'Cash', 'amount' => $cash, 'in_period' => true],
-            (object)['name' => 'Bank', 'amount' => $bank, 'in_period' => true],
-            (object)['name' => 'Accounts Receivable', 'amount' => $receivables, 'in_period' => false],
-            (object)['name' => 'Inventory', 'amount' => $inventory, 'in_period' => false],
+            (object) ['name' => 'Mobile', 'amount' => $mobile, 'in_period' => true],
+            (object) ['name' => 'Cash', 'amount' => $cash, 'in_period' => true],
+            (object) ['name' => 'Bank', 'amount' => $bank, 'in_period' => true],
+            (object) ['name' => 'Accounts Receivable', 'amount' => $receivables, 'in_period' => false],
+            (object) ['name' => 'Inventory', 'amount' => $inventory, 'in_period' => false],
         ]);
 
         // Liability Details
-        $liabilitiesBreakdown = Expense::query()->when($branchId, fn($q) => $q->where('branch_id', $branchId))
+        $liabilitiesBreakdown = Expense::query()->when($branchId, fn ($q) => $q->where('branch_id', $branchId))
             ->whereBetween('date', [$dateFrom, $dateTo])
             ->whereIn('status', ['Pending', 'Partial'])
             ->select('category', DB::raw('SUM(amount) as amount'))
             ->groupBy('category')
             ->get()
             ->map(function ($row) {
-                return (object)[
+                return (object) [
                     'name' => $row->category ?: 'General',
-                    'amount' => (float)$row->amount,
+                    'amount' => (float) $row->amount,
                 ];
             });
 
@@ -1033,7 +1085,7 @@ class FinancialAnalyticsController extends Controller
 
                     $totalAssets = $mobile + $cash + $bank + $receivables + $inventory;
 
-                    return (object)[
+                    return (object) [
                         'branch_name' => $branch->name ?: $branch->system_name ?: 'Branch',
                         'mobile' => $mobile,
                         'cash' => $cash,
@@ -1044,20 +1096,68 @@ class FinancialAnalyticsController extends Controller
                 });
         }
 
+        $product_breakdown = DB::table('inventories')
+            ->join('products', function ($join) {
+                $join->on('inventories.product_id', '=', 'products.id')
+                    ->where('inventories.product_type', '=', 'App\\Models\\Product');
+            })
+            ->when($branchId, fn ($q) => $q->where('inventories.branch_id', $branchId))
+            ->where('products.is_enabled', true)
+            ->select('products.product_name as name', DB::raw('SUM(inventories.qty * COALESCE(products.product_price, 0)) as total_assets'))
+            ->groupBy('products.id', 'products.product_name')
+            ->get()
+            ->map(function ($p) {
+                return (object) [
+                    'name' => $p->name ?: 'Product',
+                    'mobile' => 0,
+                    'cash' => 0,
+                    'bank' => 0,
+                    'receivables' => 0,
+                    'total_assets' => $p->total_assets,
+                ];
+            });
+
+        $customer_breakdown = Loan::query()
+            ->when($branchId, fn ($q) => $q->where('branch_id', $branchId))
+            ->where('status', '!=', 'Paid')
+            ->select('customer_name as name', DB::raw('SUM(balance) as receivables'))
+            ->groupBy('customer_name')
+            ->get()
+            ->map(function ($c) {
+                return (object) [
+                    'name' => $c->name ?: 'Customer',
+                    'mobile' => 0,
+                    'cash' => 0,
+                    'bank' => 0,
+                    'receivables' => $c->receivables,
+                    'total_assets' => $c->receivables,
+                ];
+            });
+
         $data = [
             'period' => $period,
             'dateFrom' => $dateFrom,
             'dateTo' => $dateTo,
+            'startDate' => $dateFrom,
+            'endDate' => $dateTo,
             'asAt' => $asAt->format('M d, Y'),
             'logo' => $logo,
             'logoMime' => $logoMime,
             'displayName' => $branchName,
             'displayAddress' => $branchAddress,
-            'isGlobal' => !$branchId,
+            'companyName' => $branchName,
+            'companyAddress' => $branchAddress,
+            'companyPhone' => Setting::getValue('phone', 'N/A'),
+            'companyEmail' => Setting::getValue('email', 'info@hdgroup.com'),
+            'isGlobal' => ! $branchId,
             'assets' => $assets,
+            'liabilities' => $liabilities,
+            'equity' => $equity,
             'liabilitiesBreakdown' => $liabilitiesBreakdown,
-            'equityBreakdown' => collect([(object)['name' => 'Net Profit', 'amount' => $netProfit]]),
+            'equityBreakdown' => collect([(object) ['name' => 'Net Profit', 'amount' => $netProfit]]),
             'department_breakdown' => $department_breakdown,
+            'product_breakdown' => $product_breakdown,
+            'customer_breakdown' => $customer_breakdown,
             'summary' => [
                 'mobile' => $mobile,
                 'cash' => $cash,
@@ -1072,13 +1172,14 @@ class FinancialAnalyticsController extends Controller
         ];
 
         if ($request->get('action') === 'print') {
-            return view('admin.finance.balance-sheet-pdf', $data);
+            return view('admin.reports.balance-sheet-print', $data);
         }
 
-        $htmlContent = view('admin.finance.balance-sheet-pdf', $data)->render();
-        $pdf = \Barryvdh\DomPDF\Facade\Pdf::loadHTML($htmlContent);
-        
-        $filename = 'BalanceSheet-' . str_replace(' ', '-', $branchName) . '-' . $dateTo->format('Y-m-d') . '.pdf';
+        $htmlContent = view('admin.reports.balance-sheet-print', $data)->render();
+        $pdf = Pdf::loadHTML($htmlContent);
+
+        $filename = 'BalanceSheet-'.str_replace(' ', '-', $branchName).'-'.$dateTo->format('Y-m-d').'.pdf';
+
         return $pdf->download($filename);
     }
 
@@ -1107,7 +1208,7 @@ class FinancialAnalyticsController extends Controller
             'labels' => [],
         ];
 
-        return \Inertia\Inertia::render('Admin/Finance/Reports', compact(
+        return Inertia::render('Admin/Finance/Reports', compact(
             'period',
             'dateFrom',
             'dateTo',
@@ -1121,15 +1222,15 @@ class FinancialAnalyticsController extends Controller
     public function getCashFlowForecast(Request $request)
     {
         $days = $request->get('days', 30);
-        
+
         $historicalCashFlow = $this->getHistoricalCashFlow(30);
         $forecast = $this->forecastCashFlow($historicalCashFlow, $days);
-        
+
         return response()->json([
             'historical' => $historicalCashFlow,
             'forecast' => $forecast,
             'current_cash_position' => $this->getCurrentCashPosition(),
-            'working_capital' => $this->calculateWorkingCapital()
+            'working_capital' => $this->calculateWorkingCapital(),
         ]);
     }
 
@@ -1144,12 +1245,14 @@ class FinancialAnalyticsController extends Controller
 
         foreach ($categoryGroups as $category => $categoryExpenses) {
             $amounts = $categoryExpenses->pluck('amount')->toArray();
-            
-            if (count($amounts) < 3) continue;
+
+            if (count($amounts) < 3) {
+                continue;
+            }
 
             $mean = array_sum($amounts) / count($amounts);
-            $stdDev = sqrt(array_sum(array_map(function($x) use ($mean) { 
-                return pow($x - $mean, 2); 
+            $stdDev = sqrt(array_sum(array_map(function ($x) use ($mean) {
+                return pow($x - $mean, 2);
             }, $amounts)) / count($amounts));
 
             $threshold = $mean + (2 * $stdDev);
@@ -1167,10 +1270,10 @@ class FinancialAnalyticsController extends Controller
                     'expected_range' => [
                         'min' => $mean - $stdDev,
                         'max' => $mean + $stdDev,
-                        'mean' => $mean
+                        'mean' => $mean,
                     ],
                     'variance_percentage' => (($expense->amount - $mean) / $mean) * 100,
-                    'severity' => $expense->amount > ($mean + (3 * $stdDev)) ? 'high' : 'medium'
+                    'severity' => $expense->amount > ($mean + (3 * $stdDev)) ? 'high' : 'medium',
                 ];
             }
         }
@@ -1182,7 +1285,7 @@ class FinancialAnalyticsController extends Controller
     {
         $branches = Branch::all()->map(function ($branch) {
             $healthScore = $this->calculateBranchHealthScore($branch->id);
-            
+
             return [
                 'branch_id' => $branch->id,
                 'branch_name' => $branch->name,
@@ -1190,10 +1293,9 @@ class FinancialAnalyticsController extends Controller
                 'components' => [
                     'revenue_growth' => $this->getRevenueGrowthRate($branch->id),
                     'expense_ratio' => $this->getExpenseRatio($branch->id),
-                    'production_efficiency' => $this->getProductionEfficiencyScore($branch->id),
-                    'stock_turnover' => $this->getStockTurnoverRatio($branch->id)
+                    'stock_turnover' => $this->getStockTurnoverRatio($branch->id),
                 ],
-                'recommendations' => $this->generateHealthRecommendations($healthScore, $branch->id)
+                'recommendations' => $this->generateHealthRecommendations($healthScore, $branch->id),
             ];
         });
 
@@ -1203,7 +1305,7 @@ class FinancialAnalyticsController extends Controller
             'company_health_score' => $companyHealthScore,
             'branches' => $branches,
             'industry_benchmark' => 75.0,
-            'grade' => $this->getGradeFromScore($companyHealthScore)
+            'grade' => $this->getGradeFromScore($companyHealthScore),
         ]);
     }
 
@@ -1229,7 +1331,7 @@ class FinancialAnalyticsController extends Controller
 
         $currentRevenue = Sale::whereBetween('created_at', [$startDate, $endDate])
             ->sum('total_amount');
-        
+
         $previousRevenue = Sale::whereBetween('created_at', [$previousPeriodStart, $previousPeriodEnd])
             ->sum('total_amount');
 
@@ -1238,7 +1340,7 @@ class FinancialAnalyticsController extends Controller
 
         return [
             'revenue_growth' => $previousRevenue > 0 ? (($currentRevenue - $previousRevenue) / $previousRevenue) * 100 : 0,
-            'profit_growth' => $previousProfit > 0 ? (($currentProfit - $previousProfit) / $previousProfit) * 100 : 0
+            'profit_growth' => $previousProfit > 0 ? (($currentProfit - $previousProfit) / $previousProfit) * 100 : 0,
         ];
     }
 
@@ -1254,7 +1356,7 @@ class FinancialAnalyticsController extends Controller
                 return [
                     'branch_name' => $branch->name,
                     'revenue' => $revenue,
-                    'contribution_percentage' => 0 // Will be calculated after total is known
+                    'contribution_percentage' => 0, // Will be calculated after total is known
                 ];
             });
     }
@@ -1283,19 +1385,21 @@ class FinancialAnalyticsController extends Controller
             ->get()
             ->map(function ($day) {
                 $cashOut = Expense::whereDate('created_at', $day->date)->sum('amount');
-                
+
                 return [
                     'date' => $day->date,
                     'cash_in' => $day->cash_in,
                     'cash_out' => $cashOut,
-                    'net_flow' => $day->cash_in - $cashOut
+                    'net_flow' => $day->cash_in - $cashOut,
                 ];
             });
     }
 
     private function forecastCashFlow($historical, $days)
     {
-        if ($historical->count() < 2) return [];
+        if ($historical->count() < 2) {
+            return [];
+        }
 
         $avgDailyInflow = $historical->avg('cash_in');
         $avgDailyOutflow = $historical->avg('cash_out');
@@ -1305,12 +1409,12 @@ class FinancialAnalyticsController extends Controller
 
         for ($i = 1; $i <= $days; $i++) {
             $futureDate = $lastDate->copy()->addDays($i);
-            
+
             $forecast[] = [
                 'date' => $futureDate->format('Y-m-d'),
                 'projected_cash_in' => $avgDailyInflow,
                 'projected_cash_out' => $avgDailyOutflow,
-                'projected_net_flow' => $avgDailyInflow - $avgDailyOutflow
+                'projected_net_flow' => $avgDailyInflow - $avgDailyOutflow,
             ];
         }
 
@@ -1321,7 +1425,7 @@ class FinancialAnalyticsController extends Controller
     {
         $totalCashIn = Sale::sum('total_amount');
         $totalCashOut = Expense::sum('amount');
-        
+
         return $totalCashIn - $totalCashOut;
     }
 
@@ -1332,7 +1436,7 @@ class FinancialAnalyticsController extends Controller
         $inventoryValue = DB::table('inventories')
             ->join('products', 'inventories.product_id', '=', 'products.id')
             ->sum(DB::raw('inventories.quantity * products.cost_price'));
-        
+
         return $currentAssets + $inventoryValue;
     }
 
@@ -1340,15 +1444,13 @@ class FinancialAnalyticsController extends Controller
     {
         $revenueGrowth = $this->getRevenueGrowthRate($branchId);
         $expenseRatio = $this->getExpenseRatio($branchId);
-        $productionEfficiency = $this->getProductionEfficiencyScore($branchId);
         $stockTurnover = $this->getStockTurnoverRatio($branchId);
 
         // Weighted scoring
         $score = (
-            ($revenueGrowth * 0.3) +
-            ((100 - $expenseRatio) * 0.25) +
-            ($productionEfficiency * 0.25) +
-            ($stockTurnover * 0.2)
+            ($revenueGrowth * 0.4) +
+            ((100 - $expenseRatio) * 0.35) +
+            ($stockTurnover * 0.25)
         );
 
         return max(0, min(100, $score));
@@ -1358,7 +1460,7 @@ class FinancialAnalyticsController extends Controller
     {
         $branches = Branch::all();
         $totalScore = 0;
-        
+
         foreach ($branches as $branch) {
             $totalScore += $this->calculateBranchHealthScore($branch->id);
         }
@@ -1376,7 +1478,7 @@ class FinancialAnalyticsController extends Controller
             ->whereMonth('created_at', Carbon::now()->subMonth()->month)
             ->sum('total_amount');
 
-        return $previousMonthRevenue > 0 ? 
+        return $previousMonthRevenue > 0 ?
             (($currentMonthRevenue - $previousMonthRevenue) / $previousMonthRevenue) * 100 : 50;
     }
 
@@ -1393,17 +1495,11 @@ class FinancialAnalyticsController extends Controller
         return $monthlyRevenue > 0 ? ($monthlyExpenses / $monthlyRevenue) * 100 : 100;
     }
 
-    private function getProductionEfficiencyScore($branchId)
-    {
-        // Placeholder - would integrate with production metrics
-        return 75.0;
-    }
-
     private function getStockTurnoverRatio($branchId)
     {
         // Simplified stock turnover calculation
-        $cogs = $this->calculateCostOfGoodsSold($branchId, 
-            Carbon::now()->startOfMonth(), 
+        $cogs = $this->calculateCostOfGoodsSold($branchId,
+            Carbon::now()->startOfMonth(),
             Carbon::now()->endOfMonth()
         );
         $avgInventory = DB::table('inventories')
@@ -1419,17 +1515,17 @@ class FinancialAnalyticsController extends Controller
         $recommendations = [];
 
         if ($score < 60) {
-            $recommendations[] = "Critical: Immediate action required to improve financial health";
+            $recommendations[] = 'Critical: Immediate action required to improve financial health';
         } elseif ($score < 75) {
-            $recommendations[] = "Warning: Implement cost control measures";
+            $recommendations[] = 'Warning: Implement cost control measures';
         }
 
         if ($this->getExpenseRatio($branchId) > 70) {
-            $recommendations[] = "High expense ratio detected - review and optimize costs";
+            $recommendations[] = 'High expense ratio detected - review and optimize costs';
         }
 
         if ($this->getRevenueGrowthRate($branchId) < 0) {
-            $recommendations[] = "Declining revenue - implement growth strategies";
+            $recommendations[] = 'Declining revenue - implement growth strategies';
         }
 
         return $recommendations;
@@ -1437,10 +1533,19 @@ class FinancialAnalyticsController extends Controller
 
     private function getGradeFromScore($score)
     {
-        if ($score >= 90) return 'A';
-        if ($score >= 80) return 'B';
-        if ($score >= 70) return 'C';
-        if ($score >= 60) return 'D';
+        if ($score >= 90) {
+            return 'A';
+        }
+        if ($score >= 80) {
+            return 'B';
+        }
+        if ($score >= 70) {
+            return 'C';
+        }
+        if ($score >= 60) {
+            return 'D';
+        }
+
         return 'F';
     }
 
@@ -1457,32 +1562,32 @@ class FinancialAnalyticsController extends Controller
         $branchId = $request->get('branch') ?: session('active_branch_id');
         $user = Auth::user();
         $isGlobal = $user->isGlobal();
-        
+
         // If not global user, they can only see their own branch or active session branch
-        if (!$isGlobal) {
+        if (! $isGlobal) {
             $branchId = $branchId ?: session('active_branch_id') ?: $user->branch_id;
         }
-        
+
         // Get all branches for selector
         $branches = Branch::query()->where('is_active', true)
             ->get(['id', 'system_name as name'])
             ->toArray();
-        
+
         $data = $this->buildDailyReportData($period, $dateFrom, $dateTo, $branchId);
-        $data['isGlobal'] = $isGlobal && !$branchId; // True only if global user AND no specific branch selected
+        $data['isGlobal'] = $isGlobal && ! $branchId; // True only if global user AND no specific branch selected
         $data['currentBranch'] = $branchId ? Branch::find($branchId) : null;
-        
+
         $pdfParams = array_filter([
             'period' => $period,
             'date_from' => $dateFrom,
             'date_to' => $dateTo,
             'branch' => $branchId,
-        ], fn($v) => $v !== null && $v !== '');
+        ], fn ($v) => $v !== null && $v !== '');
 
         $data['pdfUrl'] = route('admin.finance.daily-report.pdf', $pdfParams);
-        $data['pdfFilename'] = 'finance-daily-report-' . ($dateFrom === $dateTo ? $dateFrom : ($dateFrom . '_to_' . $dateTo)) . '.pdf';
+        $data['pdfFilename'] = 'finance-daily-report-'.($dateFrom === $dateTo ? $dateFrom : ($dateFrom.'_to_'.$dateTo)).'.pdf';
 
-        return \Inertia\Inertia::render('Admin/Finance/DailyReport', $data);
+        return Inertia::render('Admin/Finance/DailyReport', $data);
     }
 
     /**
@@ -1498,26 +1603,26 @@ class FinancialAnalyticsController extends Controller
         $branchId = $request->get('branch') ?: session('active_branch_id');
         $user = Auth::user();
         $isGlobal = $user->isGlobal();
-        
-        if (!$isGlobal) {
+
+        if (! $isGlobal) {
             $branchId = $branchId ?: session('active_branch_id') ?: $user->branch_id;
         }
-        
+
         // Get branch information for logo and header
         $branch = null;
         $logo = null;
         $logoMime = 'image/png';
-        $businessName = Setting::getValue('business_name', Setting::getValue('system_name', 'HD Group'));
+        $businessName = Setting::getValue('business_name', Setting::getValue('system_name', 'Jopo Juniours Co. Ltd'));
         $branchName = $businessName;
         $branchAddress = null;
-        
+
         if ($branchId && $branchId > 0) {
             $branch = Branch::find($branchId);
             if ($branch) {
                 $branchName = $branch->system_name ?? $branch->name;
                 $branchAddress = $branch->address ?? null;
                 if ($branch->logo) {
-                    $branchLogoPath = storage_path('app/' . $branch->logo);
+                    $branchLogoPath = storage_path('app/'.$branch->logo);
                     if (file_exists($branchLogoPath)) {
                         $logo = base64_encode(file_get_contents($branchLogoPath));
                         $ext = strtolower(pathinfo($branch->logo, PATHINFO_EXTENSION));
@@ -1526,9 +1631,9 @@ class FinancialAnalyticsController extends Controller
                 }
             }
         }
-        
+
         // If no branch logo, use system logo from settings
-        if (!$logo) {
+        if (! $logo) {
             $systemLogoPath = Setting::getValue('system_logo');
             if ($systemLogoPath && Storage::disk('public')->exists($systemLogoPath)) {
                 $logo = base64_encode(Storage::disk('public')->get($systemLogoPath));
@@ -1536,13 +1641,13 @@ class FinancialAnalyticsController extends Controller
                 $logoMime = $ext === 'jpg' || $ext === 'jpeg' ? 'image/jpeg' : 'image/png';
             }
         }
-        
+
         $carbonFrom = Carbon::parse($dateFrom);
         $carbonTo = Carbon::parse($dateTo);
         $isRange = $dateFrom !== $dateTo;
-        
+
         $data = $this->buildDailyReportData($period, $dateFrom, $dateTo, $branchId);
-        
+
         return view('admin.finance.daily-report-pdf', [
             'reportData' => $data['reportData'] ?? [],
             'grandTotals' => $data['grandTotals'] ?? ['income' => [], 'expense' => []],
@@ -1550,7 +1655,7 @@ class FinancialAnalyticsController extends Controller
             'logoMime' => $logoMime,
             'branchName' => $branchName,
             'branchAddress' => $branchAddress,
-            'isGlobal' => $isGlobal && !$branchId,
+            'isGlobal' => $isGlobal && ! $branchId,
             'carbonFrom' => $carbonFrom,
             'carbonTo' => $carbonTo,
             'isRange' => $isRange,
@@ -1570,26 +1675,26 @@ class FinancialAnalyticsController extends Controller
         $branchId = $request->get('branch') ?: session('active_branch_id');
         $user = Auth::user();
         $isGlobal = $user->isGlobal();
-        
-        if (!$isGlobal) {
+
+        if (! $isGlobal) {
             $branchId = $branchId ?: session('active_branch_id') ?: $user->branch_id;
         }
-        
+
         // Get branch information for logo and header
         $branch = null;
         $logo = null;
         $logoMime = 'image/png';
-        $businessName = Setting::getValue('business_name', Setting::getValue('system_name', 'HD Group'));
+        $businessName = Setting::getValue('business_name', Setting::getValue('system_name', 'Jopo Juniours Co. Ltd'));
         $branchName = $businessName;
         $branchAddress = null;
-        
+
         if ($branchId && $branchId > 0) {
             $branch = Branch::find($branchId);
             if ($branch) {
                 $branchName = $branch->system_name ?? $branch->name;
                 $branchAddress = $branch->address ?? null;
                 if ($branch->logo) {
-                    $branchLogoPath = storage_path('app/' . $branch->logo);
+                    $branchLogoPath = storage_path('app/'.$branch->logo);
                     if (file_exists($branchLogoPath)) {
                         $logo = base64_encode(file_get_contents($branchLogoPath));
                         $ext = strtolower(pathinfo($branch->logo, PATHINFO_EXTENSION));
@@ -1598,9 +1703,9 @@ class FinancialAnalyticsController extends Controller
                 }
             }
         }
-        
+
         // If no branch logo, use system logo from settings
-        if (!$logo) {
+        if (! $logo) {
             $systemLogoPath = Setting::getValue('system_logo');
             if ($systemLogoPath && Storage::disk('public')->exists($systemLogoPath)) {
                 $logo = base64_encode(Storage::disk('public')->get($systemLogoPath));
@@ -1608,13 +1713,13 @@ class FinancialAnalyticsController extends Controller
                 $logoMime = $ext === 'jpg' || $ext === 'jpeg' ? 'image/jpeg' : 'image/png';
             }
         }
-        
+
         $carbonFrom = Carbon::parse($dateFrom);
         $carbonTo = Carbon::parse($dateTo);
         $isRange = $dateFrom !== $dateTo;
-        
+
         $data = $this->buildDailyReportData($period, $dateFrom, $dateTo, $branchId);
-        
+
         $viewData = [
             'reportData' => $data['reportData'] ?? [],
             'grandTotals' => $data['grandTotals'] ?? ['income' => [], 'expense' => []],
@@ -1633,10 +1738,10 @@ class FinancialAnalyticsController extends Controller
         }
 
         $htmlContent = view('admin.finance.daily-report-pdf', $viewData)->render();
-        
+
         $pdf = Pdf::loadHTML($htmlContent);
-        $filename = 'Daily-Report-' . $branchName . '-' . $carbonFrom->format('Y-m-d') . '.pdf';
-        
+        $filename = 'Daily-Report-'.$branchName.'-'.$carbonFrom->format('Y-m-d').'.pdf';
+
         return $pdf->download($filename);
     }
 
@@ -1653,26 +1758,26 @@ class FinancialAnalyticsController extends Controller
         $branchId = $request->get('branch') ?: session('active_branch_id');
         $user = Auth::user();
         $isGlobal = $user->isGlobal();
-        
-        if (!$isGlobal) {
+
+        if (! $isGlobal) {
             $branchId = $branchId ?: session('active_branch_id') ?: $user->branch_id;
         }
-        
+
         // Get branch information for logo and header
         $branch = null;
         $logo = null;
         $logoMime = 'image/png';
-        $businessName = Setting::getValue('business_name', Setting::getValue('system_name', 'HD Group'));
+        $businessName = Setting::getValue('business_name', Setting::getValue('system_name', 'Jopo Juniours Co. Ltd'));
         $branchName = $businessName;
         $branchAddress = null;
-        
+
         if ($branchId && $branchId > 0) {
             $branch = Branch::find($branchId);
             if ($branch) {
                 $branchName = $branch->system_name ?? $branch->name;
                 $branchAddress = $branch->address ?? null;
                 if ($branch->logo) {
-                    $branchLogoPath = storage_path('app/' . $branch->logo);
+                    $branchLogoPath = storage_path('app/'.$branch->logo);
                     if (file_exists($branchLogoPath)) {
                         $logo = base64_encode(file_get_contents($branchLogoPath));
                         $ext = strtolower(pathinfo($branch->logo, PATHINFO_EXTENSION));
@@ -1681,9 +1786,9 @@ class FinancialAnalyticsController extends Controller
                 }
             }
         }
-        
+
         // If no branch logo, use system logo from settings
-        if (!$logo) {
+        if (! $logo) {
             $systemLogoPath = Setting::getValue('system_logo');
             if ($systemLogoPath && Storage::disk('public')->exists($systemLogoPath)) {
                 $logo = base64_encode(Storage::disk('public')->get($systemLogoPath));
@@ -1691,13 +1796,13 @@ class FinancialAnalyticsController extends Controller
                 $logoMime = $ext === 'jpg' || $ext === 'jpeg' ? 'image/jpeg' : 'image/png';
             }
         }
-        
+
         $carbonFrom = Carbon::parse($dateFrom);
         $carbonTo = Carbon::parse($dateTo);
         $isRange = $dateFrom !== $dateTo;
-        
+
         $data = $this->buildDailyReportData($period, $dateFrom, $dateTo, $branchId);
-        
+
         $htmlContent = view('admin.finance.daily-report-pdf', [
             'reportData' => $data['reportData'] ?? [],
             'grandTotals' => $data['grandTotals'] ?? ['income' => [], 'expense' => []],
@@ -1710,10 +1815,10 @@ class FinancialAnalyticsController extends Controller
             'carbonTo' => $carbonTo,
             'isRange' => $isRange,
         ])->render();
-        
-        $pdf = \Barryvdh\DomPDF\Facade\Pdf::loadHTML($htmlContent);
-        $filename = 'Daily-Report-' . $branchName . '-' . $carbonFrom->format('Y-m-d') . '.pdf';
-        
+
+        $pdf = Pdf::loadHTML($htmlContent);
+        $filename = 'Daily-Report-'.$branchName.'-'.$carbonFrom->format('Y-m-d').'.pdf';
+
         // Return PDF for printing (displays in browser)
         return $pdf->stream($filename);
 
@@ -1721,7 +1826,7 @@ class FinancialAnalyticsController extends Controller
 
     protected function resolveDailyReportPeriod($period, $dateFrom, $dateTo): array
     {
-        if (!$period) {
+        if (! $period) {
             $period = ($dateFrom || $dateTo) ? 'custom' : 'today';
         }
         if ($period === 'custom') {
@@ -1754,6 +1859,7 @@ class FinancialAnalyticsController extends Controller
                     $dateTo = now()->format('Y-m-d');
             }
         }
+
         return [$period, $dateFrom, $dateTo];
     }
 
@@ -1766,6 +1872,7 @@ class FinancialAnalyticsController extends Controller
         if (str_contains($m, 'bank') || str_contains($m, 'transfer') || str_contains($m, 'crdb') || str_contains($m, 'nmb') || str_contains($m, 'card')) {
             return 'bank';
         }
+
         return 'cash';
     }
 
@@ -1779,44 +1886,96 @@ class FinancialAnalyticsController extends Controller
         $reportData = [];
         $branchIds = $branchId ? [$branchId] : $branches->pluck('id')->toArray();
 
+        // In global mode (no specific branch), also collect payments created under no branch
+        if (! $branchId) {
+            $branchIds[] = null;
+        }
+
         foreach ($branchIds as $bid) {
-            $branch = $branches->firstWhere('id', $bid) ?? Branch::find($bid);
-            if (!$branch) continue;
+            if ($bid === null) {
+                $branch = ['name' => 'Global / Unassigned', 'id' => null];
+            } else {
+                $branch = $branches->firstWhere('id', $bid) ?? Branch::find($bid);
+                if (! $branch) {
+                    continue;
+                }
+            }
 
             $incomeItems = [];
-            $payments = Payment::with(['loan', 'user', 'sale.items.product'])
-                ->where('branch_id', $bid)
+            $payments = Payment::with(['loan', 'user', 'sale.items.product', 'sale.posCustomer', 'sale.customer'])
+                ->when($bid !== null, fn ($q) => $q->where('branch_id', $bid), fn ($q) => $q->whereNull('branch_id'))
                 ->whereBetween('payment_date', [$carbonFrom, $carbonTo])
                 ->orderBy('payment_date')
                 ->get();
 
             foreach ($payments as $p) {
-                $customerName = $p->loan ? $p->loan->customer_name : ($p->user ? $p->user->staff_name : 'Direct');
+                $customerName = 'Walk-in Customer';
+                if ($p->sale && $p->sale->posCustomer) {
+                    $customerName = $p->sale->posCustomer->customer_name ?? $p->sale->posCustomer->name ?? 'Walk-in Customer';
+                } elseif ($p->sale && $p->sale->customer) {
+                    $customerName = $p->sale->customer->name ?? 'Walk-in Customer';
+                } elseif ($p->loan) {
+                    $customerName = $p->loan->customer_name ?? 'Loan Customer';
+                } elseif ($p->user) {
+                    $customerName = $p->user->staff_name ?? $p->user->name ?? 'Staff';
+                }
+
                 // Prefer product name from related sale items; fall back to loan/payment text
                 if ($p->sale && $p->sale->items->count() > 0) {
-                    $productNames = $p->sale->items->map(function($item) {
+                    $productNames = $p->sale->items->map(function ($item) {
                         return $item->product->product_name ?? $item->product->name ?? 'Product';
                     })->toArray();
                     $desc = implode(', ', $productNames);
                 } else {
-                    $desc = $p->loan ? ('Loan ' . ($p->loan->unique_id ?? '')) : 'Payment';
+                    $desc = $p->loan ? ('Debt '.($p->loan->unique_id ?? '')) : 'Payment';
                 }
-                $key = 'pay_' . $p->id;
+                $key = 'pay_'.$p->id;
+
+                // Use sale balance when payment is for a sale; loan balance when payment is for a loan only
+                $remain = 0.0;
+                if ($p->sale) {
+                    $remain = (float) ($p->sale->balance ?? max(0, ($p->sale->payable_amount - $p->sale->amount_paid)));
+                } elseif ($p->loan) {
+                    $remain = (float) ($p->loan->balance ?? 0);
+                }
+                $remain = max(0, $remain);
+                $isDebt = $remain > 0;
+
                 $incomeItems[$key] = [
                     'customer_name' => $customerName,
                     'description' => $desc,
                     'mobile' => 0,
                     'cash' => 0,
                     'bank' => 0,
-                    'remain' => 0,
-                    'is_debt' => false,
+                    'remain' => $remain,
+                    'is_debt' => $isDebt,
                 ];
                 $cat = $this->categorizePaymentMethod($p->payment_method);
                 $incomeItems[$key][$cat] = ($incomeItems[$key][$cat] ?? 0) + (float) $p->amount_paid;
             }
 
+            // Append loans with outstanding balances that had no payment in this date range
+            $paidLoanUids = $payments->filter(fn ($p) => $p->loan)->pluck('unique_id')->unique()->toArray();
+            $outstandingLoansQuery = Loan::when($bid !== null, fn ($q) => $q->where('branch_id', $bid), fn ($q) => $q->whereNull('branch_id'))
+                ->where('balance', '>', 0);
+            if (! empty($paidLoanUids)) {
+                $outstandingLoansQuery->whereNotIn('unique_id', $paidLoanUids);
+            }
+            foreach ($outstandingLoansQuery->get() as $loan) {
+                $incomeItems['loan_'.$loan->id] = [
+                    'customer_name' => $loan->customer_name ?? 'Loan Customer',
+                    'description' => 'Outstanding Debt '.($loan->unique_id ?? ''),
+                    'mobile' => 0,
+                    'cash' => 0,
+                    'bank' => 0,
+                    'remain' => (float) ($loan->balance ?? 0),
+                    'is_debt' => true,
+                ];
+            }
+
             $expenseItems = [];
-            $expenses = Expense::query()->where('branch_id', $bid)
+            $expenses = Expense::query()
+                ->when($bid !== null, fn ($q) => $q->where('branch_id', $bid), fn ($q) => $q->whereNull('branch_id'))
                 ->where('status', 'Approved')
                 ->whereBetween('date', [$carbonFrom, $carbonTo])
                 ->orderBy('date')
@@ -1834,7 +1993,11 @@ class FinancialAnalyticsController extends Controller
                 $expenseItems[] = $item;
             }
 
-            // Always include branch, even if no data for the period
+            // Skip the Global/Unassigned entry when it has no data
+            if ($bid === null && empty($incomeItems) && empty($expenseItems)) {
+                continue;
+            }
+
             $reportData[] = [
                 'branch' => $branch,
                 'incomeItems' => array_values($incomeItems),
@@ -1853,7 +2016,7 @@ class FinancialAnalyticsController extends Controller
                 $grandTotals['income']['bank'] += $item['bank'];
                 $grandTotals['income']['remain'] += $item['remain'];
                 if ($item['is_debt'] ?? false) {
-                    $grandTotals['income']['total_debt'] += ($item['mobile'] + $item['cash'] + $item['bank']);
+                    $grandTotals['income']['total_debt'] += $item['remain'];
                 }
             }
             foreach ($data['expenseItems'] as $item) {

@@ -31,11 +31,12 @@ interface HeroSlide {
 interface HeroSlideFormProps {
   branches: Branch[];
   onSuccess: () => void;
+  onCancel?: () => void;
   editingSlideId?: number | null;
   existingSlide?: HeroSlide | null;
 }
 
-export default function HeroSlideForm({ branches, onSuccess, editingSlideId, existingSlide }: HeroSlideFormProps) {
+export default function HeroSlideForm({ branches, onSuccess, onCancel, editingSlideId, existingSlide }: HeroSlideFormProps) {
   const [preview, setPreview] = useState<string | null>(null);
 
   const { data, setData, transform, post, put, processing, errors } = useForm({
@@ -87,11 +88,11 @@ export default function HeroSlideForm({ branches, onSuccess, editingSlideId, exi
     }));
 
     if (editingSlideId) {
-      put(`/settings/hero-slides/${editingSlideId}`, submitOptions);
+      put(`/settings/hero-slides/${editingSlideId}?redirect_to=settings`, submitOptions);
       return;
     }
 
-    post("/settings/hero-slides", submitOptions);
+    post("/settings/hero-slides?redirect_to=settings", submitOptions);
   };
 
   return (
@@ -109,22 +110,26 @@ export default function HeroSlideForm({ branches, onSuccess, editingSlideId, exi
           <div className="border border-dashed border-slate-200 rounded-xl p-6 flex flex-col items-center justify-center gap-4 bg-slate-50/50">
             <div className="w-full aspect-video rounded overflow-hidden shadow-sm flex items-center justify-center bg-slate-100 max-w-md mx-auto">
               {preview ? (
-                <img src={preview} alt="Preview" className="w-full h-full object-cover" />
+                preview.startsWith('data:video/') || preview.match(/\.(mp4|webm|mov|ogg)$/i) ? (
+                  <video src={preview} className="w-full h-full object-cover" controls autoPlay muted loop />
+                ) : (
+                  <img src={preview} alt="Preview" className="w-full h-full object-cover" />
+                )
               ) : (
                 <div className="text-center space-y-2">
                   <ImageIcon size={32} className="mx-auto text-slate-300" />
-                  <p className="text-xs text-slate-400 font-medium">Select a landscape image</p>
+                  <p className="text-xs text-slate-400 font-medium">Select a landscape image or video</p>
                 </div>
               )}
             </div>
             <label htmlFor="image-upload" className="cursor-pointer">
               <div className="flex items-center gap-2 text-xs font-semibold uppercase tracking-widest text-slate-900 bg-white px-6 py-3 rounded-full border border-slate-200 hover:border-slate-300 hover:bg-slate-50 transition-all shadow-sm">
-                <Upload size={14} /> {preview ? "Change image" : "Select image"}
+                <Upload size={14} /> {preview ? "Change file" : "Select file"}
               </div>
               <input
                 id="image-upload"
                 type="file"
-                accept="image/*"
+                accept="image/*,video/mp4,video/webm,video/quicktime"
                 className="hidden"
                 onChange={handleImageChange}
               />
@@ -245,7 +250,7 @@ export default function HeroSlideForm({ branches, onSuccess, editingSlideId, exi
           </form>
         </CardContent>
         <CardFooter className="px-6 py-4 bg-slate-50/50 border-t border-slate-100 flex justify-end gap-3">
-          <Button variant="outline" size="sm" onClick={() => window.location.reload()}>
+          <Button variant="outline" size="sm" onClick={() => onCancel ? onCancel() : window.location.reload()}>
             Cancel
           </Button>
           <Button

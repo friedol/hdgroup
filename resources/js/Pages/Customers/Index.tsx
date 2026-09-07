@@ -1,5 +1,5 @@
 import { Head, Link, router } from '@inertiajs/react';
-import { Plus, Search, Users, ShieldCheck, CreditCard, PieChart, MoreHorizontal, Eye, Edit, Trash2 } from 'lucide-react';
+import { Plus, Search, Users, ShieldCheck, CreditCard, PieChart, MoreHorizontal, Eye, Edit, Trash2, Building2 } from 'lucide-react';
 import React, { useState, useEffect } from 'react';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
@@ -17,6 +17,10 @@ interface Customer {
   credit_limit: number;
   is_active: boolean;
   created_at: string;
+  branch?: {
+    id: number;
+    name: string;
+  };
 }
 
 interface PaginatedResponse<T> {
@@ -28,6 +32,13 @@ interface PaginatedResponse<T> {
 
 interface CustomersIndexProps {
   customers: PaginatedResponse<Customer>;
+  kpis: {
+    total: number;
+    active: number;
+    guests: number;
+    total_credit: number;
+    avg_credit: number;
+  };
   filters?: {
     search?: string;
     status?: string;
@@ -35,27 +46,25 @@ interface CustomersIndexProps {
   };
 }
 
-export default function CustomersIndex({ customers, filters = {} }: CustomersIndexProps) {
+export default function CustomersIndex({ customers, kpis, filters = {} }: CustomersIndexProps) {
   const [searchQuery, setSearchQuery] = useState(filters.search || '');
   const [filterStatus, setFilterStatus] = useState(filters.status || 'all');
   const [customerType, setCustomerType] = useState(filters.customer_type || 'all');
 
-  const totalCreditLimit = customers?.data?.reduce((sum, c) => sum + (Number(c.credit_limit) || 0), 0) || 0;
-  const avgCreditLimit = Math.round(totalCreditLimit / (customers?.total || 1));
   const customerKpis = [
     {
-      title: 'Total Reach',
-      value: customers.total.toLocaleString(),
+      title: 'Total Directory',
+      value: kpis.total.toLocaleString(),
       icon: Users,
-      chipLabel: 'Directory',
+      chipLabel: 'Global',
       cardClass: 'border-blue-200 bg-blue-50/30',
       iconClass: 'bg-blue-100 text-blue-600',
       chipClass: 'text-blue-700 bg-blue-100/70',
       valueClass: 'text-slate-900',
     },
     {
-      title: 'Active Verified',
-      value: customers.data.filter(c => c.is_active).length.toLocaleString(),
+      title: 'Active Accounts',
+      value: kpis.active.toLocaleString(),
       icon: ShieldCheck,
       chipLabel: 'Healthy',
       cardClass: 'border-emerald-200 bg-emerald-50/30',
@@ -64,8 +73,8 @@ export default function CustomersIndex({ customers, filters = {} }: CustomersInd
       valueClass: 'text-emerald-700',
     },
     {
-      title: 'Group Credit Limit',
-      value: `${totalCreditLimit.toLocaleString()} TZS`,
+      title: 'Group Credit',
+      value: `${Math.round(kpis.total_credit).toLocaleString()} TZS`,
       icon: CreditCard,
       chipLabel: 'Exposure',
       cardClass: 'border-amber-200 bg-amber-50/30',
@@ -74,20 +83,20 @@ export default function CustomersIndex({ customers, filters = {} }: CustomersInd
       valueClass: 'text-amber-700',
     },
     {
-      title: 'Avg Account Credit',
-      value: `${avgCreditLimit.toLocaleString()} TZS`,
+      title: 'Avg Credit',
+      value: `${Math.round(kpis.avg_credit).toLocaleString()} TZS`,
       icon: PieChart,
-      chipLabel: 'Per Account',
+      chipLabel: 'Average',
       cardClass: 'border-indigo-200 bg-indigo-50/30',
       iconClass: 'bg-indigo-100 text-indigo-600',
       chipClass: 'text-indigo-700 bg-indigo-100/70',
       valueClass: 'text-indigo-700',
     },
     {
-      title: 'Guest Customers',
-      value: customers.data.filter(c => c.is_walking_customer).length.toLocaleString(),
+      title: 'Guest List',
+      value: kpis.guests.toLocaleString(),
       icon: Users,
-      chipLabel: 'Walk-in',
+      chipLabel: 'Guests',
       cardClass: 'border-rose-200 bg-rose-50/30',
       iconClass: 'bg-rose-100 text-rose-600',
       chipClass: 'text-rose-700 bg-rose-100/70',
@@ -136,9 +145,9 @@ export default function CustomersIndex({ customers, filters = {} }: CustomersInd
     <>
       <Head title="Customers" />
       <AppLayout breadcrumbs={breadcrumbs}>
-        <div className="max-w-[1600px] mx-auto space-y-6 pb-10 px-6">
+        <div className="w-full mx-auto space-y-6 pb-10 px-0">
           {/* Header */}
-          <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
+          <div className="flex items-center justify-between gap-4">
             <div>
               <h1 className="text-[18px] font-bold text-slate-900 tracking-tight">Customers</h1>
            
@@ -167,7 +176,7 @@ export default function CustomersIndex({ customers, filters = {} }: CustomersInd
                   </span>
                 </div>
                 <p className={`text-[13px] sm:text-[14px] font-semibold leading-none tabular-nums ${kpi.valueClass}`}>{kpi.value}</p>
-                <p className="text-[10px] sm:text-xs text-slate-500 font-medium mt-2 uppercase tracking-wide">{kpi.title}</p>
+                <p className="text-[10px] sm:text-xs text-slate-500 font-medium mt-2 tracking-wide">{kpi.title}</p>
                 </CardContent>
               </Card>
               );
@@ -179,7 +188,7 @@ export default function CustomersIndex({ customers, filters = {} }: CustomersInd
             <CardContent className="p-4">
               <div className="flex flex-col md:flex-row gap-4 items-end">
                 <div className="flex-1 w-full space-y-1.5">
-                  <label className="text-[12px] font-bold text-slate-700 ml-1">Search profile</label>
+                  <label className="text-[12px] font-bold text-slate-700 ml-1">Search</label>
                   <div className="relative group">
                     <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400 group-focus-within:text-blue-500 transition-colors" />
                     <Input
@@ -192,7 +201,7 @@ export default function CustomersIndex({ customers, filters = {} }: CustomersInd
                 </div>
                 
                 <div className="w-full md:w-[150px] space-y-1.5">
-                    <label className="text-[12px] font-bold text-slate-700 ml-1">Account status</label>
+                    <label className="text-[12px] font-bold text-slate-700 ml-1">Status</label>
                     <select
                         value={filterStatus}
                         onChange={(e) => {
@@ -216,7 +225,7 @@ export default function CustomersIndex({ customers, filters = {} }: CustomersInd
                 </div>
 
                     <div className="w-full md:w-[170px] space-y-1.5">
-                      <label className="text-[12px] font-bold text-slate-700 ml-1">Customer type</label>
+                      <label className="text-[12px] font-bold text-slate-700 ml-1">Type</label>
                       <select
                         value={customerType}
                         onChange={(e) => {
@@ -257,7 +266,7 @@ export default function CustomersIndex({ customers, filters = {} }: CustomersInd
           {/* Data Table */}
           <div className="bg-white rounded-xl shadow-sm border border-slate-100 overflow-hidden">
             <div className="p-4 border-b border-slate-50 bg-slate-50/30 flex items-center justify-between">
-                <span className="text-[11px] font-bold text-slate-400 tracking-widest leading-loose font-mono">Customer records DB</span>
+                <span className="text-[11px] font-bold text-slate-400 font-mono">Directory</span>
                 <span className="text-[11px] font-medium text-slate-400">Total entries: {customers.total}</span>
             </div>
             
@@ -265,11 +274,12 @@ export default function CustomersIndex({ customers, filters = {} }: CustomersInd
               <table className="w-full text-left border-collapse">
                 <thead className="bg-slate-50/50 border-b border-slate-100">
                   <tr>
-                    <th className="p-4 py-3 text-[11px] font-bold text-slate-500 tracking-wider">Customer profile</th>
-                    <th className="p-4 py-3 text-[11px] font-bold text-slate-500 tracking-wider">Contact line</th>
-                    <th className="p-4 py-3 text-[11px] font-bold text-slate-500 tracking-wider text-right">Credit limit</th>
-                    <th className="p-4 py-3 text-[11px] font-bold text-slate-500 tracking-wider text-center">Status</th>
-                    <th className="p-4 py-3 text-[11px] font-bold text-slate-500 tracking-wider text-right">System actions</th>
+                    <th className="p-4 py-3 text-[11px] font-bold text-slate-500">Customer profile</th>
+                    <th className="p-4 py-3 text-[11px] font-bold text-slate-500">Branch</th>
+                    <th className="p-4 py-3 text-[11px] font-bold text-slate-500">Contact line</th>
+                    <th className="p-4 py-3 text-[11px] font-bold text-slate-500 text-right">Credit limit</th>
+                    <th className="p-4 py-3 text-[11px] font-bold text-slate-500 text-center">Status</th>
+                    <th className="p-4 py-3 text-[11px] font-bold text-slate-500 text-right">Actions</th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-slate-50">
@@ -291,6 +301,12 @@ export default function CustomersIndex({ customers, filters = {} }: CustomersInd
                               )}
                             </div>
                           </div>
+                        </td>
+                        <td className="p-4">
+                           <div className="flex items-center gap-2">
+                              <Building2 className="w-3 h-3 text-slate-400" />
+                              <span className="text-xs font-bold text-slate-600">{row.branch?.name || 'Global / Unknown'}</span>
+                           </div>
                         </td>
                         <td className="p-4">
                           <div className="flex flex-col">

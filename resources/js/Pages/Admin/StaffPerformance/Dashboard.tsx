@@ -118,7 +118,7 @@ export default function StaffPerformanceDashboard({ branches }: { branches: Bran
   return (
     <AppLayout breadcrumbs={breadcrumbs}>
       <Head title="Staff Performance" />
-      <div className="max-w-7xl mx-auto space-y-6 pb-10">
+      <div className="w-full space-y-6 pb-10">
 
         {/* Header */}
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">

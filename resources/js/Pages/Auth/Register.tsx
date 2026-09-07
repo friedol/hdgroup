@@ -103,7 +103,7 @@ export default function Register() {
                     <div className="pt-4">
                         <Button
                             type="submit"
-                            className="w-full h-12 bg-amber-400 hover:bg-amber-500 text-black rounded-md font-bold text-sm tracking-wide shadow-md shadow-amber-200/50 border-none transition-all duration-300"
+                            className="w-full h-12 text-white rounded-md font-bold text-sm tracking-wide border-none transition-all duration-300 shadow-md" style={{ backgroundColor: '#3a9d75' }} onMouseEnter={e => (e.currentTarget.style.backgroundColor='#2d8a63')} onMouseLeave={e => (e.currentTarget.style.backgroundColor='#3a9d75')}
                             tabIndex={5}
                             disabled={processing}
                             data-test="register-user-button"
@@ -134,7 +134,7 @@ export default function Register() {
 
                         <Link
                             href={home()}
-                            className="flex-1 h-12 flex items-center justify-center rounded-md bg-zinc-50 border border-zinc-100 text-zinc-400 font-semibold text-xs hover:text-amber-600 transition-all dark:bg-zinc-800 dark:border-zinc-700"
+                            className="flex-1 h-12 flex items-center justify-center rounded-md bg-zinc-50 border border-zinc-100 text-zinc-400 font-semibold text-xs transition-all dark:bg-zinc-800 dark:border-zinc-700 hover:text-[#3a9d75]"
                         >
                             <Home className="size-4 mr-2" />
                             Home

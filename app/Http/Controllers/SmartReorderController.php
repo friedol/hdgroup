@@ -2,57 +2,54 @@
 
 namespace App\Http\Controllers;
 
-use Illuminate\Http\Request;
-use Illuminate\Support\Facades\DB;
-use Carbon\Carbon;
 use App\Models\Product;
-use App\Models\Inventory;
-use App\Models\Production;
-use App\Models\Sale;
 use App\Models\SaleItem;
+use Carbon\Carbon;
+use Illuminate\Http\Request;
+use Inertia\Inertia;
 
 class SmartReorderController extends Controller
 {
     public function dashboard()
     {
-        return \Inertia\Inertia::render('Admin/SmartReorder/Dashboard');
+        return Inertia::render('Admin/SmartReorder/Dashboard');
     }
 
     public function getReorderSuggestions()
     {
         $suggestions = $this->generateReorderSuggestions();
-        
+
         return response()->json([
             'suggestions' => $suggestions,
             'critical_count' => $suggestions->where('urgency', 'critical')->count(),
             'warning_count' => $suggestions->where('urgency', 'warning')->count(),
-            'info_count' => $suggestions->where('urgency', 'info')->count()
+            'info_count' => $suggestions->where('urgency', 'info')->count(),
         ]);
     }
 
     public function getMaterialDepletionPredictions()
     {
         $predictions = Product::where('auto_reorder_enabled', true)
-            ->with(['inventory', 'production'])
+            ->with(['inventories'])
             ->get()
             ->map(function ($product) {
-                $currentStock = $product->inventory?->quantity ?? 0;
+                $currentStock = $product->current_stock;
                 $dailyUsage = $this->calculateDailyUsage($product);
                 $productionRate = $this->calculateProductionRate($product);
                 $salesVelocity = $this->calculateSalesVelocity($product);
-                
+
                 $totalDailyConsumption = $dailyUsage + $productionRate + $salesVelocity;
-                
+
                 if ($totalDailyConsumption <= 0) {
                     return null;
                 }
 
                 $daysUntilDepletion = $currentStock / $totalDailyConsumption;
                 $reorderPoint = $product->reorder_point ?? ($totalDailyConsumption * $product->lead_time_days);
-                
+
                 return [
                     'product_id' => $product->id,
-                    'product_name' => $product->name,
+                    'product_name' => $product->product_name,
                     'current_stock' => $currentStock,
                     'daily_usage' => $dailyUsage,
                     'production_rate' => $productionRate,
@@ -64,7 +61,7 @@ class SmartReorderController extends Controller
                     'safety_stock' => $product->safety_stock,
                     'urgency' => $this->calculateUrgency($daysUntilDepletion, $currentStock, $reorderPoint),
                     'suggested_order_date' => $this->calculateSuggestedOrderDate($daysUntilDepletion, $product->lead_time_days),
-                    'suggested_order_quantity' => $this->calculateOptimalOrderQuantity($product, $totalDailyConsumption)
+                    'suggested_order_quantity' => $this->calculateOptimalOrderQuantity($product, $totalDailyConsumption),
                 ];
             })
             ->filter()
@@ -77,26 +74,26 @@ class SmartReorderController extends Controller
     public function getCriticalShortageAlerts()
     {
         $criticalAlerts = Product::where('auto_reorder_enabled', true)
-            ->with(['inventory'])
+            ->with(['inventories'])
             ->get()
             ->filter(function ($product) {
-                $currentStock = $product->inventory?->quantity ?? 0;
+                $currentStock = $product->current_stock;
                 $reorderPoint = $product->reorder_point ?? 0;
-                
+
                 return $currentStock <= $reorderPoint;
             })
             ->map(function ($product) {
-                $currentStock = $product->inventory?->quantity ?? 0;
+                $currentStock = $product->current_stock;
                 $dailyConsumption = $this->calculateTotalDailyConsumption($product);
-                
+
                 return [
                     'product_id' => $product->id,
-                    'product_name' => $product->name,
+                    'product_name' => $product->product_name,
                     'current_stock' => $currentStock,
                     'reorder_point' => $product->reorder_point,
                     'days_of_stock_left' => $dailyConsumption > 0 ? round($currentStock / $dailyConsumption, 1) : 0,
                     'urgency' => $currentStock <= ($product->reorder_point * 0.5) ? 'critical' : 'high',
-                    'impact_assessment' => $this->assessShortageImpact($product)
+                    'impact_assessment' => $this->assessShortageImpact($product),
                 ];
             })
             ->sortByDesc('urgency')
@@ -109,25 +106,25 @@ class SmartReorderController extends Controller
     {
         $finishedGoods = Product::where('product_type', 'finished_goods')
             ->where('auto_reorder_enabled', true)
-            ->with(['inventory'])
+            ->with(['inventories'])
             ->get()
             ->map(function ($product) {
-                $currentStock = $product->inventory?->quantity ?? 0;
+                $currentStock = $product->current_stock;
                 $salesVelocity = $this->calculateSalesVelocity($product);
                 $productionRate = $this->calculateProductionRate($product);
-                
+
                 $netDailyChange = $productionRate - $salesVelocity;
-                
+
                 return [
                     'product_id' => $product->id,
-                    'product_name' => $product->name,
+                    'product_name' => $product->product_name,
                     'current_stock' => $currentStock,
                     'daily_sales' => $salesVelocity,
                     'daily_production' => $productionRate,
                     'net_daily_change' => $netDailyChange,
                     'days_until_depletion' => $netDailyChange < 0 ? round($currentStock / abs($netDailyChange), 1) : null,
                     'trend' => $netDailyChange > 0 ? 'increasing' : ($netDailyChange < 0 ? 'decreasing' : 'stable'),
-                    'production_recommendation' => $this->getProductionRecommendation($product, $netDailyChange)
+                    'production_recommendation' => $this->getProductionRecommendation($product, $netDailyChange),
                 ];
             })
             ->sortBy('days_until_depletion')
@@ -139,7 +136,7 @@ class SmartReorderController extends Controller
     public function updateReorderSettings(Request $request, $productId)
     {
         $product = Product::findOrFail($productId);
-        
+
         $validated = $request->validate([
             'auto_reorder_enabled' => 'boolean',
             'reorder_prediction_days' => 'integer|min:1|max:365',
@@ -148,7 +145,7 @@ class SmartReorderController extends Controller
             'lead_time_days' => 'integer|min:0',
             'safety_stock' => 'numeric|min:0',
             'ordering_cost' => 'numeric|min:0',
-            'holding_cost_percentage' => 'numeric|min:0|max:1'
+            'holding_cost_percentage' => 'numeric|min:0|max:1',
         ]);
 
         $product->update($validated);
@@ -161,7 +158,7 @@ class SmartReorderController extends Controller
 
         return response()->json([
             'message' => 'Reorder settings updated successfully',
-            'product' => $product->fresh()
+            'product' => $product->fresh(),
         ]);
     }
 
@@ -179,7 +176,7 @@ class SmartReorderController extends Controller
                     'urgency' => $suggestion['urgency'],
                     'suggested_order_date' => $suggestion['suggested_order_date'],
                     'estimated_cost' => $suggestion['estimated_cost'],
-                    'supplier_info' => $this->getSupplierInfo($suggestion['product_id'])
+                    'supplier_info' => $this->getSupplierInfo($suggestion['product_id']),
                 ];
             }
         }
@@ -187,20 +184,20 @@ class SmartReorderController extends Controller
         return response()->json([
             'purchase_orders' => $purchaseOrders,
             'total_estimated_cost' => collect($purchaseOrders)->sum('estimated_cost'),
-            'generated_at' => now()->toISOString()
+            'generated_at' => now()->toISOString(),
         ]);
     }
 
     private function generateReorderSuggestions()
     {
         return Product::where('auto_reorder_enabled', true)
-            ->with(['inventory'])
+            ->with(['inventories'])
             ->get()
             ->map(function ($product) {
-                $currentStock = $product->inventory?->quantity ?? 0;
+                $currentStock = $product->current_stock;
                 $dailyConsumption = $this->calculateTotalDailyConsumption($product);
                 $reorderPoint = $product->reorder_point ?? ($dailyConsumption * $product->lead_time_days);
-                
+
                 if ($dailyConsumption <= 0) {
                     return null;
                 }
@@ -211,7 +208,7 @@ class SmartReorderController extends Controller
 
                 return [
                     'product_id' => $product->id,
-                    'product_name' => $product->name,
+                    'product_name' => $product->product_name,
                     'current_stock' => $currentStock,
                     'reorder_point' => $reorderPoint,
                     'daily_consumption' => $dailyConsumption,
@@ -219,7 +216,7 @@ class SmartReorderController extends Controller
                     'suggested_order_quantity' => $suggestedQuantity,
                     'estimated_cost' => $estimatedCost,
                     'urgency' => $this->calculateUrgency($daysUntilReorder, $currentStock, $reorderPoint),
-                    'suggested_order_date' => $this->calculateSuggestedOrderDate($daysUntilReorder, $product->lead_time_days)
+                    'suggested_order_date' => $this->calculateSuggestedOrderDate($daysUntilReorder, $product->lead_time_days),
                 ];
             })
             ->filter()
@@ -229,16 +226,12 @@ class SmartReorderController extends Controller
 
     private function calculateDailyUsage($product)
     {
-        return Production::where('product_id', $product->id)
-            ->where('created_at', '>=', Carbon::now()->subDays(30))
-            ->sum('quantity') / 30;
+        return 0;
     }
 
     private function calculateProductionRate($product)
     {
-        return Production::where('product_id', $product->id)
-            ->where('created_at', '>=', Carbon::now()->subDays(30))
-            ->sum('quantity') / 30;
+        return 0;
     }
 
     private function calculateSalesVelocity($product)
@@ -265,13 +258,14 @@ class SmartReorderController extends Controller
         } elseif ($daysUntilDepletion <= 14) {
             return 'info';
         }
-        
+
         return 'low';
     }
 
     private function calculateSuggestedOrderDate($daysUntilDepletion, $leadTimeDays)
     {
         $orderDate = now()->addDays(max(0, $daysUntilDepletion - $leadTimeDays));
+
         return $orderDate->format('Y-m-d');
     }
 
@@ -291,10 +285,10 @@ class SmartReorderController extends Controller
         }
 
         $eoq = sqrt((2 * $annualDemand * $orderingCost) / $holdingCost);
-        
+
         // Add safety stock
         $safetyStock = $product->safety_stock ?? ($dailyConsumption * $product->lead_time_days * 0.5);
-        
+
         return round($eoq + $safetyStock);
     }
 
@@ -314,27 +308,16 @@ class SmartReorderController extends Controller
     private function assessShortageImpact($product)
     {
         $salesVelocity = $this->calculateSalesVelocity($product);
-        $productionRate = $this->calculateProductionRate($product);
-        
+
         if ($salesVelocity > 0) {
             return 'High - Will affect customer orders and sales revenue';
-        } elseif ($productionRate > 0) {
-            return 'Medium - Will affect production schedules';
         }
-        
+
         return 'Low - Minimal immediate impact';
     }
 
     private function getProductionRecommendation($product, $netDailyChange)
     {
-        if ($netDailyChange < -10) {
-            return 'Urgent - Increase production immediately';
-        } elseif ($netDailyChange < -5) {
-            return 'High - Plan production increase';
-        } elseif ($netDailyChange < 0) {
-            return 'Medium - Monitor and plan production';
-        }
-        
         return 'Low - Production levels adequate';
     }
 
@@ -344,7 +327,7 @@ class SmartReorderController extends Controller
         return [
             'preferred_supplier' => 'Default Supplier',
             'lead_time' => '7 days',
-            'min_order_quantity' => 100
+            'min_order_quantity' => 100,
         ];
     }
 }

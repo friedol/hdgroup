@@ -1,11 +1,8 @@
 import { Head, Link, router } from '@inertiajs/react';
-import { Search, Eye, Edit, MapPin, Truck, Clock3, CheckCircle2, XCircle, DollarSign, Package } from 'lucide-react';
+import { Search, Eye, Edit, MapPin, Truck, Clock3, CheckCircle2, XCircle, DollarSign, Package, RotateCcw } from 'lucide-react';
 import { useState } from 'react';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { Input } from '@/components/ui/input';
-import { Button } from '@/components/ui/button';
+import { Card, CardHeader, CardContent, CardTitle, CardDescription } from '@/components/ui/card';
 import AppLayout from '@/layouts/app-layout';
-import { KpiCard } from '@/components/dashboard/KpiCard';
 
 interface Delivery {
   id: number | string;
@@ -98,17 +95,17 @@ export default function DeliveryIndex({ deliveries, drivers, deliveryUsers, sale
   const getStatusColor = (status: string) => {
     const normalizedStatus = String(status || '').toLowerCase().replace('_', '-');
     const colors: Record<string, string> = {
-      'pending': 'bg-slate-100 text-slate-700',
-      'confirmed': 'bg-indigo-100 text-indigo-700',
-      'processing': 'bg-purple-100 text-purple-700',
-      'assigned': 'bg-blue-100 text-blue-700',
-      'picked-up': 'bg-cyan-100 text-cyan-700',
-      'in-transit': 'bg-yellow-100 text-yellow-700',
-      'delivered': 'bg-green-100 text-green-700',
-      'failed': 'bg-red-100 text-red-700',
-      'cancelled': 'bg-slate-400 text-slate-700',
+      'pending': 'bg-slate-50 border border-slate-150 text-slate-500',
+      'confirmed': 'bg-indigo-50 border border-indigo-100 text-indigo-755 text-indigo-700',
+      'processing': 'bg-purple-50 border border-purple-100 text-purple-700',
+      'assigned': 'bg-blue-50 border border-blue-100 text-blue-700',
+      'picked-up': 'bg-cyan-50 border border-cyan-100 text-cyan-700',
+      'in-transit': 'bg-amber-50 border border-amber-100 text-amber-705 text-amber-700',
+      'delivered': 'bg-emerald-50 border border-emerald-100 text-emerald-700',
+      'failed': 'bg-rose-50 border border-rose-100 text-rose-700',
+      'cancelled': 'bg-slate-100 border border-slate-200 text-slate-500',
     };
-    return colors[normalizedStatus] || 'bg-slate-100 text-slate-700';
+    return colors[normalizedStatus] || 'bg-slate-50 border border-slate-100 text-slate-700';
   };
 
   const getStatusLabel = (status: string) => {
@@ -128,7 +125,7 @@ export default function DeliveryIndex({ deliveries, drivers, deliveryUsers, sale
   };
 
   const getAssigneeLabel = (delivery: Delivery) => {
-    if (delivery.assignment_mode === 'bolt' || delivery.external_partner === 'bolt') return 'Bolt';
+    if (delivery.assignment_mode === 'bolt' || delivery.external_partner === 'bolt') return 'Bolt Partner';
     if (delivery.assignment_mode === 'delivery_personnel') return delivery.assigned_saler?.staff_name || 'Delivery Personnel Assigned';
     if (delivery.assignment_mode === 'saler') return delivery.assigned_saler?.staff_name || 'Saler Assigned';
     if (delivery.delivery_person?.name) return delivery.delivery_person.name;
@@ -166,101 +163,65 @@ export default function DeliveryIndex({ deliveries, drivers, deliveryUsers, sale
 
   const getPriorityColor = (priority: string) => {
     const colors: Record<string, string> = {
-      'normal': 'text-slate-600',
-      'urgent': 'text-red-600 font-bold',
-      'scheduled': 'text-blue-600',
+      'normal': 'text-slate-650',
+      'urgent': 'text-rose-600 font-extrabold',
+      'scheduled': 'text-blue-600 font-semibold',
     };
-    return colors[priority] || 'text-slate-600';
+    return colors[priority] || 'text-slate-500';
   };
-
-  const kpis = [
-    {
-      title: 'Total Deliveries',
-      value: Number(metrics.total_deliveries || 0).toLocaleString(),
-      icon: Package,
-      bgClass: 'bg-blue-50/50',
-      iconBgClass: 'bg-blue-100 text-blue-600',
-    },
-    {
-      title: 'Pending',
-      value: Number(metrics.pending_deliveries || 0).toLocaleString(),
-      icon: Clock3,
-      bgClass: 'bg-slate-50/50',
-      iconBgClass: 'bg-slate-100 text-slate-600',
-    },
-    {
-      title: 'In Transit',
-      value: Number(metrics.in_transit_deliveries || 0).toLocaleString(),
-      icon: Truck,
-      bgClass: 'bg-amber-50/50',
-      iconBgClass: 'bg-amber-100 text-amber-600',
-    },
-    {
-      title: 'Completed',
-      value: Number(metrics.completed_deliveries || 0).toLocaleString(),
-      icon: CheckCircle2,
-      bgClass: 'bg-emerald-50/50',
-      iconBgClass: 'bg-emerald-100 text-emerald-600',
-    },
-    {
-      title: 'Failed',
-      value: Number(metrics.failed_deliveries || 0).toLocaleString(),
-      icon: XCircle,
-      bgClass: 'bg-rose-50/50',
-      iconBgClass: 'bg-rose-100 text-rose-600',
-    },
-    {
-      title: 'Revenue',
-      value: `TZS ${Number(metrics.total_revenue || 0).toLocaleString()}`,
-      icon: DollarSign,
-      bgClass: 'bg-indigo-50/50',
-      iconBgClass: 'bg-indigo-100 text-indigo-600',
-    },
-  ];
 
   return (
     <>
       <Head title="Delivery Management" />
       <AppLayout breadcrumbs={breadcrumbs}>
-        <div className="space-y-6">
+        <div className="max-w-[1700px] mx-auto space-y-6 pb-20">
+          
+          {/* Header */}
           <div className="flex items-center justify-between">
             <div>
-              <h1 className="text-xl font-bold">Delivery Management</h1>
-              <p className="text-sm text-slate-600 mt-1">Track and manage all deliveries</p>
+              <h1 className="text-[18px] font-bold text-slate-900 tracking-tight leading-none">Delivery Management</h1>
+              <p className="text-xs font-medium text-slate-500 mt-1.5">Track and manage all deliveries</p>
             </div>
           </div>
 
           {/* Metrics */}
-          <div className="grid grid-cols-2 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6 gap-3 sm:gap-4">
-            {kpis.map((kpi) => (
-              <KpiCard
-                key={kpi.title}
-                title={kpi.title}
-                value={kpi.value}
-                change={0}
-                icon={kpi.icon}
-                href="/deliveries"
-                bgClass={kpi.bgClass}
-                iconBgClass={kpi.iconBgClass}
-              />
+          <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3 sm:gap-4">
+            {[
+              { label: 'Total Deliveries', value: (metrics.total_deliveries || 0).toLocaleString(), subText: 'All logs', border: 'border-slate-200', bg: 'bg-white', icon: <Package className="h-3.5 w-3.5" /> },
+              { label: 'Pending', value: (metrics.pending_deliveries || 0).toLocaleString(), subText: 'Awaiting action', border: 'border-slate-100', bg: 'bg-slate-50/50', icon: <Clock3 className="h-3.5 w-3.5" /> },
+              { label: 'In Transit', value: (metrics.in_transit_deliveries || 0).toLocaleString(), subText: 'On the road', valueColor: 'text-amber-700', border: 'border-amber-100', bg: 'bg-amber-50/30', icon: <Truck className="h-3.5 w-3.5" /> },
+              { label: 'Completed', value: (metrics.completed_deliveries || 0).toLocaleString(), subText: 'Arrived safely', valueColor: 'text-emerald-700', border: 'border-emerald-100', bg: 'bg-emerald-50/30', icon: <CheckCircle2 className="h-3.5 w-3.5" /> },
+              { label: 'Failed', value: (metrics.failed_deliveries || 0).toLocaleString(), subText: 'Issues reported', valueColor: 'text-rose-700', border: 'border-rose-100', bg: 'bg-rose-50/30', icon: <XCircle className="h-3.5 w-3.5" /> },
+              { label: 'Revenue', value: `TZS ${(metrics.total_revenue || 0).toLocaleString()}`, subText: 'Total costs', valueColor: 'text-blue-700', border: 'border-blue-100', bg: 'bg-blue-50/30', icon: <DollarSign className="h-3.5 w-3.5" /> },
+            ].map((s, idx) => (
+              <div key={idx} className={`rounded-xl border ${s.border} px-3 py-2.5 shadow-sm hover:shadow-md transition-all ${s.bg}`}>
+                <div className="flex items-center justify-between mb-1.5">
+                  <div className="bg-white p-1 rounded-lg shadow-sm text-slate-500 border border-slate-100">{s.icon}</div>
+                  <span className="text-[8px] font-semibold px-1.5 py-0.5 rounded-full bg-slate-50 text-slate-400">Delivery</span>
+                </div>
+                <p className={`text-sm font-bold tabular-nums leading-none ${s.valueColor || 'text-slate-900'}`}>{s.value}</p>
+                <p className="text-[10px] font-semibold text-slate-700 mt-1">{s.label}</p>
+                <p className="text-[9px] font-medium text-slate-400 mt-0.5">{s.subText}</p>
+              </div>
             ))}
           </div>
 
-          {/* Filters */}
-          <Card>
-            <CardHeader className="pb-2">
-              <CardTitle className="text-sm">Filters</CardTitle>
-              <CardDescription>Search and narrow deliveries quickly</CardDescription>
+          {/* Filters Card */}
+          <Card className="rounded-2xl border border-slate-200 shadow-sm bg-white overflow-hidden">
+            <CardHeader className="border-b border-slate-50 pb-4">
+              <CardTitle className="text-sm font-bold text-slate-800">Filter Deliveries</CardTitle>
+              <CardDescription className="text-xs text-slate-400">Search and narrow deliveries quickly</CardDescription>
             </CardHeader>
-            <CardContent>
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-3 md:gap-4">
-                <div className="space-y-1.5">
-                  <label className="text-xs font-medium text-slate-600">Search</label>
+            <CardContent className="pt-5 space-y-4">
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-4 text-xs font-semibold">
+                
+                <div className="space-y-2">
+                  <label className="text-slate-500 uppercase tracking-wider block">Search</label>
                   <div className="relative">
-                    <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
-                    <Input
-                      placeholder="Delivery ID, customer, or phone"
-                      className="pl-9"
+                    <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
+                    <input
+                      placeholder="Delivery ID, customer, or phone..."
+                      className="w-full pl-10 pr-4 py-2 border border-slate-200 rounded-xl outline-none focus:border-blue-400 focus:ring-2 focus:ring-blue-100 bg-slate-50 focus:bg-white transition-all h-10 shadow-none font-medium"
                       value={search}
                       onChange={(e) => setSearch(e.target.value)}
                       onKeyDown={(e) => {
@@ -270,12 +231,12 @@ export default function DeliveryIndex({ deliveries, drivers, deliveryUsers, sale
                   </div>
                 </div>
 
-                <div className="space-y-1.5">
-                  <label className="text-xs font-medium text-slate-600">Status</label>
+                <div className="space-y-2">
+                  <label className="text-slate-500 uppercase tracking-wider block">Status</label>
                   <select
                     value={statusFilter}
                     onChange={(e) => setStatusFilter(e.target.value)}
-                    className="w-full h-10 px-3 py-2 border rounded-md text-sm bg-white"
+                    className="w-full h-10 px-3.5 py-2 border border-slate-200 rounded-xl outline-none focus:border-blue-400 focus:ring-2 focus:ring-blue-100 bg-slate-50 hover:bg-slate-100/50 transition-all cursor-pointer font-medium"
                   >
                     <option value="">All Statuses</option>
                     <option value="pending">Pending</option>
@@ -290,12 +251,12 @@ export default function DeliveryIndex({ deliveries, drivers, deliveryUsers, sale
                   </select>
                 </div>
 
-                <div className="space-y-1.5">
-                  <label className="text-xs font-medium text-slate-600">Driver</label>
+                <div className="space-y-2">
+                  <label className="text-slate-500 uppercase tracking-wider block">Driver</label>
                   <select
                     value={driverFilter}
                     onChange={(e) => setDriverFilter(e.target.value)}
-                    className="w-full h-10 px-3 py-2 border rounded-md text-sm bg-white"
+                    className="w-full h-10 px-3.5 py-2 border border-slate-200 rounded-xl outline-none focus:border-blue-400 focus:ring-2 focus:ring-blue-100 bg-slate-50 hover:bg-slate-100/50 transition-all cursor-pointer font-medium"
                   >
                     <option value="">All Drivers</option>
                     {drivers.map((driver) => (
@@ -307,156 +268,173 @@ export default function DeliveryIndex({ deliveries, drivers, deliveryUsers, sale
                 </div>
               </div>
 
-              <div className="mt-4 flex flex-col sm:flex-row gap-2 sm:justify-end">
-                <Button
+              <div className="flex gap-3 justify-end pt-2">
+                <button
                   type="button"
-                  variant="outline"
-                  className="w-full sm:w-auto"
                   onClick={clearFilters}
                   disabled={applyingFilters}
+                  className="rounded-xl h-9 px-4 text-xs font-semibold border border-slate-200 hover:bg-slate-50 text-slate-650 transition-all disabled:opacity-50"
                 >
-                  Clear Filters
-                </Button>
-                <Button
+                  <span className="flex items-center gap-1.5"><RotateCcw className="w-3.5 h-3.5" /> Reset</span>
+                </button>
+                <button
                   type="button"
-                  className="w-full sm:w-auto"
                   onClick={applyFilters}
                   disabled={applyingFilters}
+                  className="rounded-xl h-9 px-4 text-xs font-semibold bg-blue-600 hover:bg-blue-700 text-white shadow-sm shadow-blue-500/30 transition-all disabled:opacity-50"
                 >
                   {applyingFilters ? 'Applying...' : 'Apply Filters'}
-                </Button>
+                </button>
               </div>
             </CardContent>
           </Card>
 
           {/* Deliveries Table */}
-          <Card>
-            <CardHeader>
-              <CardTitle className="text-sm">Deliveries List</CardTitle>
-              <CardDescription>All registered deliveries and their status</CardDescription>
-            </CardHeader>
-            <CardContent>
-              <div className="overflow-x-auto">
-                <table className="w-full text-sm">
-                  <thead className="border-b">
-                    <tr className="text-left text-muted-foreground">
-                      <th className="pb-3 font-medium">Delivery #</th>
-                      <th className="pb-3 font-medium">Customer</th>
-                      <th className="pb-3 font-medium">Assignee</th>
-                      <th className="pb-3 font-medium">Address</th>
-                      <th className="pb-3 font-medium">Cost</th>
-                      <th className="pb-3 font-medium">Status</th>
-                      <th className="pb-3 font-medium">Priority</th>
-                      <th className="pb-3 font-medium text-right">Actions</th>
+          <div className="bg-white border border-slate-200 rounded-2xl shadow-sm overflow-hidden">
+            <div className="p-4 border-b border-slate-50 flex items-center justify-between">
+              <span className="text-xs font-bold text-slate-800 uppercase tracking-wider">Deliveries Log</span>
+            </div>
+            
+            <div className="overflow-x-auto">
+              <table className="w-full text-sm">
+                <thead>
+                  <tr className="bg-slate-50 border-b border-slate-100 uppercase tracking-wider text-[11px] font-semibold text-slate-400">
+                    <th className="px-5 py-3 text-left">Delivery #</th>
+                    <th className="px-5 py-3 text-left">Customer</th>
+                    <th className="px-5 py-3 text-left">Assignee</th>
+                    <th className="px-5 py-3 text-left">Address</th>
+                    <th className="px-5 py-3 text-right">Total Cost</th>
+                    <th className="px-5 py-3 text-center">Status</th>
+                    <th className="px-5 py-3 text-center">Priority</th>
+                    <th className="px-5 py-3 text-right">Actions</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {deliveries.data.length === 0 ? (
+                    <tr>
+                      <td colSpan={8} className="px-5 py-16 text-center">
+                        <Truck className="h-12 w-12 mx-auto text-slate-200 mb-3" />
+                        <p className="text-sm font-semibold text-slate-400">No deliveries found</p>
+                      </td>
                     </tr>
-                  </thead>
-                  <tbody className="divide-y">
-                    {deliveries.data.map((delivery) => (
-                      <tr key={delivery.id} className="hover:bg-slate-50">
-                        <td className="py-3 font-mono text-xs font-medium">{delivery.delivery_number}</td>
-                        <td className="py-3">
-                          <div>
-                            <p className="font-medium">{delivery.customer_name}</p>
-                            <p className="text-xs text-muted-foreground">{delivery.phone}</p>
-                          </div>
-                        </td>
-                        <td className="py-3 text-sm">{getAssigneeLabel(delivery)}</td>
-                        <td className="py-3 text-sm max-w-xs truncate">
-                          <div className="flex items-center gap-1">
-                            <MapPin className="w-3 h-3 text-muted-foreground" />
-                            {delivery.delivery_address}
-                          </div>
-                        </td>
-                        <td className="py-3 font-medium">TZS {delivery.delivery_total.toLocaleString()}</td>
-                        <td className="py-3">
-                          <span className={`inline-block px-2 py-1 rounded text-xs font-medium ${getStatusColor(delivery.status)}`}>
-                            {getStatusLabel(delivery.status)}
-                          </span>
-                        </td>
-                        <td className={`py-3 text-sm font-medium ${getPriorityColor(delivery.priority)}`}>
+                  ) : deliveries.data.map((delivery) => (
+                    <tr key={delivery.id} className="border-b border-slate-50 hover:bg-slate-50/50 transition-colors">
+                      <td className="px-5 py-3 font-mono text-xs text-blue-600 font-semibold">{delivery.delivery_number}</td>
+                      <td className="px-5 py-3">
+                        <div>
+                          <p className="font-semibold text-slate-900 leading-tight">{delivery.customer_name}</p>
+                          <p className="text-[10px] text-slate-450 mt-0.5">{delivery.phone}</p>
+                        </div>
+                      </td>
+                      <td className="px-5 py-3 text-xs font-bold text-slate-650">{getAssigneeLabel(delivery)}</td>
+                      <td className="px-5 py-3 text-xs text-slate-600 max-w-xs truncate">
+                        <div className="flex items-center gap-1.5">
+                          <MapPin className="w-3.5 h-3.5 text-slate-400 shrink-0" />
+                          <span className="truncate">{delivery.delivery_address}</span>
+                        </div>
+                      </td>
+                      <td className="px-5 py-3 text-right font-bold text-slate-900 tabular-nums">
+                        TZS {delivery.delivery_total.toLocaleString()}
+                      </td>
+                      <td className="px-5 py-3 text-center">
+                        <span className={`inline-flex items-center justify-center text-[10px] font-bold px-2.5 py-0.5 rounded-lg ${getStatusColor(delivery.status)}`}>
+                          {getStatusLabel(delivery.status)}
+                        </span>
+                      </td>
+                      <td className="px-5 py-3 text-center text-xs font-bold">
+                        <span className={getPriorityColor(delivery.priority)}>
                           {delivery.priority.toUpperCase()}
-                        </td>
-                        <td className="py-3 text-right">
-                          <div className="flex justify-end items-center gap-2">
-                            {(() => {
-                              const rowKey = String(delivery.id);
-                              const modeValue = assignmentMode[rowKey] || delivery.assignment_mode || 'delivery_personnel';
-                              const isSubmitting = !!submitting[rowKey];
+                        </span>
+                      </td>
+                      <td className="px-5 py-3">
+                        <div className="flex items-center justify-end gap-2">
+                          {(() => {
+                            const rowKey = String(delivery.id);
+                            const modeValue = assignmentMode[rowKey] || delivery.assignment_mode || 'delivery_personnel';
+                            const isSubmitting = !!submitting[rowKey];
 
-                              return (
-                                <>
-                            <select
-                              className="h-8 px-2 border rounded text-xs"
-                              value={modeValue}
-                              onChange={(e) => setAssignmentMode((prev) => ({ ...prev, [rowKey]: e.target.value }))}
-                              disabled={isSubmitting}
-                            >
-                              <option value="delivery_personnel">Delivery Personnel</option>
-                              <option value="bolt">Bolt</option>
-                              <option value="saler">Saler</option>
-                            </select>
-
-                            {modeValue === 'delivery_personnel' && (
-                              <select
-                                className="h-8 px-2 border rounded text-xs"
-                                value={driverSelection[rowKey] || (delivery.assigned_saler_id ? String(delivery.assigned_saler_id) : '')}
-                                onChange={(e) => setDriverSelection((prev) => ({ ...prev, [rowKey]: e.target.value }))}
-                                disabled={isSubmitting}
-                              >
-                                <option value="">Select delivery personnel</option>
-                                {deliveryUsers.map((person) => (
-                                  <option key={person.id} value={person.id}>{person.staff_name}</option>
-                                ))}
-                              </select>
-                            )}
-
-                            {modeValue === 'saler' && (
-                              <select
-                                className="h-8 px-2 border rounded text-xs"
-                                value={salerSelection[rowKey] || (delivery.assigned_saler_id ? String(delivery.assigned_saler_id) : '')}
-                                onChange={(e) => setSalerSelection((prev) => ({ ...prev, [rowKey]: e.target.value }))}
-                                disabled={isSubmitting}
-                              >
-                                <option value="">Select saler</option>
-                                {salers.map((saler) => (
-                                  <option key={saler.id} value={saler.id}>{saler.staff_name}</option>
-                                ))}
-                              </select>
-                            )}
-
-                            <Button
-                              className="h-8 px-2 text-xs"
-                              onClick={() => handleAssign(delivery)}
-                              disabled={isSubmitting}
-                            >
-                              {isSubmitting ? 'Assigning...' : 'Assign'}
-                            </Button>
-
-                                </>
-                              );
-                            })()}
-
-                            {delivery.source !== 'online_order' && delivery.source !== 'sales_order' && (
+                            return (
                               <>
-                                <Link href={`/deliveries/${delivery.id}`} title="View">
-                                  <Eye className="w-4 h-4 text-blue-600 hover:text-blue-700 cursor-pointer" />
-                                </Link>
-                                {delivery.status === 'pending' && (
-                                  <Link href={`/deliveries/${delivery.id}/edit`} title="Edit">
-                                    <Edit className="w-4 h-4 text-amber-600 hover:text-amber-700 cursor-pointer" />
-                                  </Link>
+                                <select
+                                  className="h-8 px-2 border border-slate-200 rounded-xl text-[10px] font-bold bg-slate-50 cursor-pointer outline-none focus:ring-1 focus:ring-blue-100"
+                                  value={modeValue}
+                                  onChange={(e) => setAssignmentMode((prev) => ({ ...prev, [rowKey]: e.target.value }))}
+                                  disabled={isSubmitting}
+                                >
+                                  <option value="delivery_personnel">Personnel</option>
+                                  <option value="bolt">Bolt</option>
+                                  <option value="saler">Saler</option>
+                                </select>
+
+                                {modeValue === 'delivery_personnel' && (
+                                  <select
+                                    className="h-8 px-2 border border-slate-200 rounded-xl text-[10px] font-bold bg-slate-50 cursor-pointer outline-none focus:ring-1 focus:ring-blue-100 max-w-[120px]"
+                                    value={driverSelection[rowKey] || (delivery.assigned_saler_id ? String(delivery.assigned_saler_id) : '')}
+                                    onChange={(e) => setDriverSelection((prev) => ({ ...prev, [rowKey]: e.target.value }))}
+                                    disabled={isSubmitting}
+                                  >
+                                    <option value="">Select Driver</option>
+                                    {deliveryUsers.map((person) => (
+                                      <option key={person.id} value={person.id}>{person.staff_name}</option>
+                                    ))}
+                                  </select>
                                 )}
+
+                                {modeValue === 'saler' && (
+                                  <select
+                                    className="h-8 px-2 border border-slate-200 rounded-xl text-[10px] font-bold bg-slate-50 cursor-pointer outline-none focus:ring-1 focus:ring-blue-100 max-w-[120px]"
+                                    value={salerSelection[rowKey] || (delivery.assigned_saler_id ? String(delivery.assigned_saler_id) : '')}
+                                    onChange={(e) => setSalerSelection((prev) => ({ ...prev, [rowKey]: e.target.value }))}
+                                    disabled={isSubmitting}
+                                  >
+                                    <option value="">Select Saler</option>
+                                    {salers.map((saler) => (
+                                      <option key={saler.id} value={saler.id}>{saler.staff_name}</option>
+                                    ))}
+                                  </select>
+                                )}
+
+                                <button
+                                  className="h-8 px-2.5 rounded-xl text-[10px] font-bold bg-blue-600 hover:bg-blue-700 text-white shadow-sm disabled:opacity-50 transition-all flex items-center justify-center shrink-0"
+                                  onClick={() => handleAssign(delivery)}
+                                  disabled={isSubmitting}
+                                >
+                                  {isSubmitting ? '...' : 'Assign'}
+                                </button>
                               </>
-                            )}
-                          </div>
-                        </td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
-              </div>
-            </CardContent>
-          </Card>
+                            );
+                          })()}
+
+                          {delivery.source !== 'online_order' && delivery.source !== 'sales_order' && (
+                            <>
+                              <Link href={`/deliveries/${delivery.id}`}>
+                                <button
+                                  title="View Details"
+                                  className="h-8 w-8 rounded-xl flex items-center justify-center text-slate-400 hover:text-blue-600 hover:bg-blue-50 border border-transparent hover:border-blue-100 transition-all"
+                                >
+                                  <Eye className="w-4 h-4" />
+                                </button>
+                              </Link>
+                              {delivery.status === 'pending' && (
+                                <Link href={`/deliveries/${delivery.id}/edit`}>
+                                  <button
+                                    title="Edit Delivery"
+                                    className="h-8 w-8 rounded-xl flex items-center justify-center text-slate-400 hover:text-amber-600 hover:bg-amber-50 border border-transparent hover:border-amber-100 transition-all"
+                                  >
+                                    <Edit className="w-4 h-4" />
+                                  </button>
+                                </Link>
+                              )}
+                            </>
+                          )}
+                        </div>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          </div>
         </div>
       </AppLayout>
     </>

@@ -1,8 +1,6 @@
 import { Head, Link } from "@inertiajs/react";
-import { ArrowLeft, Edit } from "lucide-react";
+import { ArrowLeft, Edit, Box, Trash2 } from "lucide-react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { Progress } from "@/components/ui/progress";
-import { Button } from "@/components/ui/button";
 import AppLayout from "@/layouts/app-layout";
 
 interface Container {
@@ -38,157 +36,170 @@ export default function ContainerShow({ container, manifests = [] }: { container
 
   const getStatusColor = (status: string) => {
     const colors: Record<string, string> = {
-      AVAILABLE: "bg-green-100 text-green-700",
-      LOADING: "bg-yellow-100 text-yellow-700",
-      FULL: "bg-red-100 text-red-700"
+      AVAILABLE: "bg-emerald-50 border border-emerald-100 text-emerald-700",
+      LOADING: "bg-amber-50 border border-amber-100 text-amber-700",
+      FULL: "bg-rose-50 border border-rose-100 text-rose-700"
     };
-    return colors[status] || "bg-slate-100 text-slate-700";
+    return colors[status] || "bg-slate-50 border border-slate-100 text-slate-700";
   };
 
   const getUtilizationColor = (percent: number) => {
-    if (percent >= 90) return "text-red-600";
-    if (percent >= 70) return "text-yellow-600";
-    return "text-green-600";
+    if (percent >= 90) return "text-rose-600";
+    if (percent >= 70) return "text-amber-600";
+    return "text-emerald-600";
+  };
+
+  const getUtilizationBg = (percent: number) => {
+    if (percent >= 90) return "bg-rose-500";
+    if (percent >= 70) return "bg-amber-500";
+    return "bg-emerald-500";
   };
 
   return (
     <>
       <Head title={container.name} />
       <AppLayout breadcrumbs={breadcrumbs}>
-        <div className="space-y-6">
+        <div className="max-w-[1700px] mx-auto space-y-6 pb-20">
+          
           {/* Header */}
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-3">
-              <Link href="/containers">
-                <ArrowLeft className="w-5 h-5 text-muted-foreground hover:text-foreground" />
+              <Link href="/containers" className="h-9 w-9 bg-white border border-slate-200 rounded-xl flex items-center justify-center text-slate-400 hover:text-slate-700 hover:border-slate-300 shadow-sm transition-all">
+                <ArrowLeft className="w-4 h-4" />
               </Link>
               <div>
-                <h1 className="text-3xl font-medium">{container.name}</h1>
-                <p className="text-sm text-slate-600 mt-1">ID: {container.container_id}</p>
+                <h1 className="text-[18px] font-bold text-slate-900 tracking-tight leading-none">{container.name}</h1>
+                <p className="text-xs font-medium text-slate-500 mt-1.5">ID: {container.container_id}</p>
               </div>
             </div>
-            <div className="flex gap-2">
-              <span className={`inline-block px-3 py-1 rounded-full text-sm font-medium ${getStatusColor(container.status)}`}>
+            <div className="flex items-center gap-3">
+              <span className={`inline-flex items-center justify-center text-[10px] font-bold px-2.5 py-0.5 rounded-lg ${getStatusColor(container.status)}`}>
                 {container.status}
               </span>
               <Link href={`/containers/${container.id}/edit`}>
-                <Button variant="outline" size="sm" className="gap-2">
-                  <Edit className="w-4 h-4" />
-                  Edit
-                </Button>
+                <button className="rounded-xl gap-2 text-xs font-semibold h-9 px-4 bg-blue-650 hover:bg-blue-700 text-slate-800 border border-slate-200 shadow-sm flex items-center transition-all bg-white">
+                  <Edit className="w-3.5 h-3.5" /> Edit
+                </button>
               </Link>
             </div>
           </div>
 
           {/* Specifications */}
-          <Card>
-            <CardHeader>
-              <CardTitle>Container Specifications</CardTitle>
-              <CardDescription>Physical dimensions and weight limits</CardDescription>
+          <Card className="rounded-2xl border border-slate-200 shadow-sm bg-white overflow-hidden">
+            <CardHeader className="border-b border-slate-50 pb-4">
+              <CardTitle className="text-sm font-bold text-slate-800">Container Specifications</CardTitle>
+              <CardDescription className="text-xs text-slate-400">Physical dimensions and weight limits</CardDescription>
             </CardHeader>
-            <CardContent>
-              <div className="grid grid-cols-2 md:grid-cols-4 gap-6">
+            <CardContent className="pt-6">
+              <div className="grid grid-cols-2 md:grid-cols-4 gap-6 text-xs">
                 <div>
-                  <p className="text-sm text-muted-foreground mb-2">Length</p>
-                  <p className="text-2xl font-medium">{container.length}</p>
-                  <p className="text-xs text-muted-foreground">meters</p>
+                  <p className="text-slate-450 font-bold uppercase tracking-wider mb-1">Length</p>
+                  <p className="text-2xl font-bold text-slate-900 tabular-nums">{container.length}</p>
+                  <p className="text-[10px] text-slate-400 font-medium">meters</p>
                 </div>
                 <div>
-                  <p className="text-sm text-muted-foreground mb-2">Width</p>
-                  <p className="text-2xl font-medium">{container.width}</p>
-                  <p className="text-xs text-muted-foreground">meters</p>
+                  <p className="text-slate-450 font-bold uppercase tracking-wider mb-1">Width</p>
+                  <p className="text-2xl font-bold text-slate-900 tabular-nums">{container.width}</p>
+                  <p className="text-[10px] text-slate-400 font-medium">meters</p>
                 </div>
                 <div>
-                  <p className="text-sm text-muted-foreground mb-2">Height</p>
-                  <p className="text-2xl font-medium">{container.height}</p>
-                  <p className="text-xs text-muted-foreground">meters</p>
+                  <p className="text-slate-450 font-bold uppercase tracking-wider mb-1">Height</p>
+                  <p className="text-2xl font-bold text-slate-900 tabular-nums">{container.height}</p>
+                  <p className="text-[10px] text-slate-400 font-medium">meters</p>
                 </div>
                 <div>
-                  <p className="text-sm text-muted-foreground mb-2">Capacity</p>
-                  <p className="text-2xl font-medium">{container.capacity}</p>
-                  <p className="text-xs text-muted-foreground">CBM</p>
+                  <p className="text-slate-450 font-bold uppercase tracking-wider mb-1">Capacity</p>
+                  <p className="text-2xl font-bold text-slate-900 tabular-nums">{container.capacity}</p>
+                  <p className="text-[10px] text-slate-400 font-medium">CBM</p>
                 </div>
                 <div>
-                  <p className="text-sm text-muted-foreground mb-2">Tare Weight</p>
-                  <p className="text-2xl font-medium">{container.tare_weight}</p>
-                  <p className="text-xs text-muted-foreground">kg</p>
+                  <p className="text-slate-450 font-bold uppercase tracking-wider mb-1">Tare Weight</p>
+                  <p className="text-2xl font-bold text-slate-900 tabular-nums">{container.tare_weight.toLocaleString()}</p>
+                  <p className="text-[10px] text-slate-400 font-medium">kg</p>
                 </div>
                 <div>
-                  <p className="text-sm text-muted-foreground mb-2">Gross Weight</p>
-                  <p className="text-2xl font-medium">{container.gross_weight}</p>
-                  <p className="text-xs text-muted-foreground">kg</p>
+                  <p className="text-slate-450 font-bold uppercase tracking-wider mb-1">Gross Weight</p>
+                  <p className="text-2xl font-bold text-slate-900 tabular-nums">{container.gross_weight.toLocaleString()}</p>
+                  <p className="text-[10px] text-slate-400 font-medium">kg</p>
                 </div>
                 <div className="md:col-span-2">
-                  <p className="text-sm text-muted-foreground mb-2">Max Payload</p>
-                  <p className="text-2xl font-medium">{container.max_payload}</p>
-                  <p className="text-xs text-muted-foreground">kg</p>
+                  <p className="text-slate-450 font-bold uppercase tracking-wider mb-1">Max Payload</p>
+                  <p className="text-2xl font-bold text-slate-900 tabular-nums">{container.max_payload.toLocaleString()}</p>
+                  <p className="text-[10px] text-slate-400 font-medium">kg</p>
                 </div>
               </div>
             </CardContent>
           </Card>
 
           {/* Capacity Utilization */}
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <Card>
-              <CardHeader>
-                <CardTitle className="text-base">Weight Utilization</CardTitle>
-                <CardDescription>Current load vs maximum payload</CardDescription>
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+            <Card className="rounded-2xl border border-slate-200 shadow-sm bg-white overflow-hidden">
+              <CardHeader className="border-b border-slate-50 pb-4">
+                <CardTitle className="text-sm font-bold text-slate-800">Weight Utilization</CardTitle>
+                <CardDescription className="text-xs text-slate-400">Current load vs maximum payload</CardDescription>
               </CardHeader>
-              <CardContent className="space-y-4">
+              <CardContent className="pt-6">
                 <div>
-                  <div className="flex justify-between items-center mb-2">
-                    <span className="text-sm font-medium">Load: {(container.current_weight || 0) / 1000} / {container.max_payload / 1000} MT</span>
-                    <span className={`text-lg font-medium ${getUtilizationColor(weightUtilization)}`}>{weightUtilization}%</span>
+                  <div className="flex justify-between items-center mb-2 text-xs">
+                    <span className="font-bold text-slate-500">Load: {(container.current_weight || 0).toLocaleString()} / {container.max_payload.toLocaleString()} kg</span>
+                    <span className={`font-extrabold ${getUtilizationColor(weightUtilization)}`}>{weightUtilization}%</span>
                   </div>
-                  <Progress value={weightUtilization} className="h-3" />
+                  <div className="w-full bg-slate-100 rounded-full h-3 overflow-hidden">
+                    <div className={`h-full ${getUtilizationBg(weightUtilization)} transition-all`} style={{ width: `${weightUtilization}%` }} />
+                  </div>
                 </div>
               </CardContent>
             </Card>
 
-            <Card>
-              <CardHeader>
-                <CardTitle className="text-base">Volume Utilization</CardTitle>
-                <CardDescription>Current volume vs container capacity</CardDescription>
+            <Card className="rounded-2xl border border-slate-200 shadow-sm bg-white overflow-hidden">
+              <CardHeader className="border-b border-slate-50 pb-4">
+                <CardTitle className="text-sm font-bold text-slate-800">Volume Utilization</CardTitle>
+                <CardDescription className="text-xs text-slate-400">Current volume vs container capacity</CardDescription>
               </CardHeader>
-              <CardContent className="space-y-4">
+              <CardContent className="pt-6">
                 <div>
-                  <div className="flex justify-between items-center mb-2">
-                    <span className="text-sm font-medium">Volume: {(container.current_cbm || 0).toFixed(2)} / {container.capacity} CBM</span>
-                    <span className={`text-lg font-medium ${getUtilizationColor(cbmUtilization)}`}>{cbmUtilization}%</span>
+                  <div className="flex justify-between items-center mb-2 text-xs">
+                    <span className="font-bold text-slate-500">Volume: {(container.current_cbm || 0).toFixed(2)} / {container.capacity} CBM</span>
+                    <span className={`font-extrabold ${getUtilizationColor(cbmUtilization)}`}>{cbmUtilization}%</span>
                   </div>
-                  <Progress value={cbmUtilization} className="h-3" />
+                  <div className="w-full bg-slate-100 rounded-full h-3 overflow-hidden">
+                    <div className={`h-full ${getUtilizationBg(cbmUtilization)} transition-all`} style={{ width: `${cbmUtilization}%` }} />
+                  </div>
                 </div>
               </CardContent>
             </Card>
           </div>
 
           {/* Active Manifests */}
-          <Card>
-            <CardHeader>
-              <CardTitle>Active Manifests</CardTitle>
-              <CardDescription>Shipments currently using this container</CardDescription>
+          <Card className="rounded-2xl border border-slate-200 shadow-sm bg-white overflow-hidden">
+            <CardHeader className="border-b border-slate-50 pb-4">
+              <CardTitle className="text-sm font-bold text-slate-800">Active Manifests</CardTitle>
+              <CardDescription className="text-xs text-slate-400">Shipments currently using this container</CardDescription>
             </CardHeader>
-            <CardContent>
+            <CardContent className="pt-6">
               {manifests.length > 0 ? (
-                <div className="space-y-2">
+                <div className="space-y-3">
                   {manifests.map((manifest: any) => (
                     <Link key={manifest.id} href={`/parking_orders/${manifest.unique_id}`}>
-                      <div className="flex items-center justify-between p-3 border rounded-lg hover:bg-blue-50 cursor-pointer">
+                      <div className="flex items-center justify-between p-4 border border-slate-100 rounded-xl hover:bg-slate-50/50 hover:border-slate-200 transition-all cursor-pointer">
                         <div>
-                          <p className="font-medium">{manifest.manifest_name}</p>
-                          <p className="text-xs text-muted-foreground">{manifest.unique_id}</p>
+                          <p className="text-xs font-bold text-slate-800">{manifest.manifest_name}</p>
+                          <p className="text-[10px] font-mono text-blue-600 font-semibold mt-0.5">{manifest.unique_id}</p>
                         </div>
                         <div className="text-right">
-                          <p className="font-medium text-sm">{(manifest.total_weight / 1000).toFixed(1)} MT</p>
-                          <p className="text-xs text-muted-foreground">{manifest.total_cbm.toFixed(2)} CBM</p>
+                          <p className="text-xs font-bold text-slate-800">{(manifest.total_weight / 1000).toFixed(1)} MT</p>
+                          <p className="text-[10px] text-slate-400 mt-0.5">{manifest.total_cbm.toFixed(2)} CBM</p>
                         </div>
                       </div>
                     </Link>
                   ))}
                 </div>
               ) : (
-                <div className="text-center py-8 text-muted-foreground">
-                  <p>No active manifests for this container</p>
+                <div className="text-center py-10">
+                  <div className="h-12 w-12 rounded-2xl bg-slate-50 border border-slate-100 flex items-center justify-center text-slate-400 mx-auto mb-4">
+                    <Box className="w-6 h-6" />
+                  </div>
+                  <p className="text-xs font-bold text-slate-405 text-slate-400">No active manifests for this container</p>
                 </div>
               )}
             </CardContent>
@@ -196,12 +207,12 @@ export default function ContainerShow({ container, manifests = [] }: { container
 
           {/* Description */}
           {container.description && (
-            <Card>
-              <CardHeader>
-                <CardTitle className="text-base">Description</CardTitle>
+            <Card className="rounded-2xl border border-slate-200 shadow-sm bg-white overflow-hidden">
+              <CardHeader className="border-b border-slate-50 pb-4">
+                <CardTitle className="text-sm font-bold text-slate-800">Description</CardTitle>
               </CardHeader>
-              <CardContent>
-                <p className="text-muted-foreground">{container.description}</p>
+              <CardContent className="pt-5">
+                <p className="text-xs font-medium text-slate-600 leading-relaxed">{container.description}</p>
               </CardContent>
             </Card>
           )}

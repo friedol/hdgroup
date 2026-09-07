@@ -104,7 +104,7 @@ export default function TwoFactorChallenge() {
 
                             <Button
                                 type="submit"
-                                className="w-full"
+                                className="w-full bg-[#3a9d75] hover:bg-[#2d8a63] text-white border-none"
                                 disabled={processing}
                             >
                                 Continue

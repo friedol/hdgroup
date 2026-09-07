@@ -13,7 +13,8 @@ import {
   AlertTriangle,
   Calendar,
   ExternalLink,
-  ChevronRight
+  ChevronRight,
+  Package
 } from 'lucide-react';
 import React, { useState } from 'react';
 import { Badge } from '@/components/ui/badge';
@@ -41,6 +42,17 @@ interface Customer {
     total_amount: number;
     status: string;
     created_at: string;
+    source?: string;
+    branch_name?: string;
+  }>;
+  batches?: Array<{
+    id: number;
+    batch_number: string;
+    status: string;
+    stage: string;
+    produced_kg: number;
+    created_at: string;
+    branch_name?: string;
   }>;
 }
 
@@ -87,9 +99,9 @@ export default function ShowCustomer({ customer }: ShowCustomerProps) {
 
   const profileKpis = [
     {
-      title: 'Purchase Volume',
+      title: 'Purchases',
       value: `${customer.total_orders || 0} Orders`,
-      subtitle: `Total spent: ${(customer.total_spent || 0).toLocaleString()} TZS`,
+      subtitle: `Spent: ${(customer.total_spent || 0).toLocaleString()} TZS`,
       icon: ShoppingBag,
       chipLabel: 'Activity',
       cardClass: 'border-blue-200 bg-blue-50/30',
@@ -98,7 +110,7 @@ export default function ShowCustomer({ customer }: ShowCustomerProps) {
       valueClass: 'text-blue-700',
     },
     {
-      title: 'Credit Facility',
+      title: 'Credit Limit',
       value: `${customer.credit_limit.toLocaleString()} TZS`,
       subtitle: `Used: ${creditUsagePercent.toFixed(1)}%`,
       icon: CreditCard,
@@ -109,9 +121,9 @@ export default function ShowCustomer({ customer }: ShowCustomerProps) {
       valueClass: 'text-indigo-700',
     },
     {
-      title: 'Risk Exposure',
+      title: 'Outstanding',
       value: `${(customer.outstanding_balance || 0).toLocaleString()} TZS`,
-      subtitle: (customer.outstanding_balance || 0) > 0 ? 'Urgent collections' : 'Clean balance',
+      subtitle: (customer.outstanding_balance || 0) > 0 ? 'Due soon' : 'Settled',
       icon: AlertTriangle,
       chipLabel: (customer.outstanding_balance || 0) > 0 ? 'Risk' : 'Stable',
       cardClass: (customer.outstanding_balance || 0) > 0 ? 'border-rose-200 bg-rose-50/30' : 'border-emerald-200 bg-emerald-50/30',
@@ -125,7 +137,7 @@ export default function ShowCustomer({ customer }: ShowCustomerProps) {
     <>
       <Head title={`${customer.customer_name} | Profile`} />
       <AppLayout breadcrumbs={breadcrumbs}>
-        <div className="max-w-[1400px] mx-auto space-y-8 pb-10 px-4">
+        <div className="max-w-[1650px] mx-auto space-y-8 pb-10 px-0">
           
           {/* Action Bar */}
           <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 p-4 -mx-4">
@@ -167,11 +179,11 @@ export default function ShowCustomer({ customer }: ShowCustomerProps) {
             {/* Left Column: Essential Profile Card */}
             <div className="lg:col-span-4 space-y-6">
               <Card className="border-none shadow-sm bg-white overflow-hidden">
-                <div className="h-24 bg-gradient-to-r from-blue-600 to-indigo-700 w-full" />
+                <div className="h-24 bg-gradient-to-r from-blue-900 to-blue-950 w-full" />
                 <CardContent className="px-6 -mt-12 text-center pb-8">
                     <div className="relative inline-block">
                         <div className="h-24 w-24 rounded-2xl bg-white p-1 shadow-lg ring-4 ring-white">
-                            <div className="h-full w-full rounded-xl bg-slate-100 flex items-center justify-center text-3xl font-semibold text-slate-400">
+                            <div className="h-full w-full rounded-xl bg-blue-950 flex items-center justify-center text-3xl font-semibold text-blue-100">
                                 {initials}
                             </div>
                         </div>
@@ -180,11 +192,11 @@ export default function ShowCustomer({ customer }: ShowCustomerProps) {
                     
                     <h1 className="mt-4 text-2xl font-medium text-slate-900 tracking-tight leading-tight">{customer.customer_name}</h1>
                     <div className="flex items-center justify-center gap-2 mt-2">
-                        <Badge variant={customer.is_active ? 'default' : 'secondary'} className={customer.is_active ? 'bg-green-100 text-green-800 border-green-200 hover:bg-green-100 shadow-none' : ''}>
-                          {customer.is_active ? 'Active partner' : 'Inactive account'}
+                        <Badge variant={customer.is_active ? 'default' : 'secondary'} className={customer.is_active ? 'bg-green-100 text-green-800 border-green-200 hover:bg-green-100 shadow-none text-[10px]' : 'text-[10px]'}>
+                          {customer.is_active ? 'Active' : 'Inactive'}
                         </Badge>
                         <span className="text-xs text-slate-400">•</span>
-                        <span className="text-xs font-semibold text-slate-500 tracking-widest leading-none">Client ID: HD-{customer.id}</span>
+                        <span className="text-xs font-semibold text-slate-500 tracking-tight leading-none">HD-{customer.id}</span>
                     </div>
 
                     <div className="mt-8 space-y-3">
@@ -193,7 +205,7 @@ export default function ShowCustomer({ customer }: ShowCustomerProps) {
                                 <Mail className="h-4 w-4" />
                             </div>
                             <div className="ml-3 text-left">
-                                <p className="text-[10px] font-medium text-slate-400 leading-none">Primary email</p>
+                                <p className="text-[10px] font-medium text-slate-400 leading-none">Email</p>
                                 <a href={`mailto:${customer.customer_email}`} className="text-sm font-semibold text-slate-700 truncate block mt-0.5">{customer.customer_email}</a>
                             </div>
                         </div>
@@ -202,7 +214,7 @@ export default function ShowCustomer({ customer }: ShowCustomerProps) {
                                 <Phone className="h-4 w-4" />
                             </div>
                             <div className="ml-3 text-left">
-                                <p className="text-[10px] font-medium text-slate-400 leading-none">Contact phone</p>
+                                <p className="text-[10px] font-medium text-slate-400 leading-none">Phone</p>
                                 <a href={`tel:${customer.customer_phone}`} className="text-sm font-semibold text-slate-700 block mt-0.5">{customer.customer_phone}</a>
                             </div>
                         </div>
@@ -211,8 +223,8 @@ export default function ShowCustomer({ customer }: ShowCustomerProps) {
                                 <MapPin className="h-4 w-4" />
                             </div>
                             <div className="ml-3">
-                                <p className="text-[10px] font-medium text-slate-400 leading-none">Registered address</p>
-                                <p className="text-sm font-medium text-slate-600 mt-1 whitespace-pre-wrap leading-relaxed">{customer.customer_address || 'No address provided.'}</p>
+                                <p className="text-[10px] font-medium text-slate-400 leading-none">Address</p>
+                                <p className="text-sm font-medium text-slate-600 mt-1 whitespace-pre-wrap leading-relaxed">{customer.customer_address || 'No address.'}</p>
                             </div>
                         </div>
                     </div>
@@ -222,12 +234,12 @@ export default function ShowCustomer({ customer }: ShowCustomerProps) {
               <Card className="border-none shadow-sm bg-white p-6">
                 <div className="flex items-center gap-2 mb-4">
                     <Calendar className="h-4 w-4 text-slate-400" />
-                    <h3 className="text-sm font-medium text-slate-900">Retention timeline</h3>
+                    <h3 className="text-sm font-medium text-slate-900">Timeline</h3>
                 </div>
                 <div className="space-y-4">
                     <div className="relative pl-6 pb-4 border-l-2 border-slate-100">
                         <div className="absolute left-[-5px] top-1.5 h-2 w-2 rounded-full bg-blue-500 ring-4 ring-blue-50" />
-                        <p className="text-xs font-medium text-slate-900 leading-none">Onboarding completed</p>
+                        <p className="text-xs font-medium text-slate-900 leading-none">Joined</p>
                         <p className="text-[11px] text-slate-500 mt-1">{formattedJoinDate}</p>
                     </div>
                     <div className="relative pl-6">
@@ -257,7 +269,7 @@ export default function ShowCustomer({ customer }: ShowCustomerProps) {
                       </span>
                     </div>
                     <p className={`text-[13px] sm:text-[14px] font-semibold leading-none tabular-nums ${kpi.valueClass}`}>{kpi.value}</p>
-                    <p className="text-[10px] sm:text-xs text-slate-500 font-medium mt-2 uppercase tracking-wide">{kpi.title}</p>
+                    <p className="text-[10px] sm:text-xs text-slate-500 font-medium mt-2 tracking-wide">{kpi.title}</p>
                     <p className="text-[10px] text-slate-500 mt-1">{kpi.subtitle}</p>
                     </CardContent>
                   </Card>
@@ -269,13 +281,13 @@ export default function ShowCustomer({ customer }: ShowCustomerProps) {
               <Tabs defaultValue="orders" className="w-full">
                 <div className="bg-white p-1 rounded-xl shadow-sm border border-slate-100 inline-flex mb-6">
                     <TabsList className="bg-transparent border-none p-0 flex space-x-1">
-                        <TabsTrigger value="orders" className="rounded-lg px-6 py-2 h-9 text-xs font-medium tracking-wider data-[state=active]:bg-blue-600 data-[state=active]:text-white data-[state=active]:shadow-md transition-all">
-                            Orders
+                        <TabsTrigger value="orders" className="rounded-lg px-6 py-2 h-9 text-xs font-medium data-[state=active]:bg-blue-900 data-[state=active]:text-white data-[state=active]:shadow-md transition-all">
+                            Sales
                         </TabsTrigger>
-                        <TabsTrigger value="activity" className="rounded-lg px-6 py-2 h-9 text-xs font-medium tracking-wider data-[state=active]:bg-blue-600 data-[state=active]:text-white data-[state=active]:shadow-md transition-all">
+                        <TabsTrigger value="activity" className="rounded-lg px-6 py-2 h-9 text-xs font-medium data-[state=active]:bg-blue-900 data-[state=active]:text-white data-[state=active]:shadow-md transition-all">
                             Movement
                         </TabsTrigger>
-                        <TabsTrigger value="settings" className="rounded-lg px-6 py-2 h-9 text-xs font-medium tracking-wider data-[state=active]:bg-blue-600 data-[state=active]:text-white data-[state=active]:shadow-md transition-all">
+                        <TabsTrigger value="settings" className="rounded-lg px-6 py-2 h-9 text-xs font-medium data-[state=active]:bg-blue-900 data-[state=active]:text-white data-[state=active]:shadow-md transition-all">
                             Security
                         </TabsTrigger>
                     </TabsList>
@@ -284,11 +296,11 @@ export default function ShowCustomer({ customer }: ShowCustomerProps) {
                 <TabsContent value="orders" className="mt-0 focus-visible:ring-0">
                   <Card className="border-none shadow-sm bg-white">
                     <CardHeader className="flex flex-row items-center justify-between border-b border-slate-50 pb-4">
-                        <CardTitle className="text-sm font-medium text-slate-900 tracking-widest flex items-center gap-2">
+                        <CardTitle className="text-sm font-medium text-slate-900 flex items-center gap-2">
                             <ShoppingBag className="h-4 w-4 text-blue-500" />
-                            Recent operations
+                            History
                         </CardTitle>
-                        <span className="text-xs text-slate-400 font-medium tracking-tight">Viewing last 10 transactions</span>
+                        <span className="text-xs text-slate-400 font-medium tracking-tight">Total {customer.orders?.length || 0} records</span>
                     </CardHeader>
                     <CardContent className="p-0">
                         {customer.orders && customer.orders.length > 0 ? (
@@ -302,9 +314,19 @@ export default function ShowCustomer({ customer }: ShowCustomerProps) {
                                     <div>
                                         <div className="flex items-center gap-2">
                                             <p className="font-medium text-slate-900">{order.order_number}</p>
-                                            <Badge variant="outline" className="text-[9px] h-4 leading-none tracking-tighter border-slate-200">
+                                            <Badge variant="outline" className="text-[9px] h-4 leading-none tracking-tighter border-slate-200 uppercase">
                                                 {order.status}
                                             </Badge>
+                                            {order.source && (
+                                                <Badge className="text-[9px] h-4 bg-slate-100 text-slate-600 border-slate-200 shadow-none uppercase">
+                                                    {order.source}
+                                                </Badge>
+                                            )}
+                                            {order.branch_name && (
+                                                <Badge className="text-[9px] h-4 bg-blue-50 text-blue-600 border-blue-100 shadow-none uppercase">
+                                                    {order.branch_name}
+                                                </Badge>
+                                            )}
                                         </div>
                                         <div className="flex items-center gap-3 mt-0.5 text-xs text-slate-400 font-medium">
                                             <div className="flex items-center gap-1">
@@ -312,7 +334,12 @@ export default function ShowCustomer({ customer }: ShowCustomerProps) {
                                                 {new Date(order.created_at).toLocaleDateString()}
                                             </div>
                                             <span>•</span>
-                                            <span>System invoice</span>
+                                            <span>
+                                                {order.source === 'POS' && 'System invoice'}
+                                                {order.source === 'Online' && 'Online store'}
+                                                {order.source === 'Legacy' && 'Legacy record'}
+                                                {!['POS', 'Online', 'Legacy'].includes(order.source || '') && 'Transaction'}
+                                            </span>
                                         </div>
                                     </div>
                                 </div>

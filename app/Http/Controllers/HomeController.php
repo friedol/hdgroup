@@ -2,22 +2,16 @@
 
 namespace App\Http\Controllers;
 
-use App\Traits\AuthenticateTrait;
-use Illuminate\Http\Request;
-use Carbon\Carbon;
-use App\Models\Cart;
-use App\Models\Role;
-use App\Models\User;
-use App\Models\Order;
-use App\Models\Product;
-use App\Models\Session;
+use App\Models\Branch;
 use App\Models\Category;
 use App\Models\Feedback;
-use App\Models\Branch;
+use App\Models\HeroSlide;
+use App\Models\Product;
+use App\Models\Session;
 use App\Models\Setting;
-
-use Illuminate\Validation\Rule;
-use Illuminate\Support\Facades\DB;
+use App\Models\User;
+use App\Traits\AuthenticateTrait;
+use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 
 class HomeController extends Controller
@@ -31,16 +25,17 @@ class HomeController extends Controller
     protected function resolveActiveBranchId(Request $request)
     {
         $requestedBranch = $request->input('branch') ?? $request->input('branch_id');
-        
+
         if ($requestedBranch === 'global') {
             session()->forget('active_branch_id');
+
             return null;
         }
         if ($requestedBranch) {
             $branch = Branch::where('is_active', true)
                 ->where(function ($q) use ($requestedBranch) {
-                    $q->where('id', (is_numeric($requestedBranch) ? (int)$requestedBranch : 0))
-                      ->orWhere('slug', $requestedBranch);
+                    $q->where('id', (is_numeric($requestedBranch) ? (int) $requestedBranch : 0))
+                        ->orWhere('slug', $requestedBranch);
                 })
                 ->first();
             if ($branch) {
@@ -99,6 +94,7 @@ class HomeController extends Controller
             'inquire' => $data->subject,
             'message' => $data->message,
         ]);
+
         return redirect()->back()->with('success', 'Feedback sent successfully');
     }
 
@@ -128,12 +124,12 @@ class HomeController extends Controller
 
         $categories = Category::orderBy('category_name', 'asc')->get();
         $productsQuery = Product::with([
-                'productManagement.images' => function ($query) {
-                    $query->orderBy('is_featured', 'desc')->limit(1);
-                },
-                'productManagement.category',
-                'variants'
-            ])
+            'productManagement.images' => function ($query) {
+                $query->orderBy('is_featured', 'desc')->limit(1);
+            },
+            'productManagement.category',
+            'variants',
+        ])
             ->where('is_enabled', true);
 
         if ($activeBranchId) {
@@ -148,8 +144,9 @@ class HomeController extends Controller
         }
 
         $products = $productsQuery->orderBy('product_name', 'asc')->limit(24)->get();
-        
-        $heroSlides = \App\Models\HeroSlide::where('is_active', true)
+
+        $heroSlides = HeroSlide::withoutGlobalScope('branch')
+            ->where('is_active', true)
             ->where(function ($q) {
                 $q->where('page_type', 'home')->orWhereNull('page_type');
             })
@@ -163,13 +160,15 @@ class HomeController extends Controller
             })
             ->orderBy('sort_order')
             ->get();
-            
-        $popupAds = \App\Models\HeroSlide::where('is_active', true)
+
+        $popupAds = HeroSlide::withoutGlobalScope('branch')
+            ->where('is_active', true)
             ->where(function ($q) {
                 $q->where('page_type', 'home')->orWhereNull('page_type');
             })
             ->where('is_ad', true)
             ->where(function ($q) use ($activeBranchId) {
+                // Show global ads (null branch_id) OR ads for the active branch
                 $q->whereNull('branch_id');
                 if ($activeBranchId) {
                     $q->orWhere('branch_id', $activeBranchId);
@@ -196,35 +195,36 @@ class HomeController extends Controller
         $activeBranchId = $this->resolveActiveBranchId($request);
         $query = $request->input('search');
 
-        if ($request->ajax() && !$request->header('X-Inertia')) {
+        if ($request->ajax() && ! $request->header('X-Inertia')) {
             $productsQuery = Product::with([
                 'productManagement.images' => function ($query) {
                     $query->orderBy('is_featured', 'desc')->limit(1);
                 },
                 'productManagement.category',
-                'variants'
+                'variants',
             ])
-            ->where('is_enabled', true);
+                ->where('is_enabled', true);
 
             if ($activeBranchId) {
                 $productsQuery->withSum(['inventories as total_qty' => function ($q) use ($activeBranchId) {
                     $q->where('branch_id', $activeBranchId)->where('product_type', 'finished_product');
                 }], 'qty');
             } else {
-                $productsQuery->withSum(['inventories as total_qty' => function($q) {
+                $productsQuery->withSum(['inventories as total_qty' => function ($q) {
                     $q->where('product_type', 'finished_product');
                 }], 'qty');
             }
 
-            $productsQuery->where(function($q) use ($query) {
+            $productsQuery->where(function ($q) use ($query) {
                 $q->where('product_name', 'LIKE', "%{$query}%")
-                  ->orWhere('product_id', 'LIKE', "%{$query}%")
-                  ->orWhereHas('productManagement', function($pmQuery) use ($query) {
-                      $pmQuery->where('description', 'LIKE', "%{$query}%");
-                  });
+                    ->orWhere('product_id', 'LIKE', "%{$query}%")
+                    ->orWhereHas('productManagement', function ($pmQuery) use ($query) {
+                        $pmQuery->where('description', 'LIKE', "%{$query}%");
+                    });
             });
 
             $products = $productsQuery->orderBy('product_name', 'asc')->get();
+
             return response()->json($products);
         } else {
             $productsQuery = Product::with([
@@ -232,29 +232,29 @@ class HomeController extends Controller
                     $query->orderBy('is_featured', 'desc')->limit(1);
                 },
                 'productManagement.category',
-                'variants'
+                'variants',
             ])
-            ->where('is_enabled', true);
+                ->where('is_enabled', true);
 
             if ($activeBranchId) {
                 $productsQuery->withSum(['inventories as total_qty' => function ($q) use ($activeBranchId) {
                     $q->where('branch_id', $activeBranchId)->where('product_type', 'finished_product');
                 }], 'qty');
             } else {
-                $productsQuery->withSum(['inventories as total_qty' => function($q) {
+                $productsQuery->withSum(['inventories as total_qty' => function ($q) {
                     $q->where('product_type', 'finished_product');
                 }], 'qty');
             }
 
-            $productsQuery->where(function($q) use ($query) {
+            $productsQuery->where(function ($q) use ($query) {
                 $q->where('product_name', 'LIKE', "%{$query}%")
-                  ->orWhereHas('productManagement', function($pmQuery) use ($query) {
-                      $pmQuery->where('description', 'LIKE', "%{$query}%");
-                  });
+                    ->orWhereHas('productManagement', function ($pmQuery) use ($query) {
+                        $pmQuery->where('description', 'LIKE', "%{$query}%");
+                    });
             });
 
             $products = $productsQuery->orderBy('product_name', 'asc')->get();
-            
+
             return inertia('Shop/Index', [
                 'products' => $products,
                 'categories' => Category::orderBy('category_name', 'asc')->get(),
@@ -268,12 +268,12 @@ class HomeController extends Controller
         $activeBranchId = $this->resolveActiveBranchId($request);
 
         $productsQuery = Product::with([
-                'productManagement.images' => function ($query) {
-                    $query->orderBy('is_featured', 'desc')->limit(1);
-                },
-                'productManagement.category',
-                'variants'
-            ])
+            'productManagement.images' => function ($query) {
+                $query->orderBy('is_featured', 'desc')->limit(1);
+            },
+            'productManagement.category',
+            'variants',
+        ])
             ->whereHas('productManagement', function ($query) use ($id) {
                 $query->where('category_id', $id);
             })
@@ -308,12 +308,12 @@ class HomeController extends Controller
 
         $categories = Category::orderBy('category_name', 'asc')->get();
         $productsQuery = Product::with([
-                'productManagement.images' => function ($query) {
-                    $query->orderBy('is_featured', 'desc')->limit(1);
-                },
-                'productManagement.category',
-                'variants'
-            ])
+            'productManagement.images' => function ($query) {
+                $query->orderBy('is_featured', 'desc')->limit(1);
+            },
+            'productManagement.category',
+            'variants',
+        ])
             ->where('is_enabled', true);
 
         if ($activeBranchId) {
@@ -377,7 +377,7 @@ class HomeController extends Controller
                     $query->orderBy('is_featured', 'desc')->limit(1);
                 },
                 'productManagement.category',
-                'variants'
+                'variants',
             ])
             ->where('is_enabled', true);
 
@@ -402,7 +402,7 @@ class HomeController extends Controller
             ->get();
 
         return inertia('Shop/Categories', [
-            'categories' => $categories
+            'categories' => $categories,
         ]);
     }
 }

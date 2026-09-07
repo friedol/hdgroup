@@ -116,12 +116,12 @@ export default function CustomLayout({ children }: Props) {
         <div className="flex flex-col min-h-screen">
             {/* Navigation */}
             <nav className="bg-white border-b sticky top-0 z-50">
-                <div className="mx-auto w-[99%] max-w-[1920px] px-2 sm:px-4">
+                <div className="mx-auto w-[98%] md:w-[88%] max-w-[1600px] px-2 sm:px-4 md:px-8">
                     <div className="flex items-center justify-between h-12 md:h-16">
                         {/* Logo / Search Bar Transition */}
                         <div className="flex-1 flex items-center gap-4">
                             {!isSearchOpen ? (
-                                <Link href="/" className="flex items-center gap-1.5 md:gap-2 text-slate-900 hover:text-amber-600 transition-all shrink-0">
+                                <Link href="/" className="flex items-center gap-1.5 md:gap-2 text-slate-900 hover:text-blue-700 transition-all shrink-0">
                                     <div className="w-8 h-8 md:w-10 md:h-10 border border-slate-100 rounded-lg md:rounded-xl flex items-center justify-center overflow-hidden shadow-sm bg-white">
                                         {activeBranch?.logo ? (
                                             <img src={`/storage/${activeBranch.logo}`} alt="Logo" className="w-full h-full object-cover" />
@@ -138,14 +138,14 @@ export default function CustomLayout({ children }: Props) {
                             ) : (
                                 <div className="flex-1 max-w-2xl relative animate-in slide-in-from-left-2 fade-in duration-300">
                                     <div className="relative group">
-                                        <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400 group-focus-within:text-amber-500 transition-colors" />
+                                        <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400 group-focus-within:text-blue-700 transition-colors" />
                                         <input
                                             ref={searchInputRef}
                                             type="search"
                                             value={searchQuery}
                                             onChange={(e) => setSearchQuery(e.target.value)}
                                             placeholder="Live product search..."
-                                            className="w-full bg-slate-50 border border-slate-200 rounded-xl py-2 pl-10 pr-10 text-sm font-medium focus:ring-4 focus:ring-amber-400/5 focus:border-amber-400 transition-all outline-none"
+                                            className="w-full bg-slate-50 border border-slate-200 rounded-xl py-2 pl-10 pr-10 text-sm font-medium focus:ring-4 focus:ring-blue-600/5 focus:border-blue-600 transition-all outline-none"
                                             onKeyDown={(e) => {
                                                 if (e.key === 'Enter' && searchQuery) {
                                                     setIsSearchOpen(false);
@@ -193,7 +193,7 @@ export default function CustomLayout({ children }: Props) {
                                                             )}
                                                         </div>
                                                         <div className="flex-1 min-w-0">
-                                                            <p className="text-[11px] md:text-sm font-bold text-slate-900 truncate group-hover:text-amber-600">
+                                                            <p className="text-[11px] md:text-sm font-bold text-slate-900 truncate group-hover:text-blue-700">
                                                                 {product.product_name}
                                                             </p>
                                                             <p className="text-[9px] md:text-[10px] text-slate-400 font-semibold uppercase tracking-tight truncate">
@@ -210,13 +210,13 @@ export default function CustomLayout({ children }: Props) {
                                             </div>
                                             <div className="bg-slate-50 px-3 py-2 border-t flex justify-between items-center text-[10px]">
                                                 <span className="font-bold text-slate-400 italic">Press Enter for all</span>
-                                                <Link href={`/product/find?search=${searchQuery}`} className="font-black text-amber-600 hover:text-amber-700">View All</Link>
+                                                <Link href={`/product/find?search=${searchQuery}`} className="font-black text-blue-700 hover:text-blue-800">View All</Link>
                                             </div>
                                         </div>
                                     )}
                                     {isSearching && (
                                         <div className="absolute top-full left-0 right-0 mt-2 bg-white rounded-xl border p-4 text-center">
-                                            <div className="inline-block animate-spin rounded-full h-4 w-4 border-2 border-amber-500 border-t-transparent mr-2"></div>
+                                            <div className="inline-block animate-spin rounded-full h-4 w-4 border-2 border-blue-700 border-t-transparent mr-2"></div>
                                             <span className="text-xs font-bold text-slate-500 italic">Searching items...</span>
                                         </div>
                                     )}
@@ -227,16 +227,16 @@ export default function CustomLayout({ children }: Props) {
                         {/* Desktop Navigation */}
                         {!isSearchOpen && (
                             <div className="hidden md:flex items-center gap-8 mr-8">
-                                <Link href="/shop/products" className="text-gray-700 hover:text-amber-600 font-semibold text-[15px] transition-colors">
+                                <Link href="/shop/products" className="text-gray-700 hover:text-blue-700 font-semibold text-[15px] transition-colors">
                                     Products
                                 </Link>
-                                <Link href="/shop/categories" className="text-gray-700 hover:text-amber-600 font-semibold text-[15px] transition-colors">
+                                <Link href="/shop/categories" className="text-gray-700 hover:text-blue-700 font-semibold text-[15px] transition-colors">
                                     Categories
                                 </Link>
-                                <Link href="/about" className="text-gray-700 hover:text-amber-600 font-semibold text-[15px] transition-colors">
+                                <Link href="/about" className="text-gray-700 hover:text-blue-700 font-semibold text-[15px] transition-colors">
                                     About
                                 </Link>
-                                <Link href="/contact" className="text-gray-700 hover:text-amber-600 font-semibold text-[15px] transition-colors">
+                                <Link href="/contact" className="text-gray-700 hover:text-blue-700 font-semibold text-[15px] transition-colors">
                                     Contact
                                 </Link>
                             </div>
@@ -250,9 +250,9 @@ export default function CustomLayout({ children }: Props) {
                                 <div className="relative" ref={branchRef}>
                                     <button
                                         onClick={() => setIsBranchOpen(!isBranchOpen)}
-                                        className="flex items-center gap-1.5 sm:gap-2 px-2 sm:px-3 py-1.5 rounded-xl border border-slate-200 bg-white hover:border-amber-400 hover:bg-amber-50 transition-all text-sm font-semibold text-slate-700 shadow-sm"
+                                        className="flex items-center gap-1.5 sm:gap-2 px-2 sm:px-3 py-1.5 rounded-xl border border-slate-200 bg-white hover:border-blue-600 hover:bg-blue-50 transition-all text-sm font-semibold text-slate-700 shadow-sm"
                                     >
-                                        <MapPin className="w-3.5 h-3.5 text-amber-500 shrink-0" />
+                                        <MapPin className="w-3.5 h-3.5 text-blue-700 shrink-0" />
                                         <span className="hidden sm:block max-w-[90px] lg:max-w-[100px] truncate text-[13px]">
                                             {activeBranch?.name || 'Branch'}
                                         </span>
@@ -270,17 +270,17 @@ export default function CustomLayout({ children }: Props) {
                                                 <a
                                                     href="/?branch=global"
                                                     onClick={() => setIsBranchOpen(false)}
-                                                    className={`flex items-center gap-3 px-4 py-2.5 hover:bg-amber-50 transition-colors ${!props.activeBranch?.id ? 'bg-amber-50' : ''}`}
+                                                    className={`flex items-center gap-3 px-4 py-2.5 hover:bg-blue-50 transition-colors ${!props.activeBranch?.id ? 'bg-blue-50' : ''}`}
                                                 >
                                                     <div className="w-9 h-9 rounded-full border border-slate-200 overflow-hidden bg-slate-100 flex items-center justify-center shrink-0">
                                                         <LayoutGrid className="w-4 h-4 text-slate-400" />
                                                     </div>
                                                     <div className="flex-1 min-w-0">
-                                                        <p className={`text-sm font-semibold truncate ${!activeBranch?.id ? 'text-amber-700' : 'text-slate-800'}`}>Global Identity</p>
+                                                        <p className={`text-sm font-semibold truncate ${!activeBranch?.id ? 'text-blue-800' : 'text-slate-800'}`}>Global Identity</p>
                                                         <p className="text-[11px] text-slate-400 truncate">All Branches</p>
                                                     </div>
                                                     {!activeBranch?.id && (
-                                                        <Check className="w-4 h-4 text-amber-500 shrink-0" />
+                                                        <Check className="w-4 h-4 text-blue-700 shrink-0" />
                                                     )}
                                                 </a>
 
@@ -294,7 +294,7 @@ export default function CustomLayout({ children }: Props) {
                                                             key={branch.id}
                                                             href={`/?branch=${branch.slug}`}
                                                             onClick={() => setIsBranchOpen(false)}
-                                                            className={`flex items-center gap-3 px-4 py-2.5 hover:bg-amber-50 transition-colors ${isActive ? 'bg-amber-50' : ''}`}
+                                                            className={`flex items-center gap-3 px-4 py-2.5 hover:bg-blue-50 transition-colors ${isActive ? 'bg-blue-50' : ''}`}
                                                         >
                                                             <div className="w-9 h-9 rounded-full border border-slate-200 overflow-hidden bg-slate-100 flex items-center justify-center shrink-0">
                                                                 {logoUrl ? (
@@ -304,13 +304,13 @@ export default function CustomLayout({ children }: Props) {
                                                                 )}
                                                             </div>
                                                             <div className="flex-1 min-w-0">
-                                                                <p className={`text-sm font-semibold truncate ${isActive ? 'text-amber-700' : 'text-slate-800'}`}>{branch.name}</p>
+                                                                <p className={`text-sm font-semibold truncate ${isActive ? 'text-blue-800' : 'text-slate-800'}`}>{branch.name}</p>
                                                                 {branch.location && (
                                                                     <p className="text-[11px] text-slate-400 truncate">{branch.location}</p>
                                                                 )}
                                                             </div>
                                                             {isActive && (
-                                                                <Check className="w-4 h-4 text-amber-500 shrink-0" />
+                                                                <Check className="w-4 h-4 text-blue-700 shrink-0" />
                                                             )}
                                                         </a>
                                                     );
@@ -333,7 +333,7 @@ export default function CustomLayout({ children }: Props) {
 
                              {/* Cart */}
                             <Link href="/cart" className="relative p-1.5 md:p-2 hover:bg-slate-100 rounded-lg group transition-colors">
-                                <ShoppingCart className="w-4 h-4 md:w-5 md:h-5 text-slate-600 group-hover:text-amber-600 transition-colors" />
+                                <ShoppingCart className="w-4 h-4 md:w-5 md:h-5 text-slate-600 group-hover:text-blue-700 transition-colors" />
                                 {props.cartCount > 0 && (
                                     <span className="absolute top-0 right-0 md:-top-1 md:-right-1 flex h-4 w-4 md:h-5 md:w-5 items-center justify-center rounded-full bg-red-600 text-[8px] md:text-[11px] font-bold text-white shadow-lg shadow-red-500/30 ring-1 md:ring-2 ring-white zoom-in-0 duration-300">
                                         {props.cartCount}
@@ -372,9 +372,9 @@ export default function CustomLayout({ children }: Props) {
                                         <DropdownMenuSeparator className="my-2" />
                                         {auth.user.is_global || auth.user.role?.name === 'Admin' ? (
                                             <>
-                                                <DropdownMenuItem asChild className="rounded-lg cursor-pointer bg-amber-50 text-amber-900 border border-amber-100 hover:bg-amber-100 mb-1">
+                                                <DropdownMenuItem asChild className="rounded-lg cursor-pointer bg-blue-50 text-blue-900 border border-blue-100 hover:bg-blue-100 mb-1">
                                                     <Link href="/admin" className="flex items-center gap-2 w-full font-semibold">
-                                                        <LayoutDashboard className="w-4 h-4 text-amber-600" />
+                                                        <LayoutDashboard className="w-4 h-4 text-blue-700" />
                                                         <span>Dashboard</span>
                                                     </Link>
                                                 </DropdownMenuItem>
@@ -432,14 +432,14 @@ export default function CustomLayout({ children }: Props) {
                         <div className="flex-1 overflow-y-auto custom-scrollbar">
                             {/* User Profile Header - Now at TOP */}
                             <div className="px-6 py-6 border-b relative overflow-hidden group bg-white">
-                                <div className="absolute top-0 right-0 w-32 h-32 bg-amber-400/5 rounded-full blur-2xl -translate-y-1/2 translate-x-1/2 group-hover:bg-amber-400/10 transition-all"></div>
+                                <div className="absolute top-0 right-0 w-32 h-32 bg-blue-600/5 rounded-full blur-2xl -translate-y-1/2 translate-x-1/2 group-hover:bg-blue-600/10 transition-all"></div>
                                 <div className="relative z-10 flex items-center justify-between">
                                     <div className="flex items-center gap-4">
-                                        <div className="w-12 h-12 rounded-xl bg-amber-100 flex items-center justify-center border border-amber-200">
+                                        <div className="w-12 h-12 rounded-xl bg-blue-100 flex items-center justify-center border border-blue-200">
                                             {auth?.user?.name ? (
-                                                <div className="text-amber-600 font-bold text-lg uppercase">{auth.user.name.slice(0, 1)}</div>
+                                                <div className="text-blue-700 font-bold text-lg uppercase">{auth.user.name.slice(0, 1)}</div>
                                             ) : (
-                                                <User className="w-6 h-6 text-amber-500" />
+                                                <User className="w-6 h-6 text-blue-700" />
                                             )}
                                         </div>
                                         <div className="flex flex-col">
@@ -464,17 +464,17 @@ export default function CustomLayout({ children }: Props) {
                             <div className="flex border-b bg-slate-50/50">
                                 <button
                                     onClick={() => setActiveMobileTab('menu')}
-                                    className={`flex-1 py-4 text-sm font-bold transition-all relative ${activeMobileTab === 'menu' ? 'text-amber-600' : 'text-slate-500 hover:text-slate-700'}`}
+                                    className={`flex-1 py-4 text-sm font-bold transition-all relative ${activeMobileTab === 'menu' ? 'text-blue-700' : 'text-slate-500 hover:text-slate-700'}`}
                                 >
                                     Menu
-                                    {activeMobileTab === 'menu' && <div className="absolute bottom-0 left-0 right-0 h-0.5 bg-amber-500" />}
+                                    {activeMobileTab === 'menu' && <div className="absolute bottom-0 left-0 right-0 h-0.5 bg-blue-700" />}
                                 </button>
                                 <button
                                     onClick={() => setActiveMobileTab('categories')}
-                                    className={`flex-1 py-4 text-sm font-bold transition-all relative ${activeMobileTab === 'categories' ? 'text-amber-600' : 'text-slate-500 hover:text-slate-700'}`}
+                                    className={`flex-1 py-4 text-sm font-bold transition-all relative ${activeMobileTab === 'categories' ? 'text-blue-700' : 'text-slate-500 hover:text-slate-700'}`}
                                 >
                                     Categories
-                                    {activeMobileTab === 'categories' && <div className="absolute bottom-0 left-0 right-0 h-0.5 bg-amber-500" />}
+                                    {activeMobileTab === 'categories' && <div className="absolute bottom-0 left-0 right-0 h-0.5 bg-blue-700" />}
                                 </button>
                             </div>
 
@@ -497,8 +497,8 @@ export default function CustomLayout({ children }: Props) {
                                             Categories
                                         </Link>
                                         <Link href="/cart" className="flex items-center gap-3 px-4 py-3 text-sm font-bold text-slate-700 hover:bg-slate-50 rounded-xl transition-all group" onClick={() => setIsMobileMenuOpen(false)}>
-                                            <div className="w-8 h-8 rounded-lg bg-amber-50 flex items-center justify-center shrink-0">
-                                                <ShoppingCart className="w-4 h-4 text-amber-500" />
+                                            <div className="w-8 h-8 rounded-lg bg-blue-50 flex items-center justify-center shrink-0">
+                                                <ShoppingCart className="w-4 h-4 text-blue-700" />
                                             </div>
                                           Shopping Cart
                                         </Link>
@@ -536,7 +536,7 @@ export default function CustomLayout({ children }: Props) {
                                                 <LogIn className="w-3.5 h-3.5" />
                                                 Log In
                                             </Link>
-                                            <Link href="/register" onClick={() => setIsMobileMenuOpen(false)} className="flex items-center justify-center gap-2 px-4 py-3 bg-amber-400 text-slate-900 rounded-xl font-bold text-xs transition-transform active:scale-95 shadow-lg shadow-amber-100">
+                                            <Link href="/register" onClick={() => setIsMobileMenuOpen(false)} className="flex items-center justify-center gap-2 px-4 py-3 bg-blue-600 text-white rounded-xl font-bold text-xs transition-transform active:scale-95 shadow-lg shadow-blue-100">
                                                 <User className="w-3.5 h-3.5" />
                                                 Sign Up
                                             </Link>
@@ -567,11 +567,11 @@ export default function CustomLayout({ children }: Props) {
                                             <Link 
                                                 key={cat.id}
                                                 href={`/category/${cat.id}`}
-                                                className="flex items-center justify-between px-4 py-3.5 text-sm font-bold text-slate-700 hover:bg-amber-50 hover:text-amber-700 rounded-xl transition-all group"
+                                                className="flex items-center justify-between px-4 py-3.5 text-sm font-bold text-slate-700 hover:bg-blue-50 hover:text-blue-800 rounded-xl transition-all group"
                                                 onClick={() => setIsMobileMenuOpen(false)}
                                             >
                                                 <span className="capitalize">{cat.category_name.toLowerCase()}</span>
-                                                <ChevronDown className="w-4 h-4 text-slate-300 -rotate-90 group-hover:text-amber-500" />
+                                                <ChevronDown className="w-4 h-4 text-slate-300 -rotate-90 group-hover:text-blue-700" />
                                             </Link>
                                         ))}
 
@@ -604,7 +604,7 @@ export default function CustomLayout({ children }: Props) {
                             <Link
                                 href="/shop"
                                 className={`flex flex-col items-center gap-0.5 px-3 py-1.5 rounded-xl transition-all ${
-                                    currentUrl === '/shop' || currentUrl === '/' ? 'text-amber-600' : 'text-slate-500'
+                                    currentUrl === '/shop' || currentUrl === '/' ? 'text-blue-700' : 'text-slate-500'
                                 }`}
                             >
                                 <Home className="w-5 h-5" />
@@ -615,7 +615,7 @@ export default function CustomLayout({ children }: Props) {
                             <Link
                                 href="/shop/products"
                                 className={`flex flex-col items-center gap-0.5 px-3 py-1.5 rounded-xl transition-all ${
-                                    currentUrl?.startsWith('/shop/products') ? 'text-amber-600' : 'text-slate-500'
+                                    currentUrl?.startsWith('/shop/products') ? 'text-blue-700' : 'text-slate-500'
                                 }`}
                             >
                                 <ShoppingBag className="w-5 h-5" />
@@ -626,7 +626,7 @@ export default function CustomLayout({ children }: Props) {
                             <Link
                                 href="/cart"
                                 className={`flex flex-col items-center gap-0.5 px-3 py-1.5 rounded-xl transition-all ${
-                                    currentUrl === '/cart' || currentUrl === '/my-carts' ? 'text-amber-600' : 'text-slate-500'
+                                    currentUrl === '/cart' || currentUrl === '/my-carts' ? 'text-blue-700' : 'text-slate-500'
                                 }`}
                             >
                                 <div className="relative">
@@ -644,7 +644,7 @@ export default function CustomLayout({ children }: Props) {
                             <Link
                                 href="/my-orders"
                                 className={`flex flex-col items-center gap-0.5 px-3 py-1.5 rounded-xl transition-all ${
-                                    currentUrl?.startsWith('/my-orders') ? 'text-amber-600' : 'text-slate-500'
+                                    currentUrl?.startsWith('/my-orders') ? 'text-blue-700' : 'text-slate-500'
                                 }`}
                             >
                                 <ClipboardList className="w-5 h-5" />
@@ -655,7 +655,7 @@ export default function CustomLayout({ children }: Props) {
                             <Link
                                 href="/profile/show"
                                 className={`flex flex-col items-center gap-0.5 px-3 py-1.5 rounded-xl transition-all ${
-                                    currentUrl?.startsWith('/profile') ? 'text-amber-600' : 'text-slate-500'
+                                    currentUrl?.startsWith('/profile') ? 'text-blue-700' : 'text-slate-500'
                                 }`}
                             >
                                 <div className="w-6 h-6 rounded-full bg-slate-200 overflow-hidden border border-slate-200 flex items-center justify-center">
@@ -677,10 +677,10 @@ export default function CustomLayout({ children }: Props) {
             <footer className={`bg-gray-900 text-gray-300 border-t border-gray-800 ${auth?.user ? 'hidden md:block' : ''}`}>
 
                 {/* Newsletter Strip */}
-                <div className="bg-amber-400">
-                    <div className="mx-auto w-[99%] max-w-[1920px] px-4 sm:px-6 py-6 flex flex-col sm:flex-row items-center justify-between gap-4">
+                <div className="bg-blue-600">
+                    <div className="mx-auto w-[98%] md:w-[88%] max-w-[1600px] px-2 sm:px-4 md:px-8 py-6 flex flex-col sm:flex-row items-center justify-between gap-4">
                         <div>
-                            <p className="text-slate-900 font-black text-base sm:text-lg">Stay in the loop</p>
+                            <p className="text-2xl font-dancing font-bold text-slate-900 tracking-wider">Stay in the loop</p>
                             <p className="text-slate-700 text-sm font-medium">Get the latest deals and updates delivered to your inbox.</p>
                         </div>
                         <form
@@ -703,7 +703,7 @@ export default function CustomLayout({ children }: Props) {
                 </div>
 
                 {/* Main Footer Grid */}
-                <div className="mx-auto w-[99%] max-w-[1920px] px-4 sm:px-6 py-10">
+                <div className="mx-auto w-[98%] md:w-[88%] max-w-[1600px] px-2 sm:px-4 md:px-8 py-10">
                     <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 sm:gap-8 mb-10">
 
                         {/* Col 1 — Brand */}
@@ -717,8 +717,8 @@ export default function CustomLayout({ children }: Props) {
                                     <div className="h-10 w-10 rounded-lg bg-gray-800 border border-gray-700 flex items-center justify-center text-[10px] font-black text-white">HD</div>
                                 )}
                                 <div>
-                                    <h3 className="font-black text-white uppercase text-[11px] tracking-widest leading-tight">{props.activeBranch?.system_name || 'HD Group'}</h3>
-                                    <p className="text-[10px] text-amber-400 font-semibold">Online Store</p>
+                                    <h3 className="font-black text-white uppercase text-[11px] tracking-widest leading-tight">{props.activeBranch?.system_name || 'Jopo Juniours Co. Ltd'}</h3>
+                                    <p className="text-[10px] text-blue-600 font-semibold">Online Store</p>
                                 </div>
                             </div>
                             <p className="text-sm text-gray-400 leading-relaxed mb-5">
@@ -766,38 +766,38 @@ export default function CustomLayout({ children }: Props) {
                             <h4 className="text-white font-bold text-sm uppercase tracking-widest mb-5">Quick Links</h4>
                             <ul className="space-y-3 text-sm">
                                 <li>
-                                    <Link href="/shop" className="flex items-center gap-2 text-gray-400 hover:text-amber-400 transition-colors group">
-                                        <span className="w-1.5 h-1.5 rounded-full bg-amber-400/40 group-hover:bg-amber-400 transition-colors shrink-0"></span>
+                                    <Link href="/shop" className="flex items-center gap-2 text-gray-400 hover:text-blue-600 transition-colors group">
+                                        <span className="w-1.5 h-1.5 rounded-full bg-blue-600/40 group-hover:bg-blue-600 transition-colors shrink-0"></span>
                                         Home
                                     </Link>
                                 </li>
                                 <li>
-                                    <Link href="/shop/products" className="flex items-center gap-2 text-gray-400 hover:text-amber-400 transition-colors group">
-                                        <span className="w-1.5 h-1.5 rounded-full bg-amber-400/40 group-hover:bg-amber-400 transition-colors shrink-0"></span>
+                                    <Link href="/shop/products" className="flex items-center gap-2 text-gray-400 hover:text-blue-600 transition-colors group">
+                                        <span className="w-1.5 h-1.5 rounded-full bg-blue-600/40 group-hover:bg-blue-600 transition-colors shrink-0"></span>
                                         All Products
                                     </Link>
                                 </li>
                                 <li>
-                                    <Link href="/shop/categories" className="flex items-center gap-2 text-gray-400 hover:text-amber-400 transition-colors group">
-                                        <span className="w-1.5 h-1.5 rounded-full bg-amber-400/40 group-hover:bg-amber-400 transition-colors shrink-0"></span>
+                                    <Link href="/shop/categories" className="flex items-center gap-2 text-gray-400 hover:text-blue-600 transition-colors group">
+                                        <span className="w-1.5 h-1.5 rounded-full bg-blue-600/40 group-hover:bg-blue-600 transition-colors shrink-0"></span>
                                         Categories
                                     </Link>
                                 </li>
                                 <li>
-                                    <Link href="/cart" className="flex items-center gap-2 text-gray-400 hover:text-amber-400 transition-colors group">
-                                        <span className="w-1.5 h-1.5 rounded-full bg-amber-400/40 group-hover:bg-amber-400 transition-colors shrink-0"></span>
+                                    <Link href="/cart" className="flex items-center gap-2 text-gray-400 hover:text-blue-600 transition-colors group">
+                                        <span className="w-1.5 h-1.5 rounded-full bg-blue-600/40 group-hover:bg-blue-600 transition-colors shrink-0"></span>
                                         Shopping Cart
                                     </Link>
                                 </li>
                                 <li>
-                                    <Link href="/about" className="flex items-center gap-2 text-gray-400 hover:text-amber-400 transition-colors group">
-                                        <span className="w-1.5 h-1.5 rounded-full bg-amber-400/40 group-hover:bg-amber-400 transition-colors shrink-0"></span>
+                                    <Link href="/about" className="flex items-center gap-2 text-gray-400 hover:text-blue-600 transition-colors group">
+                                        <span className="w-1.5 h-1.5 rounded-full bg-blue-600/40 group-hover:bg-blue-600 transition-colors shrink-0"></span>
                                         About Us
                                     </Link>
                                 </li>
                                 <li>
-                                    <Link href="/contact" className="flex items-center gap-2 text-gray-400 hover:text-amber-400 transition-colors group">
-                                        <span className="w-1.5 h-1.5 rounded-full bg-amber-400/40 group-hover:bg-amber-400 transition-colors shrink-0"></span>
+                                    <Link href="/contact" className="flex items-center gap-2 text-gray-400 hover:text-blue-600 transition-colors group">
+                                        <span className="w-1.5 h-1.5 rounded-full bg-blue-600/40 group-hover:bg-blue-600 transition-colors shrink-0"></span>
                                         Contact Us
                                     </Link>
                                 </li>
@@ -809,38 +809,38 @@ export default function CustomLayout({ children }: Props) {
                             <h4 className="text-white font-bold text-sm uppercase tracking-widest mb-5">Customer Service</h4>
                             <ul className="space-y-3 text-sm">
                                 <li>
-                                    <Link href="/profile/show" className="flex items-center gap-2 text-gray-400 hover:text-amber-400 transition-colors group">
-                                        <span className="w-1.5 h-1.5 rounded-full bg-amber-400/40 group-hover:bg-amber-400 transition-colors shrink-0"></span>
+                                    <Link href="/profile/show" className="flex items-center gap-2 text-gray-400 hover:text-blue-600 transition-colors group">
+                                        <span className="w-1.5 h-1.5 rounded-full bg-blue-600/40 group-hover:bg-blue-600 transition-colors shrink-0"></span>
                                         My Account
                                     </Link>
                                 </li>
                                 <li>
-                                    <Link href="/my-orders" className="flex items-center gap-2 text-gray-400 hover:text-amber-400 transition-colors group">
-                                        <span className="w-1.5 h-1.5 rounded-full bg-amber-400/40 group-hover:bg-amber-400 transition-colors shrink-0"></span>
+                                    <Link href="/my-orders" className="flex items-center gap-2 text-gray-400 hover:text-blue-600 transition-colors group">
+                                        <span className="w-1.5 h-1.5 rounded-full bg-blue-600/40 group-hover:bg-blue-600 transition-colors shrink-0"></span>
                                         Track My Orders
                                     </Link>
                                 </li>
                                 <li>
-                                    <Link href="/register" className="flex items-center gap-2 text-gray-400 hover:text-amber-400 transition-colors group">
-                                        <span className="w-1.5 h-1.5 rounded-full bg-amber-400/40 group-hover:bg-amber-400 transition-colors shrink-0"></span>
+                                    <Link href="/register" className="flex items-center gap-2 text-gray-400 hover:text-blue-600 transition-colors group">
+                                        <span className="w-1.5 h-1.5 rounded-full bg-blue-600/40 group-hover:bg-blue-600 transition-colors shrink-0"></span>
                                         Create Account
                                     </Link>
                                 </li>
                                 <li>
-                                    <Link href="/login" className="flex items-center gap-2 text-gray-400 hover:text-amber-400 transition-colors group">
-                                        <span className="w-1.5 h-1.5 rounded-full bg-amber-400/40 group-hover:bg-amber-400 transition-colors shrink-0"></span>
+                                    <Link href="/login" className="flex items-center gap-2 text-gray-400 hover:text-blue-600 transition-colors group">
+                                        <span className="w-1.5 h-1.5 rounded-full bg-blue-600/40 group-hover:bg-blue-600 transition-colors shrink-0"></span>
                                         Login
                                     </Link>
                                 </li>
                                 <li>
-                                    <a href={whatsappLink} target="_blank" rel="noopener noreferrer" className="flex items-center gap-2 text-gray-400 hover:text-amber-400 transition-colors group">
-                                        <span className="w-1.5 h-1.5 rounded-full bg-amber-400/40 group-hover:bg-amber-400 transition-colors shrink-0"></span>
+                                    <a href={whatsappLink} target="_blank" rel="noopener noreferrer" className="flex items-center gap-2 text-gray-400 hover:text-blue-600 transition-colors group">
+                                        <span className="w-1.5 h-1.5 rounded-full bg-blue-600/40 group-hover:bg-blue-600 transition-colors shrink-0"></span>
                                         Help &amp; Support
                                     </a>
                                 </li>
                                 <li>
-                                    <a href={whatsappLink} target="_blank" rel="noopener noreferrer" className="flex items-center gap-2 text-gray-400 hover:text-amber-400 transition-colors group">
-                                        <span className="w-1.5 h-1.5 rounded-full bg-amber-400/40 group-hover:bg-amber-400 transition-colors shrink-0"></span>
+                                    <a href={whatsappLink} target="_blank" rel="noopener noreferrer" className="flex items-center gap-2 text-gray-400 hover:text-blue-600 transition-colors group">
+                                        <span className="w-1.5 h-1.5 rounded-full bg-blue-600/40 group-hover:bg-blue-600 transition-colors shrink-0"></span>
                                         Returns &amp; Refunds
                                     </a>
                                 </li>
@@ -853,7 +853,7 @@ export default function CustomLayout({ children }: Props) {
                             <ul className="space-y-4 text-sm">
                                 <li className="flex items-start gap-3">
                                     <div className="w-8 h-8 rounded-lg bg-gray-800 flex items-center justify-center shrink-0 mt-0.5">
-                                        <MapPin className="w-4 h-4 text-amber-400" />
+                                        <MapPin className="w-4 h-4 text-blue-600" />
                                     </div>
                                     <div>
                                         <p className="text-white font-semibold text-xs mb-0.5">Address</p>
@@ -862,29 +862,29 @@ export default function CustomLayout({ children }: Props) {
                                 </li>
                                 <li className="flex items-start gap-3">
                                     <div className="w-8 h-8 rounded-lg bg-gray-800 flex items-center justify-center shrink-0 mt-0.5">
-                                        <svg className="w-4 h-4 text-amber-400" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
+                                        <svg className="w-4 h-4 text-blue-600" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
                                             <path strokeLinecap="round" strokeLinejoin="round" d="M3 5a2 2 0 012-2h3.28a1 1 0 01.948.684l1.498 4.493a1 1 0 01-.502 1.21l-2.257 1.13a11.042 11.042 0 005.516 5.516l1.13-2.257a1 1 0 011.21-.502l4.493 1.498a1 1 0 01.684.949V19a2 2 0 01-2 2h-1C9.716 21 3 14.284 3 6V5z"/>
                                         </svg>
                                     </div>
                                     <div>
                                         <p className="text-white font-semibold text-xs mb-0.5">Phone / WhatsApp</p>
-                                        <a href={whatsappLink} className="text-gray-400 hover:text-amber-400 transition-colors">{businessPhone}</a>
+                                        <a href={whatsappLink} className="text-gray-400 hover:text-blue-600 transition-colors">{businessPhone}</a>
                                     </div>
                                 </li>
                                 <li className="flex items-start gap-3">
                                     <div className="w-8 h-8 rounded-lg bg-gray-800 flex items-center justify-center shrink-0 mt-0.5">
-                                        <svg className="w-4 h-4 text-amber-400" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
+                                        <svg className="w-4 h-4 text-blue-600" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
                                             <path strokeLinecap="round" strokeLinejoin="round" d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z"/>
                                         </svg>
                                     </div>
                                     <div>
                                         <p className="text-white font-semibold text-xs mb-0.5">Email</p>
-                                        <a href={`mailto:${businessEmail}`} className="text-gray-400 hover:text-amber-400 transition-colors">{businessEmail}</a>
+                                        <a href={`mailto:${businessEmail}`} className="text-gray-400 hover:text-blue-600 transition-colors">{businessEmail}</a>
                                     </div>
                                 </li>
                                 <li className="flex items-start gap-3">
                                     <div className="w-8 h-8 rounded-lg bg-gray-800 flex items-center justify-center shrink-0 mt-0.5">
-                                        <svg className="w-4 h-4 text-amber-400" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
+                                        <svg className="w-4 h-4 text-blue-600" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
                                             <path strokeLinecap="round" strokeLinejoin="round" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"/>
                                         </svg>
                                     </div>
@@ -901,11 +901,11 @@ export default function CustomLayout({ children }: Props) {
 
                     {/* Copyright Bar */}
                     <div className="border-t border-gray-800 pt-5 flex flex-col items-center justify-center gap-2 text-xs text-gray-500 text-center">
-                        <p>&copy; 2026 {props.activeBranch?.name || 'HD Group'}. All rights reserved.</p>
+                        <p>&copy; 2026 {props.activeBranch?.name || 'Jopo Juniours Co. Ltd'}. All rights reserved.</p>
                         <p className="text-[11px] text-gray-400">Proudly serving Tanzania 🇹🇿</p>
                         <p>
                             Developed by{' '}
-                            <a href="https://wa.me/255717489868" target="_blank" rel="noopener noreferrer" className="text-amber-400 hover:text-amber-300 transition-colors font-semibold">
+                            <a href="https://wa.me/255717489868" target="_blank" rel="noopener noreferrer" className="text-blue-600 hover:text-blue-300 transition-colors font-semibold">
                                 FridolTech
                             </a>
                         </p>

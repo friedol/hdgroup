@@ -197,7 +197,7 @@ export default function CustomerShow({ customer, recentSales }: Props) {
     <AppLayout breadcrumbs={breadcrumbs}>
       <Head title={`${customer.customer_name} - Intelligence`} />
       
-      <div className="max-w-[1400px] mx-auto space-y-6 pb-20">
+      <div className="w-full space-y-6 pb-20">
         
         {/* Header & Actions */}
         <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">

@@ -2,7 +2,8 @@ import React, { useState, useRef } from 'react';
 import { Head, router } from '@inertiajs/react';
 import AppLayout from '@/layouts/app-layout';
 import { ConfirmDialog } from '@/components/ConfirmDialog';
-import { Package, Clock, Truck, CheckCircle } from 'lucide-react';
+import { Package, Clock, Truck, CheckCircle, AlertCircle, ShieldCheck } from 'lucide-react';
+import { KpiCard } from "@/components/dashboard/KpiCard";
 
 interface OrderItem {
     id: number;
@@ -370,24 +371,15 @@ export default function OnlineOrderDetail({
 
                     {/* Status Banners */}
                     <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 mb-6">
-                        <div className={`p-4 rounded-lg border transition-all ${status?.toLowerCase() === 'pending' ? 'bg-amber-50 border-amber-200' : status?.toLowerCase() === 'confirmed' ? 'bg-blue-50 border-blue-200' : 'bg-emerald-50 border-emerald-200'}`}>
-                            <p className="text-xs font-semibold text-slate-600 uppercase tracking-wide">Order Status</p>
-                            <p className={`text-lg font-medium capitalize mt-1 ${status?.toLowerCase() === 'pending' ? 'text-amber-700' : status?.toLowerCase() === 'confirmed' ? 'text-blue-700' : 'text-emerald-700'}`}>
-                                {status}
-                            </p>
-                        </div>
-                        <div className={`p-4 rounded-lg border transition-all ${payment_status === 'Paid' ? 'bg-emerald-50 border-emerald-200' : 'bg-rose-50 border-rose-200'}`}>
-                            <p className="text-xs font-semibold text-slate-600 uppercase tracking-wide">Payment Status</p>
-                            <p className={`text-lg font-medium capitalize mt-1 ${payment_status === 'Paid' ? 'text-emerald-700' : 'text-rose-700'}`}>
-                                {payment_status}
-                            </p>
-                        </div>
-                        <div className={`p-4 rounded-lg border transition-all ${isApproved ? 'bg-emerald-50 border-emerald-200' : 'bg-amber-50 border-amber-200'}`}>
-                            <p className="text-xs font-semibold text-slate-600 uppercase tracking-wide">Verification</p>
-                            <p className={`text-lg font-medium mt-1 ${isApproved ? 'text-emerald-700' : 'text-amber-700'}`}>
-                                {isApproved ? '✓ Verified' : 'Pending'}
-                            </p>
-                        </div>
+                        {[
+                            { title: "Order Status", value: status.toUpperCase(), change: 0, icon: Package, bgClass: status?.toLowerCase() === 'pending' ? 'bg-amber-50/50' : status?.toLowerCase() === 'confirmed' ? 'bg-blue-50/50' : 'bg-emerald-50/50', iconBgClass: status?.toLowerCase() === 'pending' ? 'bg-amber-100 text-amber-600' : status?.toLowerCase() === 'confirmed' ? 'bg-blue-100 text-blue-600' : 'bg-emerald-100 text-emerald-600' },
+                            { title: "Payment Status", value: payment_status.toUpperCase(), change: 0, icon: AlertCircle, bgClass: payment_status === 'Paid' ? 'bg-emerald-50/50' : 'bg-rose-50/50', iconBgClass: payment_status === 'Paid' ? 'bg-emerald-100 text-emerald-600' : 'bg-rose-100 text-rose-600' },
+                            { title: "Verification", value: isApproved ? "✓ VERIFIED" : "PENDING", change: 0, icon: ShieldCheck, bgClass: isApproved ? 'bg-emerald-50/50' : 'bg-amber-50/50', iconBgClass: isApproved ? 'bg-emerald-100 text-emerald-600' : 'bg-amber-100 text-amber-600' }
+                        ].map((k, i) => (
+                            <div key={k.title} className={`animate-fade-up stagger-${i + 1}`}>
+                                <KpiCard {...k} className="shadow-sm hover:shadow-md transition-shadow" />
+                            </div>
+                        ))}
                     </div>
 
                     {/* APPROVAL SECTION REMOVED - Now in header */}

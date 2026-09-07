@@ -4,6 +4,7 @@ namespace App\Http\Controllers;
 
 use App\Models\Branch;
 use App\Models\Sale;
+use App\Models\SaleItem;
 use App\Models\SalesTarget;
 use App\Models\User;
 use Carbon\Carbon;
@@ -15,9 +16,9 @@ class SalesTargetController extends Controller
 {
     public function index(Request $request)
     {
-        $user   = Auth::user();
+        $user = Auth::user();
         $period = $request->get('period_type', 'monthly');
-        $label  = $request->get('period_label', now()->format('Y-m'));
+        $label = $request->get('period_label', now()->format('Y-m'));
 
         // Branch scope
         $branchId = $user->is_global
@@ -44,7 +45,8 @@ class SalesTargetController extends Controller
             }
 
             $actualAmount = (float) $query->sum('payable_amount');
-            $actualUnits  = (int)   $query->sum('quantity'); // sum of items if available, else order count
+            $saleIds = (clone $query)->pluck('id');
+            $actualUnits = (int) SaleItem::whereIn('sale_id', $saleIds)->sum('quantity'); // sum of items if available, else order count
             if ($actualUnits === 0) {
                 $actualUnits = $query->count(); // fallback: count orders
             }
@@ -58,20 +60,20 @@ class SalesTargetController extends Controller
                 : 0;
 
             return [
-                'id'             => $t->id,
-                'period_type'    => $t->period_type,
-                'period_label'   => $t->period_label,
-                'branch_id'      => $t->branch_id,
-                'branch_name'    => $t->branch?->name ?? 'All Branches',
-                'user_id'        => $t->user_id,
-                'staff_name'     => $t->user?->staff_name ?? 'Branch Target',
-                'target_amount'  => $t->target_amount,
-                'target_units'   => $t->target_units,
-                'actual_amount'  => $actualAmount,
-                'actual_units'   => $actualUnits,
-                'amount_pct'     => $amountPct,
-                'units_pct'      => $unitsPct,
-                'notes'          => $t->notes,
+                'id' => $t->id,
+                'period_type' => $t->period_type,
+                'period_label' => $t->period_label,
+                'branch_id' => $t->branch_id,
+                'branch_name' => $t->branch?->name ?? 'All Branches',
+                'user_id' => $t->user_id,
+                'staff_name' => $t->user?->staff_name ?? 'Branch Target',
+                'target_amount' => $t->target_amount,
+                'target_units' => $t->target_units,
+                'actual_amount' => $actualAmount,
+                'actual_units' => $actualUnits,
+                'amount_pct' => $amountPct,
+                'units_pct' => $unitsPct,
+                'notes' => $t->notes,
             ];
         });
 
@@ -79,45 +81,45 @@ class SalesTargetController extends Controller
         $branchSummaries = $this->branchSalesSummary($startDate, $endDate, $branchId);
 
         return Inertia::render('Admin/SalesTargets/Index', [
-            'achievements'    => $achievements,
+            'achievements' => $achievements,
             'branchSummaries' => $branchSummaries,
-            'branches'        => Branch::select('id', 'name')->get(),
-            'staff'           => User::query()
+            'branches' => Branch::select('id', 'name')->get(),
+            'staff' => User::query()
                 ->select('id', 'staff_name', 'branch_id', 'role_id')
                 ->whereNotNull('branch_id')
                 ->whereHas('role', function ($q) {
                     $q->where('role_name', 'Seller')
-                      ->orWhere('role_name', 'like', '%Sales%');
+                        ->orWhere('role_name', 'like', '%Sales%');
                 })
                 ->orderBy('staff_name')
                 ->get(),
-            'filters'         => [
-                'period_type'  => $period,
+            'filters' => [
+                'period_type' => $period,
                 'period_label' => $label,
-                'branch_id'    => $branchId,
+                'branch_id' => $branchId,
             ],
-            'isGlobal'        => (bool) $user->is_global,
+            'isGlobal' => (bool) $user->is_global,
         ]);
     }
 
     public function store(Request $request)
     {
         $data = $request->validate([
-            'period_type'   => 'required|in:monthly,quarterly,yearly',
-            'period_label'  => 'required|string|max:20',
-            'branch_id'     => 'nullable|exists:branches,id',
-            'user_id'       => 'nullable|exists:users,id',
+            'period_type' => 'required|in:monthly,quarterly,yearly',
+            'period_label' => 'required|string|max:20',
+            'branch_id' => 'nullable|exists:branches,id',
+            'user_id' => 'nullable|exists:users,id',
             'target_amount' => 'required|numeric|min:0',
-            'target_units'  => 'nullable|integer|min:0',
-            'notes'         => 'nullable|string|max:500',
+            'target_units' => 'nullable|integer|min:0',
+            'notes' => 'nullable|string|max:500',
         ]);
 
         SalesTarget::updateOrCreate(
             [
-                'period_type'  => $data['period_type'],
+                'period_type' => $data['period_type'],
                 'period_label' => $data['period_label'],
-                'branch_id'    => $data['branch_id'] ?? null,
-                'user_id'      => $data['user_id'] ?? null,
+                'branch_id' => $data['branch_id'] ?? null,
+                'user_id' => $data['user_id'] ?? null,
             ],
             $data
         );
@@ -128,6 +130,7 @@ class SalesTargetController extends Controller
     public function destroy(SalesTarget $salesTarget)
     {
         $salesTarget->delete();
+
         return redirect()->back()->with('success', 'Sales target deleted.');
     }
 
@@ -143,17 +146,20 @@ class SalesTargetController extends Controller
                 [$q, $y] = explode('-', $label);
                 $qNum = (int) ltrim($q, 'Q');
                 $start = Carbon::create($y)->startOfYear()->addMonths(($qNum - 1) * 3);
-                $end   = (clone $start)->addMonths(3)->subSecond();
+                $end = (clone $start)->addMonths(3)->subSecond();
+
                 return [$start, $end];
 
             case 'yearly':
                 $start = Carbon::create($label)->startOfYear();
-                $end   = Carbon::create($label)->endOfYear();
+                $end = Carbon::create($label)->endOfYear();
+
                 return [$start, $end];
 
             default: // monthly  label format: 2026-04
                 $start = Carbon::createFromFormat('Y-m', $label)->startOfMonth();
-                $end   = Carbon::createFromFormat('Y-m', $label)->endOfMonth();
+                $end = Carbon::createFromFormat('Y-m', $label)->endOfMonth();
+
                 return [$start, $end];
         }
     }
@@ -167,10 +173,10 @@ class SalesTargetController extends Controller
             ->with('branch:id,name');
 
         return $query->get()->map(fn ($row) => [
-            'branch_id'     => $row->branch_id,
-            'branch_name'   => $row->branch?->name ?? 'Unknown',
+            'branch_id' => $row->branch_id,
+            'branch_name' => $row->branch?->name ?? 'Unknown',
             'total_revenue' => (float) $row->total_revenue,
-            'total_orders'  => (int) $row->total_orders,
+            'total_orders' => (int) $row->total_orders,
         ])->values()->toArray();
     }
 }

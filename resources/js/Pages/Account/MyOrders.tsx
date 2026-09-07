@@ -33,7 +33,7 @@ const PIPELINE_LABELS: Record<string, string> = {
 };
 
 const statusConfig: Record<string, { label: string; dot: string; text: string }> = {
-    pending:    { label: 'Pending',    dot: 'bg-amber-400',   text: 'text-amber-700' },
+    pending:    { label: 'Pending',    dot: 'bg-blue-400',    text: 'text-blue-700' },
     confirmed:  { label: 'Confirmed',  dot: 'bg-blue-400',    text: 'text-blue-700' },
     processing: { label: 'Processing', dot: 'bg-violet-400',  text: 'text-violet-700' },
     in_transit: { label: 'In Transit', dot: 'bg-orange-400',  text: 'text-orange-700' },
@@ -44,7 +44,7 @@ const statusConfig: Record<string, { label: string; dot: string; text: string }>
 
 const paymentConfig: Record<string, { label: string; cls: string }> = {
     paid:    { label: 'Paid',    cls: 'bg-emerald-100 text-emerald-700' },
-    partial: { label: 'Partial', cls: 'bg-amber-100 text-amber-700' },
+    partial: { label: 'Partial', cls: 'bg-blue-100 text-blue-700' },
     unpaid:  { label: 'Unpaid',  cls: 'bg-rose-100 text-rose-700' },
 };
 
@@ -62,8 +62,8 @@ function MiniPipeline({ status }: { status: string }) {
                 return (
                     <div key={step} className="flex items-center flex-1 last:flex-none">
                         <div className="flex flex-col items-center">
-                            <div className={`w-2.5 h-2.5 rounded-full flex-shrink-0 transition-all ${isCompleted ? 'bg-emerald-400' : isCurrent ? 'bg-amber-400 ring-2 ring-amber-200' : 'bg-slate-200'}`} />
-                            <span className={`text-[9px] font-bold mt-1 whitespace-nowrap ${isCompleted ? 'text-emerald-500' : isCurrent ? 'text-amber-600' : 'text-slate-300'}`}>
+                            <div className={`w-2.5 h-2.5 rounded-full flex-shrink-0 transition-all ${isCompleted ? 'bg-emerald-400' : isCurrent ? 'bg-blue-500 ring-2 ring-blue-200' : 'bg-slate-200'}`} />
+                            <span className={`text-[9px] font-bold mt-1 whitespace-nowrap ${isCompleted ? 'text-emerald-500' : isCurrent ? 'text-blue-600' : 'text-slate-300'}`}>
                                 {PIPELINE_LABELS[step]}
                             </span>
                         </div>
@@ -175,19 +175,19 @@ export default function MyOrders({ orders = [] }: Props) {
         <CustomLayout>
             <Head title="My Orders" />
             <div className="min-h-screen bg-slate-50">
-                <div className="relative bg-amber-400 text-slate-900 overflow-hidden border-b border-amber-500/40">
-                    <div className="absolute top-0 right-0 w-64 h-64 bg-amber-300/50 rounded-full blur-3xl opacity-50 -translate-y-1/2 translate-x-1/2" />
-                    <div className="absolute bottom-0 left-0 w-64 h-64 bg-amber-300/50 rounded-full blur-3xl opacity-50 translate-y-1/2 -translate-x-1/2" />
+                <div className="relative bg-blue-600 text-white overflow-hidden border-b border-blue-700/40">
+                    <div className="absolute top-0 right-0 w-64 h-64 bg-white/10 rounded-full blur-3xl -translate-y-1/2 translate-x-1/2" />
+                    <div className="absolute bottom-0 left-0 w-64 h-64 bg-white/10 rounded-full blur-3xl translate-y-1/2 -translate-x-1/2" />
 
                     <div className="w-[96%] max-w-[1920px] mx-auto px-4 py-5 flex items-center justify-between relative z-10">
                         <div>
-                            <h1 className="text-lg font-extrabold text-slate-900">My Orders</h1>
-                            <p className="text-xs text-slate-800/80 font-medium mt-0.5">
+                            <h1 className="text-lg font-extrabold text-white">My Orders</h1>
+                            <p className="text-xs text-white/80 font-medium mt-0.5">
                                 {orders.length} order{orders.length !== 1 ? 's' : ''} total
                             </p>
                         </div>
                         <Link href="/shop">
-                            <Button className="text-xs font-bold bg-amber-400 hover:bg-amber-500 text-slate-900 h-9 px-4">
+                            <Button className="text-xs font-bold bg-blue-700 hover:bg-blue-800 text-white h-9 px-4">
                                 <ShoppingBag className="w-3.5 h-3.5 mr-1.5" />
                                 Continue Shopping
                             </Button>
@@ -199,11 +199,11 @@ export default function MyOrders({ orders = [] }: Props) {
                             <button
                                 key={t.key}
                                 onClick={() => setTab(t.key)}
-                                className={`flex items-center gap-2 px-4 py-3 text-xs font-bold border-b-2 whitespace-nowrap transition-colors ${tab === t.key ? 'border-slate-900 text-slate-900' : 'border-transparent text-slate-700/70 hover:text-slate-900'}`}
+                                className={`flex items-center gap-2 px-4 py-3 text-xs font-bold border-b-2 whitespace-nowrap transition-colors ${tab === t.key ? 'border-white text-white' : 'border-transparent text-white/70 hover:text-slate-900'}`}
                             >
                                 {t.label}
                                 {t.count > 0 && (
-                                    <span className={`px-1.5 py-0.5 rounded-full text-[10px] font-extrabold ${tab === t.key ? 'bg-white/60 text-slate-900' : 'bg-white/30 text-slate-700'}`}>
+                                    <span className={`px-1.5 py-0.5 rounded-full text-[10px] font-extrabold ${tab === t.key ? 'bg-white/60 text-white' : 'bg-white/30 text-white/70'}`}>
                                         {t.count}
                                     </span>
                                 )}
@@ -231,7 +231,7 @@ export default function MyOrders({ orders = [] }: Props) {
                             </p>
                             {tab === 'all' && (
                                 <Link href="/shop">
-                                    <Button className="text-sm font-bold bg-amber-400 hover:bg-amber-500 text-slate-900">Go to Shop</Button>
+                                    <Button className="text-sm font-bold bg-blue-600 hover:bg-blue-700 text-white">Go to Shop</Button>
                                 </Link>
                             )}
                         </div>

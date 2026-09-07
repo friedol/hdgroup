@@ -1,5 +1,6 @@
 import { Head, useForm, usePage } from "@inertiajs/react";
 import AppLayout from "@/layouts/app-layout";
+import { Badge } from "@/components/ui/badge";
 import { 
   User, 
   Mail, 
@@ -12,7 +13,9 @@ import {
   ShieldCheck,
   Smartphone,
   MapPin,
-  FileText
+  FileText,
+  Camera,
+  Upload
 } from "lucide-react";
 import { useState } from "react";
 
@@ -20,6 +23,7 @@ export default function Profile() {
   const { auth } = usePage().props as any;
   const user = auth.user;
   const [activeTab, setActiveTab] = useState("info");
+  const [preview, setPreview] = useState<string | null>(null);
 
   // Profile Update Form
   const { data, setData, post, processing, errors } = useForm({
@@ -30,6 +34,7 @@ export default function Profile() {
     street: user.street || "",
     country: user.country || "Tanzania",
     tin_number: user.tin_number || "",
+    profile: null as File | null,
   });
 
   // Password Change Form
@@ -40,7 +45,9 @@ export default function Profile() {
 
   const handleUpdateProfile = (e: React.FormEvent) => {
     e.preventDefault();
-    post("/profile/update");
+    post("/profile/update", {
+      forceFormData: true,
+    });
   };
 
   const handleChangePassword = (e: React.FormEvent) => {
@@ -54,62 +61,80 @@ export default function Profile() {
     <AppLayout>
       <Head title="My Profile" />
       
-      <div className="max-w-[1700px] mx-auto py-8 px-4 sm:px-6 lg:px-8">
-        {/* Header Section */}
-        <div className="relative mb-8">
-            <div className="h-32 w-full bg-gradient-to-r from-blue-600 to-indigo-700 rounded-2xl shadow-lg border border-white/10" />
-            <div className="absolute -bottom-6 left-8 flex items-end gap-6">
-                <div className="h-20 w-20 rounded-2xl bg-white p-1 shadow-xl">
-                    <div className="w-full h-full rounded-xl bg-slate-100 flex items-center justify-center text-blue-600 border border-slate-200">
-                        <User size={40} strokeWidth={1.5} />
-                    </div>
-                </div>
-                <div className="mb-2">
-                    <h1 className="text-2xl font-bold text-white drop-shadow-sm">{user.staff_name || user.name}</h1>
-                    <div className="flex items-center gap-2 text-blue-100 text-sm font-medium">
-                        <ShieldCheck size={14} />
-                        <span>{user.staff_id || "Staff Member"}</span>
-                        <span className="opacity-40">•</span>
-                        <span>{auth.role_name || "Employee"}</span>
-                    </div>
-                </div>
-            </div>
-        </div>
+      <div className="w-full mx-auto py-8 px-0">
 
-        <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 mt-12">
-            {/* Sidebar Tabs */}
-            <div className="lg:col-span-3">
-                <nav className="flex flex-col gap-1">
+
+        <div className="grid grid-cols-1 lg:grid-cols-12 gap-10">
+            {/* Sidebar Left Panel */}
+            <div className="lg:col-span-3 space-y-8">
+                {/* Profile Picture Box View */}
+                <div className="bg-white p-4 rounded-xl border border-slate-200/60 shadow-sm">
+                    <div className="aspect-square w-full rounded-lg bg-slate-50 flex items-center justify-center text-slate-300 border border-slate-100 overflow-hidden relative group">
+                        {preview || user.profile ? (
+                            <img 
+                                src={preview || (user.profile?.startsWith('http') ? user.profile : `/storage/${user.profile}`)} 
+                                alt={user.staff_name} 
+                                className="w-full h-full object-cover"
+                            />
+                        ) : (
+                            <User size={60} strokeWidth={1} />
+                        )}
+                        
+                        <label className="absolute inset-0 bg-black/40 flex flex-col items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity cursor-pointer">
+                            <Camera size={24} className="text-white mb-1" />
+                            <span className="text-[10px] text-white font-bold uppercase tracking-widest">Update Photo</span>
+                            <input 
+                                type="file" 
+                                className="hidden" 
+                                accept="image/*"
+                                onChange={(e) => {
+                                    const file = e.target.files?.[0];
+                                    if (file) {
+                                        setData('profile', file);
+                                        setPreview(URL.createObjectURL(file));
+                                    }
+                                }}
+                            />
+                        </label>
+                    </div>
+                    
+                    <div className="mt-4 text-center">
+                        <h1 className="text-lg font-bold text-slate-900 leading-tight">{user.staff_name || user.name}</h1>
+                        <p className="text-xs text-slate-400 font-bold mt-1 uppercase tracking-wider">{auth.role_name || "Employee"}</p>
+                    </div>
+                </div>
+
+                <nav className="flex flex-col gap-1.5">
                     <button
                         onClick={() => setActiveTab("info")}
-                        className={`flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-medium transition-all ${activeTab === 'info' ? 'bg-blue-600 text-white shadow-lg shadow-blue-500/20' : 'text-slate-600 hover:bg-slate-100'}`}
+                        className={`flex items-center gap-3 px-4 py-3 rounded-lg text-sm font-medium transition-all ${activeTab === 'info' ? 'bg-blue-900 text-white shadow-lg shadow-blue-900/20' : 'text-slate-600 hover:bg-slate-100'}`}
                     >
                         <User size={18} />
                         Personal Info
                     </button>
                     <button
                         onClick={() => setActiveTab("password")}
-                        className={`flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-medium transition-all ${activeTab === 'password' ? 'bg-blue-600 text-white shadow-lg shadow-blue-500/20' : 'text-slate-600 hover:bg-slate-100'}`}
+                        className={`flex items-center gap-3 px-4 py-3 rounded-lg text-sm font-medium transition-all ${activeTab === 'password' ? 'bg-blue-900 text-white shadow-lg shadow-blue-900/20' : 'text-slate-600 hover:bg-slate-100'}`}
                     >
                         <Lock size={18} />
                         Password & Security
                     </button>
                 </nav>
 
-                <div className="mt-8 p-4 bg-slate-50 rounded-2xl border border-slate-100">
-                    <h3 className="text-xs font-bold text-slate-400 uppercase tracking-wider mb-4 px-2">System Info</h3>
-                    <div className="space-y-4 text-xs font-medium">
-                        <div className="flex justify-between items-center px-2">
-                            <span className="text-slate-500">Joined</span>
-                            <span className="text-slate-800">{new Date(user.created_at).toLocaleDateString()}</span>
+                <div className="mt-8 p-6 bg-white rounded-xl border border-slate-200/60 shadow-sm">
+                    <h3 className="text-[10px] font-bold text-slate-400 uppercase tracking-[0.2em] mb-5 px-1">System Meta</h3>
+                    <div className="space-y-4 text-xs font-semibold">
+                        <div className="flex justify-between items-center px-1">
+                            <span className="text-slate-400 font-medium tracking-tight">Joined Date</span>
+                            <span className="text-slate-800 tabular-nums">{new Date(user.created_at).toLocaleDateString()}</span>
                         </div>
-                        <div className="flex justify-between items-center px-2">
-                            <span className="text-slate-500">Staff ID</span>
-                            <span className="text-blue-600 font-bold">{user.staff_id || "N/A"}</span>
+                        <div className="flex justify-between items-center px-1">
+                            <span className="text-slate-400 font-medium tracking-tight">Official Staff ID</span>
+                            <span className="text-blue-600 tabular-nums font-bold">{user.staff_id || "N/A"}</span>
                         </div>
-                        <div className="flex justify-between items-center px-2">
-                            <span className="text-slate-500">Status</span>
-                            <span className="px-2 py-0.5 rounded-full bg-emerald-100 text-emerald-700">Active</span>
+                        <div className="flex justify-between items-center px-1">
+                            <span className="text-slate-400 font-medium tracking-tight">Account Status</span>
+                            <Badge className="bg-emerald-50 text-emerald-600 border-emerald-100 text-[10px] py-0 px-2 rounded-lg font-bold">Active</Badge>
                         </div>
                     </div>
                 </div>
@@ -118,24 +143,24 @@ export default function Profile() {
             {/* Main Content Area */}
             <div className="lg:col-span-9">
                 {activeTab === "info" ? (
-                    <div className="bg-white rounded-3xl border border-slate-200 shadow-sm overflow-hidden animate-in fade-in slide-in-from-bottom-4 duration-500">
+                    <div className="bg-white rounded-xl border border-slate-200/60 shadow-sm overflow-hidden animate-in fade-in slide-in-from-bottom-2 duration-500">
                         <div className="px-8 py-6 border-b border-slate-100">
-                            <h2 className="text-lg font-bold text-slate-900">Personal Information</h2>
-                            <p className="text-sm text-slate-500 mt-1">Manage your basic information and contact details.</p>
+                            <h2 className="text-base font-bold text-slate-800">Personal Information</h2>
+                            <p className="text-[13px] text-slate-500 mt-1 font-medium">Manage your basic information and contact details.</p>
                         </div>
                         
                         <form onSubmit={handleUpdateProfile} className="p-8 space-y-6">
                             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                                 <div className="space-y-1.5">
-                                    <label className="text-xs font-bold text-slate-600 ml-1 flex items-center gap-1.5">
-                                        <IdCard size={12} className="text-blue-500" />
+                                    <label className="text-xs font-semibold text-slate-500 ml-1 flex items-center gap-1.5">
+                                        <IdCard size={12} className="text-blue-400" />
                                         Full Name
                                     </label>
                                     <input 
                                         type="text" 
                                         value={data.customer}
                                         onChange={e => setData('customer', e.target.value)}
-                                        className="w-full h-11 px-4 rounded-xl border-slate-200 bg-slate-50 focus:bg-white focus:border-blue-500 transition-all text-sm outline-none"
+                                        className="w-full h-11 px-4 rounded-lg border-slate-200 bg-slate-50 focus:bg-white focus:border-blue-500 transition-all text-sm outline-none"
                                     />
                                     {errors.customer && <p className="text-xs text-rose-500 mt-1">{errors.customer}</p>}
                                 </div>
@@ -149,7 +174,7 @@ export default function Profile() {
                                         type="email" 
                                         value={data.email}
                                         onChange={e => setData('email', e.target.value)}
-                                        className="w-full h-11 px-4 rounded-xl border-slate-200 bg-slate-50 focus:bg-white focus:border-blue-500 transition-all text-sm outline-none"
+                                        className="w-full h-11 px-4 rounded-lg border-slate-200 bg-slate-50 focus:bg-white focus:border-blue-500 transition-all text-sm outline-none"
                                     />
                                     {errors.email && <p className="text-xs text-rose-500 mt-1">{errors.email}</p>}
                                 </div>
@@ -163,7 +188,7 @@ export default function Profile() {
                                         type="tel" 
                                         value={data.phone}
                                         onChange={e => setData('phone', e.target.value)}
-                                        className="w-full h-11 px-4 rounded-xl border-slate-200 bg-slate-50 focus:bg-white focus:border-blue-500 transition-all text-sm outline-none"
+                                        className="w-full h-11 px-4 rounded-lg border-slate-200 bg-slate-50 focus:bg-white focus:border-blue-500 transition-all text-sm outline-none"
                                     />
                                     {errors.phone && <p className="text-xs text-rose-500 mt-1">{errors.phone}</p>}
                                 </div>
@@ -177,7 +202,7 @@ export default function Profile() {
                                         type="text" 
                                         value={data.tin_number}
                                         onChange={e => setData('tin_number', e.target.value)}
-                                        className="w-full h-11 px-4 rounded-xl border-slate-200 bg-slate-50 focus:bg-white focus:border-blue-500 transition-all text-sm outline-none"
+                                        className="w-full h-11 px-4 rounded-lg border-slate-200 bg-slate-50 focus:bg-white focus:border-blue-500 transition-all text-sm outline-none"
                                         placeholder="Enter your TIN number"
                                     />
                                 </div>
@@ -193,7 +218,7 @@ export default function Profile() {
                                         type="text" 
                                         value={data.city}
                                         onChange={e => setData('city', e.target.value)}
-                                        className="w-full h-11 px-4 rounded-xl border-slate-200 bg-slate-50 focus:bg-white focus:border-blue-500 transition-all text-sm outline-none"
+                                        className="w-full h-11 px-4 rounded-lg border-slate-200 bg-slate-50 focus:bg-white focus:border-blue-500 transition-all text-sm outline-none"
                                     />
                                 </div>
                                 <div className="md:col-span-2 space-y-1.5">
@@ -205,7 +230,7 @@ export default function Profile() {
                                         type="text" 
                                         value={data.street}
                                         onChange={e => setData('street', e.target.value)}
-                                        className="w-full h-11 px-4 rounded-xl border-slate-200 bg-slate-50 focus:bg-white focus:border-blue-500 transition-all text-sm outline-none"
+                                        className="w-full h-11 px-4 rounded-lg border-slate-200 bg-slate-50 focus:bg-white focus:border-blue-500 transition-all text-sm outline-none"
                                     />
                                 </div>
                             </div>
@@ -214,7 +239,7 @@ export default function Profile() {
                                 <button 
                                     disabled={processing}
                                     type="submit"
-                                    className="flex items-center gap-2 px-6 py-2.5 rounded-xl bg-blue-600 text-white font-bold text-sm shadow-lg shadow-blue-500/20 hover:scale-[1.02] active:scale-[0.98] transition-all disabled:opacity-50"
+                                    className="flex items-center gap-2 px-6 py-2.5 rounded-lg bg-blue-900 text-white font-bold text-sm shadow-lg shadow-blue-900/20 hover:scale-[1.02] active:scale-[0.98] transition-all disabled:opacity-50"
                                 >
                                     <Save size={18} />
                                     {processing ? 'Saving...' : 'Save Changes'}
@@ -223,24 +248,24 @@ export default function Profile() {
                         </form>
                     </div>
                 ) : (
-                    <div className="bg-white rounded-3xl border border-slate-200 shadow-sm overflow-hidden animate-in fade-in slide-in-from-bottom-4 duration-500">
+                    <div className="bg-white rounded-xl border border-slate-200/60 shadow-sm overflow-hidden animate-in fade-in slide-in-from-bottom-2 duration-500">
                         <div className="px-8 py-6 border-b border-slate-100">
-                            <h2 className="text-lg font-bold text-slate-900">Security & Password</h2>
-                            <p className="text-sm text-slate-500 mt-1">Update your password to keep your account secure.</p>
+                            <h2 className="text-base font-bold text-slate-800">Security & Password</h2>
+                            <p className="text-[13px] text-slate-500 mt-1 font-medium">Update your password to keep your account secure.</p>
                         </div>
 
                         <form onSubmit={handleChangePassword} className="p-8 space-y-6">
                             <div className="max-w-md space-y-6">
                                 <div className="space-y-1.5">
-                                    <label className="text-xs font-bold text-slate-600 ml-1 flex items-center gap-1.5">
-                                        <Lock size={12} className="text-blue-500" />
+                                    <label className="text-xs font-semibold text-slate-500 ml-1 flex items-center gap-1.5">
+                                        <Lock size={12} className="text-blue-400" />
                                         New Password
                                     </label>
                                     <input 
                                         type="password" 
                                         value={passwordForm.data.password}
                                         onChange={e => passwordForm.setData('password', e.target.value)}
-                                        className="w-full h-11 px-4 rounded-xl border-slate-200 bg-slate-50 focus:bg-white focus:border-blue-500 transition-all text-sm outline-none"
+                                        className="w-full h-11 px-4 rounded-lg border-slate-200 bg-slate-50 focus:bg-white focus:border-blue-500 transition-all text-sm outline-none"
                                         placeholder="Minimum 8 characters"
                                     />
                                     {passwordForm.errors.password && <p className="text-xs text-rose-500 mt-1">{passwordForm.errors.password}</p>}
@@ -255,7 +280,7 @@ export default function Profile() {
                                         type="password" 
                                         value={passwordForm.data.password_confirm}
                                         onChange={e => passwordForm.setData('password_confirm', e.target.value)}
-                                        className="w-full h-11 px-4 rounded-xl border-slate-200 bg-slate-50 focus:bg-white focus:border-blue-500 transition-all text-sm outline-none"
+                                        className="w-full h-11 px-4 rounded-lg border-slate-200 bg-slate-50 focus:bg-white focus:border-blue-500 transition-all text-sm outline-none"
                                         placeholder="Repeat your new password"
                                     />
                                     {passwordForm.errors.password_confirm && <p className="text-xs text-rose-500 mt-1">{passwordForm.errors.password_confirm}</p>}
@@ -277,7 +302,7 @@ export default function Profile() {
                                     <button 
                                         disabled={passwordForm.processing}
                                         type="submit"
-                                        className="flex items-center gap-2 px-6 py-2.5 rounded-xl bg-blue-600 text-white font-bold text-sm shadow-lg shadow-blue-500/20 hover:scale-[1.02] active:scale-[0.98] transition-all disabled:opacity-50"
+                                        className="flex items-center gap-2 px-6 py-2.5 rounded-xl bg-blue-900 text-white font-bold text-sm shadow-lg shadow-blue-900/20 hover:scale-[1.02] active:scale-[0.98] transition-all disabled:opacity-50"
                                     >
                                         <Lock size={18} />
                                         {passwordForm.processing ? 'Updating...' : 'Update Password'}

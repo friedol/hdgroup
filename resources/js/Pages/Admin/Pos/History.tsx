@@ -1,10 +1,11 @@
 import { Head, router } from '@inertiajs/react';
 import {
   ReceiptText, TrendingUp, DollarSign, AlertCircle,
-  Search, Filter, ChevronLeft, ChevronRight, Clock, User
+  Search, Filter, ChevronLeft, ChevronRight, Clock, User, Printer, Send
 } from 'lucide-react';
 import React, { useState } from 'react';
 import AppLayout from '@/layouts/app-layout';
+import { KpiCard } from "@/components/dashboard/KpiCard";
 
 /* ─── Types ─────────────────────────────── */
 interface Sale {
@@ -21,6 +22,7 @@ interface Sale {
   status: string;
   date: string;
   time: string;
+  notes?: string;
 }
 
 interface Paginated {
@@ -80,6 +82,7 @@ export default function History({ sales, kpis, filters }: Props) {
   const [search, setSearch]   = useState(filters.search ?? '');
   const [status, setStatus]   = useState(filters.status ?? '');
   const [method, setMethod]   = useState(filters.method ?? '');
+  const [period, setPeriod]   = useState(filters.period ?? '');
   const [startDt, setStartDt] = useState(filters.start_dt ?? '');
   const [endDt, setEndDt]     = useState(filters.end_dt ?? '');
 
@@ -91,59 +94,27 @@ export default function History({ sales, kpis, filters }: Props) {
 
   const applyFilters = (overrides: Record<string, string> = {}) => {
     router.get('/sales-history', {
-      search, status, method, start_dt: startDt, end_dt: endDt, ...overrides,
+      search, status, method, period, start_dt: startDt, end_dt: endDt, ...overrides,
     }, { preserveState: true, preserveScroll: true });
   };
 
   const handleSearch = (e: React.FormEvent) => {
- e.preventDefault(); applyFilters(); 
-};
+    e.preventDefault(); applyFilters(); 
+  };
   const handlePage   = (page: number) => router.get('/sales-history', { ...filters, page }, { preserveState: true });
 
-  const KPIS = [
-    {
-      label: "TODAY'S REVENUE",
-      value: fmt(kpis.today_revenue),
-      icon: TrendingUp,
-      color: 'text-emerald-600',
-      border: 'border-l-emerald-500',
-      iconColor: 'text-emerald-500',
-      note: 'Today sales intake',
-    },
-    {
-      label: 'TOTAL REVENUE',
-      value: fmt(kpis.total_revenue),
-      icon: DollarSign,
-      color: 'text-blue-600',
-      border: 'border-l-blue-500',
-      iconColor: 'text-blue-500',
-      note: 'All recorded sales',
-    },
-    {
-      label: 'TOTAL SALES',
-      value: kpis.total_sales,
-      icon: ReceiptText,
-      color: 'text-violet-600',
-      border: 'border-l-violet-500',
-      iconColor: 'text-violet-500',
-      note: 'Completed invoices',
-    },
-    {
-      label: 'UNPAID BALANCE',
-      value: fmt(kpis.unpaid_amount),
-      icon: AlertCircle,
-      color: 'text-rose-600',
-      border: 'border-l-rose-500',
-      iconColor: 'text-rose-500',
-      note: 'Outstanding amount',
-    },
+  const kpiCards = [
+    { title: "Today's Revenue", value: fmt(kpis.today_revenue), change: 0, icon: TrendingUp, href: "#", bgClass: "bg-emerald-50/50", iconBgClass: "bg-emerald-100 text-emerald-600" },
+    { title: "Total Revenue", value: fmt(kpis.total_revenue), change: 0, icon: DollarSign, href: "#", bgClass: "bg-blue-50/50", iconBgClass: "bg-blue-100 text-blue-600" },
+    { title: "Total Sales", value: kpis.total_sales.toString(), change: 0, icon: ReceiptText, href: "#", bgClass: "bg-violet-50/50", iconBgClass: "bg-violet-100 text-violet-600" },
+    { title: "Unpaid Balance", value: fmt(kpis.unpaid_amount), change: 0, icon: AlertCircle, href: "#", bgClass: "bg-rose-50/50", iconBgClass: "bg-rose-100 text-rose-600" },
   ];
 
   return (
     <>
       <Head title="Sales history" />
       <AppLayout breadcrumbs={breadcrumbs}>
-        <div className="max-w-[1600px] mx-auto space-y-6 pb-8">
+        <div className="w-full space-y-6 pb-8">
 
           {/* Header */}
           <div className="flex items-center gap-3">
@@ -154,14 +125,9 @@ export default function History({ sales, kpis, filters }: Props) {
 
           {/* KPI Cards */}
           <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 md:gap-4">
-            {KPIS.map(k => (
-              <div key={k.label} className={`bg-white border border-slate-200 border-l-4 ${k.border} rounded-xl p-4 shadow-sm`}>
-                <div className="flex items-center gap-1.5 mb-2">
-                  <k.icon className={`h-3.5 w-3.5 ${k.iconColor}`} />
-                  <p className="text-[10px] font-medium text-slate-500 uppercase tracking-wide">{k.label}</p>
-                </div>
-                <p className={`text-sm md:text-lg font-bold ${k.color}`}>{k.value}</p>
-                <p className="text-xs text-slate-400 mt-1">{k.note}</p>
+            {kpiCards.map((kpi, i) => (
+              <div key={kpi.title} className={`animate-fade-up stagger-${i + 1}`}>
+                <KpiCard {...kpi} className="shadow-sm hover:shadow-md transition-shadow" />
               </div>
             ))}
           </div>
@@ -179,10 +145,21 @@ export default function History({ sales, kpis, filters }: Props) {
                 />
               </div>
 
+              {/* period filter */}
+              <select value={period} onChange={e => {
+                setPeriod(e.target.value); applyFilters({ period: e.target.value });
+              }}
+                className="py-2.5 px-3 text-sm border border-slate-200 rounded-xl outline-none focus:border-violet-400 bg-slate-50 focus:bg-white min-w-[140px]">
+                <option value="">All time</option>
+                <option value="day">Today</option>
+                <option value="week">This week</option>
+                <option value="month">This month</option>
+              </select>
+
               {/* status */}
               <select value={status} onChange={e => {
- setStatus(e.target.value); applyFilters({ status: e.target.value }); 
-}}
+                setStatus(e.target.value); applyFilters({ status: e.target.value }); 
+              }}
                 className="py-2.5 px-3 text-sm border border-slate-200 rounded-xl outline-none focus:border-violet-400 bg-slate-50 focus:bg-white min-w-[140px]">
                 <option value="">All statuses</option>
                 <option value="Paid">Paid</option>
@@ -192,8 +169,8 @@ export default function History({ sales, kpis, filters }: Props) {
 
               {/* method */}
               <select value={method} onChange={e => {
- setMethod(e.target.value); applyFilters({ method: e.target.value }); 
-}}
+                setMethod(e.target.value); applyFilters({ method: e.target.value }); 
+              }}
                 className="py-2.5 px-3 text-sm border border-slate-200 rounded-xl outline-none focus:border-violet-400 bg-slate-50 focus:bg-white min-w-[140px]">
                 <option value="">All methods</option>
                 <option value="Cash">Cash</option>
@@ -218,7 +195,7 @@ export default function History({ sales, kpis, filters }: Props) {
               <table className="w-full text-base">
                 <thead>
                   <tr className="bg-slate-50 border-b border-slate-100">
-                    {['Invoice', 'Customer', 'Cashier', 'Items', 'Total', 'Discount', 'Payable', 'Method', 'Status', 'Date & time'].map(h => (
+                    {['Invoice', 'Customer', 'Cashier', 'Items', 'Total', 'Discount', 'Payable', 'Method', 'Status', 'Date & time', 'Actions'].map(h => (
                       <th key={h} className="px-5 py-3 text-xs font-bold text-slate-500 uppercase tracking-wide text-left whitespace-nowrap">{h}</th>
                     ))}
                   </tr>
@@ -226,7 +203,7 @@ export default function History({ sales, kpis, filters }: Props) {
                 <tbody>
                   {sales.data.length === 0 ? (
                     <tr>
-                      <td colSpan={10} className="px-5 py-16 text-center">
+                      <td colSpan={11} className="px-5 py-16 text-center">
                         <ReceiptText className="h-12 w-12 mx-auto text-slate-200 mb-3" />
                         <p className="text-base font-bold text-slate-400">No sales found</p>
                         <p className="text-[11px] text-slate-300 mt-1">Try adjusting your filters</p>
@@ -243,6 +220,11 @@ export default function History({ sales, kpis, filters }: Props) {
                           <div>
                             <p className="text-sm font-bold text-slate-800 leading-tight">{row.customer}</p>
                             {row.company && <p className="text-xs text-slate-400 font-bold">{row.company}</p>}
+                            {row.notes && (
+                              <p className="text-xs bg-violet-50 text-violet-700 p-1.5 rounded-lg border border-violet-100 mt-1 italic font-normal">
+                                Note: "{row.notes}"
+                              </p>
+                            )}
                           </div>
                         </div>
                       </td>
@@ -262,6 +244,28 @@ export default function History({ sales, kpis, filters }: Props) {
                       <td className="px-5 py-3 whitespace-nowrap">
                         <p className="text-sm font-bold text-slate-700">{row.date}</p>
                         <p className="text-xs text-slate-400 font-bold flex items-center gap-1"><Clock className="h-2.5 w-2.5" />{row.time}</p>
+                      </td>
+                      <td className="px-5 py-3 whitespace-nowrap">
+                        <div className="flex items-center gap-1">
+                          <button
+                            title="Tuma / Share Invoice"
+                            onClick={() => {
+                              const url = `${window.location.origin}/invoice/receipt/${encodeURIComponent(row.invoice)}`;
+                              const text = `Habari ${row.customer}, hapa kuna Invoice / Risiti yako ya TZS ${row.payable.toLocaleString()} kutoka Jopo Juniours Co. Ltd. Unaweza kuipata hapa: ${url}`;
+                              window.open(`https://api.whatsapp.com/send?text=${encodeURIComponent(text)}`, '_blank');
+                            }}
+                            className="p-1.5 rounded-lg text-slate-400 hover:text-emerald-600 hover:bg-emerald-50 transition-colors"
+                          >
+                            <Send className="h-4 w-4" />
+                          </button>
+                          <button
+                            title="Print receipt"
+                            onClick={() => window.open(`/invoice/receipt/${encodeURIComponent(row.invoice)}`, '_blank', 'width=450,height=700')}
+                            className="p-1.5 rounded-lg text-slate-400 hover:text-blue-600 hover:bg-blue-50 transition-colors"
+                          >
+                            <Printer className="h-4 w-4" />
+                          </button>
+                        </div>
                       </td>
                     </tr>
                   ))}

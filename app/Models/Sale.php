@@ -2,12 +2,14 @@
 
 namespace App\Models;
 
-use Illuminate\Database\Eloquent\Model;
+use App\Services\CustomerAnalyticsService;
 use App\Traits\HasBranch;
+use Illuminate\Database\Eloquent\Model;
 
 class Sale extends Model
 {
     use HasBranch;
+
     protected $fillable = [
         'invoice_number',
         'customer_id',
@@ -23,6 +25,8 @@ class Sale extends Model
         'is_return',
         'returned_from_id',
         'branch_id',
+        'assigned_to',
+        'assigned_to_name',
     ];
 
     public function branch()
@@ -50,6 +54,11 @@ class Sale extends Model
         return $this->belongsTo(User::class, 'user_id');
     }
 
+    public function assignedUser()
+    {
+        return $this->belongsTo(User::class, 'assigned_to');
+    }
+
     public function payments()
     {
         return $this->hasMany(Payment::class, 'unique_id', 'invoice_number');
@@ -63,6 +72,23 @@ class Sale extends Model
     public function getBalanceAttribute()
     {
         return max(0, (float) $this->payable_amount - $this->amount_paid);
+    }
+
+    public function getSubtotalAttribute()
+    {
+        return $this->relationLoaded('items')
+            ? $this->items->sum('subtotal')
+            : $this->items()->sum('subtotal');
+    }
+
+    public function getDiscountAttribute()
+    {
+        return (float) $this->discount_amount;
+    }
+
+    public function getVatAmountAttribute()
+    {
+        return (float) $this->tax_amount;
     }
 
     public function syncStatus()
@@ -87,13 +113,13 @@ class Sale extends Model
     {
         static::saved(function ($sale) {
             if ($sale->pos_customer_id) {
-                app(\App\Services\CustomerAnalyticsService::class)->recalculateCustomerAnalytics($sale->pos_customer_id);
+                app(CustomerAnalyticsService::class)->recalculateCustomerAnalytics($sale->pos_customer_id);
             }
         });
 
         static::deleted(function ($sale) {
             if ($sale->pos_customer_id) {
-                app(\App\Services\CustomerAnalyticsService::class)->recalculateCustomerAnalytics($sale->pos_customer_id);
+                app(CustomerAnalyticsService::class)->recalculateCustomerAnalytics($sale->pos_customer_id);
             }
         });
     }
