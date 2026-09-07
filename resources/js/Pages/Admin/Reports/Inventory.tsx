@@ -17,7 +17,6 @@ import {
   ArrowLeftRight,
   ClipboardList,
   SlidersHorizontal,
-  Store as StoreIcon,
   CalendarRange,
 } from "lucide-react";
 import React from "react";
@@ -128,6 +127,13 @@ type TabKey =
   | "valued"
   | "unvalued";
 
+const CARD_TONES: Record<string, { bar: string; icon: string; value: string }> = {
+  blue: { bar: "bg-blue-500", icon: "bg-blue-50 text-blue-600", value: "text-blue-700" },
+  emerald: { bar: "bg-emerald-500", icon: "bg-emerald-50 text-emerald-600", value: "text-emerald-700" },
+  violet: { bar: "bg-violet-500", icon: "bg-violet-50 text-violet-600", value: "text-violet-700" },
+  amber: { bar: "bg-amber-500", icon: "bg-amber-50 text-amber-600", value: "text-amber-700" },
+};
+
 function OverviewCard({
   title,
   value,
@@ -139,18 +145,20 @@ function OverviewCard({
   value: string;
   explanation: string;
   icon: React.ElementType;
-  tone: string;
+  tone: keyof typeof CARD_TONES;
 }) {
+  const t = CARD_TONES[tone] ?? CARD_TONES.blue;
   return (
-    <div className={`rounded-2xl border p-4 shadow-sm ${tone}`}>
+    <div className="relative overflow-hidden rounded-2xl border border-slate-200 bg-white p-4 pl-5 shadow-sm">
+      <span className={`absolute inset-y-0 left-0 w-1.5 ${t.bar}`} />
       <div className="mb-2 flex items-center justify-between">
-        <div className="rounded-xl bg-white/15 p-2">
+        <div className={`rounded-xl p-2 ${t.icon}`}>
           <Icon className="h-4 w-4" />
         </div>
-        <p className="text-[10px] font-semibold uppercase tracking-wide opacity-90">{title}</p>
+        <p className="text-[10px] font-semibold uppercase tracking-wide text-slate-400">{title}</p>
       </div>
-      <p className="text-lg font-bold leading-none tracking-tight tabular-nums">{value}</p>
-      <p className="mt-1 text-[10px] font-medium leading-tight opacity-80">{explanation}</p>
+      <p className={`text-lg font-bold leading-none tracking-tight tabular-nums ${t.value}`}>{value}</p>
+      <p className="mt-1 text-[10px] font-medium leading-tight text-slate-400">{explanation}</p>
     </div>
   );
 }
@@ -211,6 +219,27 @@ export default function InventoryReport({
       query.end_date = ed;
     }
     router.get("/report_inventory", query, { preserveState: true, preserveScroll: true, replace: true });
+  };
+
+  // Auto-filter — no Apply button. Store changes reload immediately; a date
+  // pair reloads once both ends are set (or when either is cleared).
+  const onStoreChange = (v: string) => {
+    setStoreId(v);
+    applyFilters({ store_id: v });
+  };
+  const onStartChange = (v: string) => {
+    setStartDate(v);
+    if ((v && endDate) || !v) applyFilters({ start_date: v });
+  };
+  const onEndChange = (v: string) => {
+    setEndDate(v);
+    if ((startDate && v) || !v) applyFilters({ end_date: v });
+  };
+  const resetFilters = () => {
+    setStoreId("all");
+    setStartDate("");
+    setEndDate("");
+    router.get("/report_inventory", {}, { preserveScroll: true, replace: true });
   };
 
   const printQuery = React.useMemo(() => {
@@ -290,83 +319,70 @@ export default function InventoryReport({
         </div>
 
         {/* Dashboard filter bar */}
-        <div className="rounded-xl border border-slate-200 bg-white p-4 shadow-sm">
-          <div className="flex flex-wrap items-end gap-4">
-            <div>
-              <label className="mb-1 block text-[11px] font-semibold uppercase tracking-wide text-slate-500">
-                You are viewing store
+        <div className="rounded-xl border border-slate-200 bg-white p-3 shadow-sm sm:p-4">
+          <div className="grid grid-cols-3 gap-2 sm:flex sm:flex-wrap sm:items-end sm:gap-4">
+            <div className="min-w-0">
+              <label className="mb-1 block text-[10px] font-semibold uppercase tracking-wide text-slate-500 sm:text-[11px]">
+                <span className="hidden sm:inline">You are viewing </span>store
               </label>
-              <div className="relative">
-                <StoreIcon className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" />
-                <select
-                  value={storeId}
-                  onChange={(e) => {
-                    setStoreId(e.target.value);
-                    applyFilters({ store_id: e.target.value });
-                  }}
-                  className="h-10 w-[220px] rounded-md border border-slate-200 bg-white pl-9 pr-3 text-sm font-medium text-slate-800 focus:outline-none focus:ring-2 focus:ring-emerald-500"
-                >
-                  <option value="all">All Stores</option>
-                  {stores.map((s) => (
-                    <option key={s.id} value={s.id}>
-                      {s.store_name}
-                    </option>
-                  ))}
-                </select>
-              </div>
+              <select
+                value={storeId}
+                onChange={(e) => onStoreChange(e.target.value)}
+                className="h-10 w-full rounded-md border border-slate-200 bg-white px-2 text-xs font-medium text-slate-800 focus:outline-none focus:ring-2 focus:ring-emerald-500 sm:w-[220px] sm:px-3 sm:text-sm"
+              >
+                <option value="all">All Stores</option>
+                {stores.map((s) => (
+                  <option key={s.id} value={s.id}>
+                    {s.store_name}
+                  </option>
+                ))}
+              </select>
             </div>
 
-            <div>
-              <label className="mb-1 block text-[11px] font-semibold uppercase tracking-wide text-slate-500">
-                Start date
+            <div className="min-w-0">
+              <label className="mb-1 block text-[10px] font-semibold uppercase tracking-wide text-slate-500 sm:text-[11px]">
+                <span className="sm:hidden">From</span>
+                <span className="hidden sm:inline">Start date</span>
               </label>
               <Input
                 type="date"
                 value={startDate}
                 max={endDate || undefined}
-                onChange={(e) => setStartDate(e.target.value)}
-                className="h-10 w-[170px]"
+                onChange={(e) => onStartChange(e.target.value)}
+                className="h-10 w-full px-2 text-xs sm:w-[170px] sm:text-sm"
               />
             </div>
-            <div>
-              <label className="mb-1 block text-[11px] font-semibold uppercase tracking-wide text-slate-500">
-                End date
+            <div className="min-w-0">
+              <label className="mb-1 block text-[10px] font-semibold uppercase tracking-wide text-slate-500 sm:text-[11px]">
+                <span className="sm:hidden">To</span>
+                <span className="hidden sm:inline">End date</span>
               </label>
               <Input
                 type="date"
                 value={endDate}
                 min={startDate || undefined}
-                onChange={(e) => setEndDate(e.target.value)}
-                className="h-10 w-[170px]"
+                onChange={(e) => onEndChange(e.target.value)}
+                className="h-10 w-full px-2 text-xs sm:w-[170px] sm:text-sm"
               />
             </div>
-            <Button className="h-10" onClick={() => applyFilters()}>
-              Apply / Filter
-            </Button>
-            {(filters.start_date || filters.store_id) && (
-              <Button
-                variant="outline"
-                className="h-10"
-                onClick={() => {
-                  setStoreId("all");
-                  setStartDate("");
-                  setEndDate("");
-                  router.get("/report_inventory", {}, { preserveScroll: true, replace: true });
-                }}
-              >
-                Reset
-              </Button>
-            )}
           </div>
-          <div className="mt-3 flex flex-wrap items-center gap-2 text-xs text-slate-500">
-            <CalendarRange className="h-3.5 w-3.5" />
+          <div className="mt-2.5 flex flex-wrap items-center gap-x-2 gap-y-1 text-[11px] text-slate-500 sm:text-xs">
+            <CalendarRange className="h-3.5 w-3.5 shrink-0" />
             <span>
-              Reporting period: <span className="font-semibold text-slate-700">{periodLabel}</span>
+              Period: <span className="font-semibold text-slate-700">{periodLabel}</span>
             </span>
             <span className="text-slate-300">|</span>
             <span>
               Store: <span className="font-semibold text-slate-700">{filters.store_name}</span>
             </span>
+            {(filters.start_date || filters.store_id) && (
+              <button
+                onClick={resetFilters}
+                className="ml-auto font-semibold text-emerald-600 hover:underline"
+              >
+                Reset
+              </button>
+            )}
           </div>
         </div>
 
@@ -377,28 +393,28 @@ export default function InventoryReport({
             value={tzs(overview.stock_cost)}
             explanation="Total current inventory value based on purchase price"
             icon={Wallet}
-            tone="border-transparent bg-blue-600 text-white"
+            tone="blue"
           />
           <OverviewCard
             title="Expected Sale Value"
             value={tzs(overview.expected_sale_value)}
             explanation="Total potential selling value of current stock"
             icon={TrendingUp}
-            tone="border-transparent bg-emerald-600 text-white"
+            tone="emerald"
           />
           <OverviewCard
             title="Expected Sell Profit"
             value={tzs(overview.expected_sell_profit)}
             explanation="Expected sale value minus stock cost (stock not yet sold)"
             icon={Coins}
-            tone="border-transparent bg-violet-600 text-white"
+            tone="violet"
           />
           <OverviewCard
             title="Total Stock"
             value={`${num(overview.total_stock)} Units`}
             explanation="Available stock quantity now"
             icon={Boxes}
-            tone="border-transparent bg-amber-500 text-white"
+            tone="amber"
           />
         </div>
 
