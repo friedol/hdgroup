@@ -142,15 +142,15 @@ function OverviewCard({
   tone: string;
 }) {
   return (
-    <div className={`rounded-2xl border p-5 shadow-sm ${tone}`}>
-      <div className="flex items-center justify-between">
-        <p className="text-xs font-semibold uppercase tracking-wide opacity-90">{title}</p>
+    <div className={`rounded-2xl border p-4 shadow-sm ${tone}`}>
+      <div className="mb-2 flex items-center justify-between">
         <div className="rounded-xl bg-white/15 p-2">
           <Icon className="h-4 w-4" />
         </div>
+        <p className="text-[10px] font-semibold uppercase tracking-wide opacity-90">{title}</p>
       </div>
-      <p className="mt-3 text-2xl font-bold tracking-tight">{value}</p>
-      <p className="mt-1 text-[11px] font-medium opacity-80">{explanation}</p>
+      <p className="text-lg font-bold leading-none tracking-tight tabular-nums">{value}</p>
+      <p className="mt-1 text-[10px] font-medium leading-tight opacity-80">{explanation}</p>
     </div>
   );
 }
@@ -167,14 +167,14 @@ function InfoCard({
   accent: string;
 }) {
   return (
-    <div className="rounded-xl border border-slate-200 bg-white p-4 shadow-sm">
+    <div className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm">
       <div className="flex items-center gap-3">
-        <div className={`rounded-lg p-2 ${accent}`}>
+        <div className={`rounded-xl p-2 ${accent}`}>
           <Icon className="h-4 w-4" />
         </div>
-        <div>
-          <p className="text-lg font-bold text-slate-900 leading-none">{value}</p>
-          <p className="mt-1 text-[11px] font-medium uppercase tracking-wide text-slate-400">{title}</p>
+        <div className="min-w-0">
+          <p className="text-lg font-bold leading-none tracking-tight text-slate-900 tabular-nums">{value}</p>
+          <p className="mt-1 truncate text-[10px] font-medium uppercase tracking-wide text-slate-400">{title}</p>
         </div>
       </div>
     </div>
