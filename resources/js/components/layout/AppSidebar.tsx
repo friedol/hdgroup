@@ -495,7 +495,7 @@ export function AppSidebar({ collapsed = false, onToggle, width = 220, mobileOpe
                                   key={sub.title}
                                   href={sub.url}
                                   onClick={mobileOpen && onCloseMobile ? onCloseMobile : undefined}
-                                  className={`flex items-center gap-2.5 h-9 px-3 rounded-lg text-xs font-bold transition-all ${
+                                  className={`flex items-center gap-2.5 h-9 px-3 rounded-lg text-[13px] font-bold transition-all ${
                                     subActive
                                       ? 'bg-amber-500/15 text-[#b8860b] dark:bg-[#D4AF37]/20 dark:text-[#F4E4C1] border border-amber-500/30 dark:border-[#D4AF37]/40 shadow-sm'
                                       : 'text-slate-600 dark:text-slate-300 hover:text-[#D4AF37] dark:hover:text-[#D4AF37] hover:bg-amber-500/10 dark:hover:bg-amber-500/10'
