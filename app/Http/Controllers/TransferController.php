@@ -29,8 +29,14 @@ class TransferController extends Controller
     public function index(Request $request)
     {
         $d['transfers'] = $this->getTransferData($request);
-        $d['stores'] = Store::all();
+        $d['stores'] = Store::withoutGlobalScope('branch')->orderBy('store_name')->get();
         $d['users'] = User::where('staff_email', '!=', 'developer@gmail.com')->get();
+        $d['filters'] = [
+            'search' => $request->input('search', ''),
+            'store_id' => $request->filled('store_id') ? (int) $request->store_id : null,
+            'start_date' => $request->input('start_date'),
+            'end_date' => $request->input('end_date'),
+        ];
 
         return Inertia::render('Admin/Transfers/All', $d);
     }
@@ -52,8 +58,6 @@ class TransferController extends Controller
 
     private function getTransferData($request, $getAll = false)
     {
-        $currentDate = Carbon::now()->format('Y-m-d');
-
         $query = Transfer::withoutGlobalScope('branch')->selectRaw('
                 unique_id,
                 store_name as source_store,
@@ -71,25 +75,26 @@ class TransferController extends Controller
                 COUNT(*) as product_count
             ')
             ->groupBy('unique_id', 'source_store', 'store_name', 'created_at', 'staff_name', 'staff_recommeded')
-            ->orderBy('id', 'desc')
+            ->orderByRaw('MAX(id) DESC')
             ->filter(request(['search']));
 
-        if ($getAll) {
-            if ($request->has(['start_date', 'end_date']) && $request->start_date && $request->end_date) {
-                $query->whereBetween('created_at', [$request->start_date, $request->end_date]);
-            }
-        } else {
-            if ($request->has('all')) {
-                // $query;
-            } elseif ($request->has(['start_date', 'end_date']) && $request->start_date && $request->end_date) {
-                $query->whereBetween('created_at', [$request->start_date, $request->end_date]);
-            } else {
-                $query->whereDate('created_at', $currentDate);
-            }
+        // Optional date-range filter (applies to both the list and the report).
+        if ($request->filled('start_date') && $request->filled('end_date')) {
+            $start = Carbon::parse($request->start_date)->startOfDay();
+            $end = Carbon::parse($request->end_date)->endOfDay();
+            $query->whereBetween('created_at', [$start, $end]);
         }
 
-        // For listing page we want a paginator; for reports we need full collection
-        return $getAll ? $query->get() : $query->paginate(15);
+        // Optional store filter — match either side of the transfer.
+        if ($request->filled('store_id')) {
+            $storeId = (int) $request->store_id;
+            $query->where(function ($q) use ($storeId) {
+                $q->where('source_store_id', $storeId)->orWhere('destination_store_id', $storeId);
+            });
+        }
+
+        // Listing page => paginator (keeps filters on page links); report => full collection.
+        return $getAll ? $query->get() : $query->paginate(15)->withQueryString();
     }
 
     /**

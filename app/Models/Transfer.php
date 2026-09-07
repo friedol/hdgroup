@@ -2,18 +2,26 @@
 
 namespace App\Models;
 
+use App\Traits\HasBranch;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 
 class Transfer extends Model
 {
-    use \App\Traits\HasBranch, HasFactory;
+    use HasBranch, HasFactory;
 
     public function scopeFilter($query, array $filters)
     {
         if ($filters['search'] ?? false) {
-            $query->where('product_name', 'like', '%'.request('search').'%')
-                ->orwhere('created_at', 'like', '%'.request('search').'%');
+            $term = '%'.request('search').'%';
+            $query->where(function ($q) use ($term) {
+                $q->where('product_name', 'like', $term)
+                    ->orWhere('unique_id', 'like', $term)
+                    ->orWhere('staff_name', 'like', $term)
+                    ->orWhere('store_name', 'like', $term)
+                    ->orWhere('source_store', 'like', $term)
+                    ->orWhere('created_at', 'like', $term);
+            });
         }
     }
 

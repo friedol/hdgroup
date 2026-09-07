@@ -2,16 +2,13 @@ import { Head, Link, router, usePage } from "@inertiajs/react";
 import {
   Plus,
   Search,
-  Filter,
   ArrowRightLeft,
   Store as StoreIcon,
-  Calendar,
   CheckCircle2,
   Layers,
   User as UserIcon,
   Trash2,
   Eye,
-  AlertCircle,
   Check,
   X,
   Clock
@@ -82,6 +79,12 @@ interface Props {
   };
   stores: Store[];
   users: User[];
+  filters: {
+    search: string;
+    store_id: number | null;
+    start_date: string | null;
+    end_date: string | null;
+  };
   flash?: { success?: string; error?: string };
 }
 
@@ -116,11 +119,40 @@ function StatusBadge({ status }: { status: string | null }) {
   );
 }
 
-export default function TransfersAll({ transfers, stores, users }: Props) {
+export default function TransfersAll({ transfers, stores, users, filters }: Props) {
   const { props } = usePage<any>();
   const flash = props.flash as { success?: string; error?: string } | undefined;
 
-  const [searchTerm, setSearchTerm] = useState('');
+  const [searchTerm, setSearchTerm] = useState(filters?.search ?? '');
+  const [storeId, setStoreId] = useState<string>(filters?.store_id ? String(filters.store_id) : 'all');
+  const [startDate, setStartDate] = useState<string>(filters?.start_date ?? '');
+  const [endDate, setEndDate] = useState<string>(filters?.end_date ?? '');
+
+  const reload = (overrides: Record<string, string | number | undefined> = {}) => {
+    const params: Record<string, string> = {};
+    const search = (overrides.search ?? searchTerm) as string;
+    const store = (overrides.store_id ?? storeId) as string;
+    const sd = (overrides.start_date ?? startDate) as string;
+    const ed = (overrides.end_date ?? endDate) as string;
+    if (search) params.search = search;
+    if (store && store !== 'all') params.store_id = store;
+    if (sd && ed) {
+      params.start_date = sd;
+      params.end_date = ed;
+    }
+    if (overrides.page) params.page = String(overrides.page);
+    router.get('/transfers', params, { preserveState: true, preserveScroll: true, replace: true });
+  };
+
+  // Debounced search
+  useEffect(() => {
+    if ((filters?.search ?? '') === searchTerm) return;
+    const t = setTimeout(() => reload({ search: searchTerm }), 350);
+    return () => clearTimeout(t);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [searchTerm]);
+
+  const hasActiveFilters = !!(filters?.search || filters?.store_id || filters?.start_date);
   const [actionLoading, setActionLoading] = useState<string | null>(null);
   const [cancelTarget, setCancelTarget] = useState<string | null>(null);
   const [deleteTarget, setDeleteTarget] = useState<{ id: string; status: string | null } | null>(null);
@@ -231,23 +263,53 @@ export default function TransfersAll({ transfers, stores, users }: Props) {
 
         {/* Filters and Table Area */}
         <div className="bg-white border border-slate-200 rounded-lg shadow-sm overflow-hidden animate-in slide-in-from-bottom-4 duration-700">
-          <div className="p-4 border-b border-slate-100 bg-white flex flex-col md:flex-row justify-between items-center gap-4">
-             <div className="relative w-full md:w-96">
-                <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400" />
-                <Input 
-                  placeholder="Search by ID or store..." 
-                  className="pl-10 h-10 border-slate-200 text-xs rounded-md focus:ring-emerald-500 bg-white font-['Nunito_Sans']"
-                  value={searchTerm}
-                  onChange={e => setSearchTerm(e.target.value)}
-                />
-             </div>
-             <div className="flex items-center gap-2">
-                <Button variant="outline" className="h-10 text-xs font-medium capitalize text-slate-600 border-slate-200 rounded-md font-['Nunito_Sans']">
-                   <Filter className="h-3 w-3 mr-2 text-slate-400" /> Filter
-                </Button>
-                <Button variant="outline" className="h-10 text-xs font-medium capitalize text-slate-600 border-slate-200 rounded-md font-['Nunito_Sans']">
-                   <Calendar className="h-3 w-3 mr-2 text-slate-400" /> This Month
-                </Button>
+          <div className="p-4 border-b border-slate-100 bg-white flex flex-col gap-3 font-['Nunito_Sans']">
+             <div className="flex flex-col md:flex-row md:items-center gap-3">
+                <div className="relative w-full md:w-80">
+                   <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400" />
+                   <Input
+                     placeholder="Search by product or date..."
+                     className="pl-10 h-10 border-slate-200 text-xs rounded-md focus:ring-emerald-500 bg-white"
+                     value={searchTerm}
+                     onChange={e => setSearchTerm(e.target.value)}
+                   />
+                </div>
+                <div className="grid grid-cols-3 gap-2 md:flex md:items-center">
+                   <select
+                     value={storeId}
+                     onChange={e => { setStoreId(e.target.value); reload({ store_id: e.target.value, page: undefined }); }}
+                     className="h-10 rounded-md border border-slate-200 bg-white px-2 text-xs font-medium text-slate-700 focus:outline-none focus:ring-2 focus:ring-emerald-500 md:w-44"
+                   >
+                     <option value="all">All stores</option>
+                     {stores.map(s => (
+                       <option key={s.id} value={s.id}>{s.store_name ?? s.name}</option>
+                     ))}
+                   </select>
+                   <Input
+                     type="date"
+                     aria-label="From date"
+                     value={startDate}
+                     max={endDate || undefined}
+                     onChange={e => { setStartDate(e.target.value); if ((e.target.value && endDate) || !e.target.value) reload({ start_date: e.target.value }); }}
+                     className="h-10 px-2 text-xs border-slate-200 md:w-40"
+                   />
+                   <Input
+                     type="date"
+                     aria-label="To date"
+                     value={endDate}
+                     min={startDate || undefined}
+                     onChange={e => { setEndDate(e.target.value); if ((startDate && e.target.value) || !e.target.value) reload({ end_date: e.target.value }); }}
+                     className="h-10 px-2 text-xs border-slate-200 md:w-40"
+                   />
+                </div>
+                {hasActiveFilters && (
+                   <button
+                     onClick={() => { setSearchTerm(''); setStoreId('all'); setStartDate(''); setEndDate(''); router.get('/transfers', {}, { preserveScroll: true, replace: true }); }}
+                     className="text-xs font-semibold text-emerald-600 hover:underline md:ml-auto"
+                   >
+                     Clear filters
+                   </button>
+                )}
              </div>
           </div>
 
@@ -393,16 +455,16 @@ export default function TransfersAll({ transfers, stores, users }: Props) {
                    variant="outline" 
                    size="sm" 
                    disabled={transfers.current_page === 1}
-                   onClick={() => router.visit(`?page=${transfers.current_page - 1}`)}
+                   onClick={() => reload({ page: transfers.current_page - 1 })}
                    className="h-8 rounded-md text-xs font-medium capitalize border-slate-200"
                 >
                    previous
                 </Button>
-                <Button 
-                   variant="outline" 
+                <Button
+                   variant="outline"
                    size="sm"
                    disabled={transfers.current_page === transfers.last_page}
-                   onClick={() => router.visit(`?page=${transfers.current_page + 1}`)}
+                   onClick={() => reload({ page: transfers.current_page + 1 })}
                    className="h-8 rounded-md text-xs font-medium capitalize border-slate-200"
                 >
                    next
