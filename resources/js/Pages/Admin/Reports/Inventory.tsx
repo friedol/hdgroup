@@ -127,64 +127,49 @@ type TabKey =
   | "valued"
   | "unvalued";
 
-const CARD_TONES: Record<string, { bar: string; icon: string; value: string }> = {
-  blue: { bar: "bg-blue-500", icon: "bg-blue-50 text-blue-600", value: "text-blue-700" },
-  emerald: { bar: "bg-emerald-500", icon: "bg-emerald-50 text-emerald-600", value: "text-emerald-700" },
-  violet: { bar: "bg-violet-500", icon: "bg-violet-50 text-violet-600", value: "text-violet-700" },
-  amber: { bar: "bg-amber-500", icon: "bg-amber-50 text-amber-600", value: "text-amber-700" },
-};
+const CARD_TONES = {
+  blue: { chip: "bg-blue-100/70 text-blue-500", value: "text-blue-600" },
+  emerald: { chip: "bg-emerald-100/70 text-emerald-500", value: "text-emerald-600" },
+  violet: { chip: "bg-violet-100/70 text-violet-500", value: "text-violet-600" },
+  amber: { chip: "bg-amber-100/70 text-amber-500", value: "text-amber-600" },
+  cyan: { chip: "bg-cyan-100/70 text-cyan-500", value: "text-cyan-600" },
+  rose: { chip: "bg-rose-100/70 text-rose-500", value: "text-rose-600" },
+  indigo: { chip: "bg-indigo-100/70 text-indigo-500", value: "text-indigo-600" },
+  slate: { chip: "bg-slate-100 text-slate-500", value: "text-slate-700" },
+} as const;
 
-function OverviewCard({
+function StatCard({
   title,
   value,
-  explanation,
+  topLabel,
   icon: Icon,
   tone,
+  size = "lg",
 }: {
   title: string;
   value: string;
-  explanation: string;
+  topLabel: string;
   icon: React.ElementType;
   tone: keyof typeof CARD_TONES;
+  size?: "lg" | "md";
 }) {
   const t = CARD_TONES[tone] ?? CARD_TONES.blue;
   return (
-    <div className="relative overflow-hidden rounded-2xl border border-slate-200 bg-white p-4 pl-5 shadow-sm">
-      <span className={`absolute inset-y-0 left-0 w-1.5 ${t.bar}`} />
-      <div className="mb-2 flex items-center justify-between">
-        <div className={`rounded-xl p-2 ${t.icon}`}>
+    <div className="rounded-2xl border border-slate-100 bg-white px-4 py-3 shadow-sm">
+      <div className="flex items-center justify-between">
+        <div className={`flex h-9 w-9 items-center justify-center rounded-xl ${t.chip}`}>
           <Icon className="h-4 w-4" />
         </div>
-        <p className="text-[10px] font-semibold uppercase tracking-wide text-slate-400">{title}</p>
+        <span className="text-[11px] font-medium text-slate-400">{topLabel}</span>
       </div>
-      <p className={`text-lg font-bold leading-none tracking-tight tabular-nums ${t.value}`}>{value}</p>
-      <p className="mt-1 text-[10px] font-medium leading-tight text-slate-400">{explanation}</p>
-    </div>
-  );
-}
-
-function InfoCard({
-  title,
-  value,
-  icon: Icon,
-  accent,
-}: {
-  title: string;
-  value: string;
-  icon: React.ElementType;
-  accent: string;
-}) {
-  return (
-    <div className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm">
-      <div className="flex items-center gap-3">
-        <div className={`rounded-xl p-2 ${accent}`}>
-          <Icon className="h-4 w-4" />
-        </div>
-        <div className="min-w-0">
-          <p className="text-lg font-bold leading-none tracking-tight text-slate-900 tabular-nums">{value}</p>
-          <p className="mt-1 truncate text-[10px] font-medium uppercase tracking-wide text-slate-400">{title}</p>
-        </div>
-      </div>
+      <p
+        className={`mt-2 font-bold leading-tight tracking-tight tabular-nums break-words ${t.value} ${
+          size === "md" ? "text-[15px] sm:text-base" : "text-xl"
+        }`}
+      >
+        {value}
+      </p>
+      <p className="mt-0.5 text-[12px] font-medium text-slate-500 sm:text-[13px]">{title}</p>
     </div>
   );
 }
@@ -288,31 +273,33 @@ export default function InventoryReport({
       <Head title="Inventory Report" />
       <div className="space-y-6 pb-10">
         {/* Header */}
-        <div className="flex flex-wrap items-start justify-between gap-4">
-          <div>
-            <h1 className="text-2xl font-bold tracking-tight text-slate-900">Inventory Report</h1>
-            <p className="text-sm text-slate-500">
+        <div className="flex items-start justify-between gap-3">
+          <div className="min-w-0">
+            <h1 className="text-xl font-bold tracking-tight text-slate-900 sm:text-2xl">Inventory Report</h1>
+            <p className="mt-0.5 hidden text-sm text-slate-500 sm:block">
               Stock overview, store-level inventory, product list &amp; stock transfers in one place
             </p>
           </div>
-          <div className="flex items-center gap-2">
+          <div className="flex shrink-0 items-center gap-2">
             <a
               href={`/report_inventory/print?${printQuery}&print=true`}
               target="_blank"
               rel="noopener noreferrer"
-              className="inline-flex h-9 items-center justify-center gap-2 rounded-md border border-input bg-background px-4 text-sm font-medium shadow-sm hover:bg-accent hover:text-accent-foreground"
+              title="Print"
+              className="inline-flex h-9 items-center justify-center gap-2 rounded-md border border-input bg-background px-2.5 text-sm font-medium shadow-sm hover:bg-accent hover:text-accent-foreground sm:px-4"
             >
-              <Printer className="h-4 w-4" /> Print
+              <Printer className="h-4 w-4" /> <span className="hidden sm:inline">Print</span>
             </a>
             <a
               href={`/report_inventory/print?${printQuery}&download=true`}
-              className="inline-flex h-9 items-center justify-center gap-2 rounded-md border border-input bg-background px-4 text-sm font-medium shadow-sm hover:bg-accent hover:text-accent-foreground"
+              title="Download PDF"
+              className="inline-flex h-9 items-center justify-center gap-2 rounded-md border border-input bg-background px-2.5 text-sm font-medium shadow-sm hover:bg-accent hover:text-accent-foreground sm:px-4"
             >
-              <Download className="h-4 w-4" /> Download PDF
+              <Download className="h-4 w-4" /> <span className="hidden sm:inline">Download PDF</span>
             </a>
             <Link href="/products-new">
-              <Button size="sm">
-                <Plus className="mr-2 h-4 w-4" /> New Product
+              <Button size="sm" title="New Product">
+                <Plus className="h-4 w-4 sm:mr-2" /> <span className="hidden sm:inline">New Product</span>
               </Button>
             </Link>
           </div>
@@ -387,32 +374,35 @@ export default function InventoryReport({
         </div>
 
         {/* Stock overview cards */}
-        <div className="grid grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-4">
-          <OverviewCard
+        <div className="grid grid-cols-2 gap-3 md:grid-cols-2 xl:grid-cols-4">
+          <StatCard
             title="Stock Cost"
+            topLabel="Buying"
             value={tzs(overview.stock_cost)}
-            explanation="Total current inventory value based on purchase price"
             icon={Wallet}
             tone="blue"
+            size="md"
           />
-          <OverviewCard
+          <StatCard
             title="Expected Sale Value"
+            topLabel="Selling"
             value={tzs(overview.expected_sale_value)}
-            explanation="Total potential selling value of current stock"
             icon={TrendingUp}
             tone="emerald"
+            size="md"
           />
-          <OverviewCard
+          <StatCard
             title="Expected Sell Profit"
+            topLabel="Projected"
             value={tzs(overview.expected_sell_profit)}
-            explanation="Expected sale value minus stock cost (stock not yet sold)"
             icon={Coins}
             tone="violet"
+            size="md"
           />
-          <OverviewCard
+          <StatCard
             title="Total Stock"
-            value={`${num(overview.total_stock)} Units`}
-            explanation="Available stock quantity now"
+            topLabel="Units"
+            value={num(overview.total_stock)}
             icon={Boxes}
             tone="amber"
           />
@@ -422,12 +412,12 @@ export default function InventoryReport({
         <div>
           <h2 className="mb-2 text-sm font-semibold text-slate-700">Important Inventory Information</h2>
           <div className="grid grid-cols-2 gap-3 md:grid-cols-3 xl:grid-cols-6">
-            <InfoCard title="Total Products" value={num(overview.total_products)} icon={Layers} accent="bg-slate-100 text-slate-600" />
-            <InfoCard title="Low Stock Items" value={num(overview.low_stock)} icon={AlertTriangle} accent="bg-amber-100 text-amber-600" />
-            <InfoCard title="Out of Stock" value={num(overview.out_of_stock)} icon={PackageX} accent="bg-rose-100 text-rose-600" />
-            <InfoCard title="Stock Transfers" value={num(overview.stock_transfers)} icon={ArrowLeftRight} accent="bg-blue-100 text-blue-600" />
-            <InfoCard title="Products Sold" value={num(overview.products_sold)} icon={ShoppingCart} accent="bg-emerald-100 text-emerald-600" />
-            <InfoCard title="Stock Adjustments" value={num(overview.stock_adjustments)} icon={SlidersHorizontal} accent="bg-indigo-100 text-indigo-600" />
+            <StatCard title="Total Products" topLabel="Catalog" value={num(overview.total_products)} icon={Layers} tone="slate" />
+            <StatCard title="Low Stock Items" topLabel="Alert" value={num(overview.low_stock)} icon={AlertTriangle} tone="amber" />
+            <StatCard title="Out of Stock" topLabel="Empty" value={num(overview.out_of_stock)} icon={PackageX} tone="rose" />
+            <StatCard title="Stock Transfers" topLabel="Period" value={num(overview.stock_transfers)} icon={ArrowLeftRight} tone="blue" />
+            <StatCard title="Products Sold" topLabel="Period" value={num(overview.products_sold)} icon={ShoppingCart} tone="emerald" />
+            <StatCard title="Stock Adjustments" topLabel="Period" value={num(overview.stock_adjustments)} icon={SlidersHorizontal} tone="indigo" />
           </div>
           <p className="mt-1.5 text-[11px] text-slate-400">
             Transfers, products sold &amp; adjustments reflect the selected reporting period. All figures are calculated
